@@ -6,7 +6,7 @@
 pub use pallet::*;
 use frame_support::{
 	PalletId,
-	traits::{Currency, EnsureOrigin, ReservableCurrency, OnUnbalanced, Get, ExistenceRequirement::{KeepAlive}},
+	traits::{Currency, ReservableCurrency, OnUnbalanced, Get, ExistenceRequirement::{KeepAlive}},
 	codec::{Encode, Decode}
 };
 use sp_std::{vec, vec::Vec, convert::{TryInto}};
@@ -210,7 +210,7 @@ pub mod pallet {
 			ensure!(true == round.ongoing, Error::<T>::RoundHasEnded);
 			let area = round.total_support_area;
 			let pool = round.support_pool;
-			for (hash, mut project) in Projects::<T>::iter_prefix(round_id) {
+			for (_hash, mut project) in Projects::<T>::iter_prefix(round_id) {
 				if area > 0 {
 					let total = project.grants;
 					project.grants = total.checked_add(
