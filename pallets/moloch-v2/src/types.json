@@ -1,0 +1,27 @@
+{
+  "BalanceLock": "BalanceLockTo212",
+  "AccountInfo": "AccountInfoWithRefCount",
+  "ProposalOf": {
+    "proposer": "AccountId",
+    "applicant": "AccountId",
+    "sponsor": "AccountId",
+    "shares_requested": "u128",
+    "loot_requested": "u128",
+    "payment_requested": "u128",
+    "tribute_offered": "u128",
+    "flags": "[bool;6]",
+    "starting_period": "u128",
+    "yes_votes": "u128",
+    "no_votes": "u128",
+    "details": "Vec<u8>",
+    "max_total_shares_at_yes": "u128"
+  },
+  "MemberOf": {
+    "shares": "u128",
+    "loot": "u128",
+    "highest_index_yes_vote": "u128",
+    "exists": "bool",
+    "delegate_key": "AccountId",
+    "jailed_at": "u128"
+  }
+}

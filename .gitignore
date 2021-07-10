@@ -11,3 +11,6 @@ Cargo.lock
 
 # remove cargo cache
 .cargo
+
+# Mac OS
+.DS_Store

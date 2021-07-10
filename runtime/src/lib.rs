@@ -43,6 +43,9 @@ use frame_system::{EnsureRoot};
 /// Import the qudratic-funding pallet.
 pub use pallet_qf;
 
+/// Import the moloch-v2 pallet.
+pub use pallet_moloch_v2;
+
 /// An index to a block.
 pub type BlockNumber = u32;
 
@@ -306,6 +309,47 @@ impl pallet_qf::Config for Runtime {
 	type AdminOrigin = EnsureRoot<AccountId>;
 }
 
+parameter_types! {
+	// Use moduleid to generate internal accountid
+	pub const MolochV2PalletId: PalletId = PalletId(*b"py/moloc");
+	// HARD-CODED LIMITS
+    // These numbers are quite arbitrary; they are small enough to avoid overflows when doing calculations
+    // with periods or shares, yet big enough to not limit reasonable use cases.
+    pub const MaxVotingPeriodLength: u128 = 10_u128.pow(18); // maximum length of voting period
+    pub const MaxGracePeriodLength: u128 = 10_u128.pow(18); // maximum length of grace period
+    pub const MaxDilutionBound: u128 = 10_u128.pow(18); // maximum dilution bound
+    pub const MaxShares: u128 = 10_u128.pow(18); // maximum number of shares that can be minted
+
+}
+
+/// Configure the moloch-v2 pallet in pallets/moloch-v2.
+impl pallet_moloch_v2::Config for Runtime {
+	type Event = Event;
+	type PalletId = MolochV2PalletId;
+    // The Balances pallet implements the ReservableCurrency trait.
+    // https://substrate.dev/rustdocs/v2.0.0/pallet_balances/index.html#implementations-2
+    type Currency = pallet_balances::Pallet<Runtime>;
+
+	 // No action is taken when deposits are forfeited.
+	 type Slashed = ();
+
+	 // Origin who can control the round
+	type AdminOrigin = EnsureRoot<AccountId>;
+
+	// maximum length of voting period
+	type MaxVotingPeriodLength = MaxVotingPeriodLength;
+
+	// maximum length of grace period
+	type MaxGracePeriodLength = MaxGracePeriodLength;
+
+	// maximum dilution bound
+	type MaxDilutionBound = MaxDilutionBound;
+
+	// maximum number of shares
+	type MaxShares = MaxShares;
+
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
 	pub enum Runtime where
@@ -323,6 +367,7 @@ construct_runtime!(
 		Sudo: pallet_sudo::{Pallet, Call, Config<T>, Storage, Event<T>},
 		// Include the custom logic from the quadratic funding in the runtime
 		QfModule: pallet_qf::{Pallet, Call, Storage, Event<T>},
+		MolochV2Module: pallet_moloch_v2::{Pallet, Call, Storage, Event<T>},
 	}
 );
 

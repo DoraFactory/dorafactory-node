@@ -23,7 +23,6 @@ runtime-benchmarks = [
     'frame-system/runtime-benchmarks',
     'hex-literal',
     'pallet-balances/runtime-benchmarks',
-    'pallet-qf/runtime-benchmarks',
     'pallet-timestamp/runtime-benchmarks',
     'sp-runtime/runtime-benchmarks',
 ]
@@ -39,6 +38,7 @@ std = [
     'pallet-randomness-collective-flip/std',
     'pallet-sudo/std',
     'pallet-qf/std',
+    'pallet-moloch-v2/std',
     'pallet-timestamp/std',
     'pallet-transaction-payment-rpc-runtime-api/std',
     'pallet-transaction-payment/std',
@@ -135,6 +135,11 @@ version = '3.0.0'
 [dependencies.pallet-qf]
 default-features = false
 path = '../pallets/quadratic-funding'
+version = '3.0.0'
+
+[dependencies.pallet-moloch-v2]
+default-features = false
+path = '../pallets/moloch-v2'
 version = '3.0.0'
 
 [dependencies.pallet-timestamp]
