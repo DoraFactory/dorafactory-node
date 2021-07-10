@@ -7,7 +7,7 @@
 pub use pallet::*;
 use frame_support::{
 	PalletId,
-	traits::{Currency, ReservableCurrency, OnUnbalanced, Get, ExistenceRequirement::{KeepAlive}},
+	traits::{Currency, ReservableCurrency, OnUnbalanced, Get, ExistenceRequirement::{KeepAlive, AllowDeath}},
 	codec::{Encode, Decode}
 };
 use sp_std::{vec, vec::Vec, convert::{TryInto}};
@@ -307,6 +307,337 @@ pub mod pallet {
 			AddressOfDelegates::<T>::insert(who.clone(), who.clone());
 			TotalShares::<T>::put(1);
 			Self::deposit_event(Event::SummonComplete(who, 1));
+			Ok(().into())
+		}
+		
+		/// Anyone can submit proposal, but need to ensure enough tokens
+		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
+		pub fn submit_proposal(origin: OriginFor<T>, applicant: T::AccountId, #[pallet::compact] tribute_offered: BalanceOf<T>,
+			                   shares_requested: u128, loot_requested: u128, #[pallet::compact] payment_requested: BalanceOf<T>, 
+							   details: Vec<u8>) -> DispatchResultWithPostInfo {
+			let who = ensure_signed(origin)?;
+			if Members::<T>::contains_key(who.clone()) {
+				ensure!(Members::<T>::get(who.clone()).jailed_at == 0, Error::<T>::MemberInJail);
+			}
+			let total_requested = loot_requested.checked_add(shares_requested).unwrap();
+			let future_shares = TotalShares::<T>::get().checked_add(total_requested).unwrap();
+			ensure!(future_shares <= T::MaxShares::get(), Error::<T>::SharesOverFlow);
+
+			// collect proposal deposit from proposer and store it in the Moloch until the proposal is processed
+			let _ = T::Currency::transfer(&who, &Self::custody_account(), tribute_offered, KeepAlive);
+
+			let tribute_offered_num = Self::balance_to_u128(tribute_offered);
+			let payment_requested_num = Self::balance_to_u128(payment_requested);
+			let flags = [false; 6];
+			Self::create_proposal(who.clone(), applicant.clone(), shares_requested, loot_requested, 
+			                      tribute_offered_num, payment_requested_num, details, flags);
+			Ok(().into())
+		}
+
+		/// propose a guild kick proposal
+		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
+		pub fn submit_guild_kick_proposal(origin: OriginFor<T>, member_to_kick: T::AccountId, details: Vec<u8>) -> DispatchResultWithPostInfo  {
+			let who = ensure_signed(origin)?;
+			ensure!(Members::<T>::contains_key(member_to_kick.clone()), Error::<T>::NotMember);
+			let member = Members::<T>::get(member_to_kick.clone());
+			ensure!(member.shares > 0 || member.loot > 0, Error::<T>::NoEnoughShares);
+			ensure!(member.jailed_at == 0, Error::<T>::MemberInJail);
+
+			// [sponsored, processed, didPass, cancelled, whitelist, guildkick]
+			let mut flags = [false; 6];
+			flags[5] = true;
+			Self::create_proposal(who.clone(), member_to_kick.clone(), 0, 0, 0, 0, details, flags);
+			Ok(().into())
+		}
+
+		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
+		pub fn sponsor_proposal(origin: OriginFor<T>, proposal_index: u128) -> DispatchResultWithPostInfo  {
+			let who = ensure_signed(origin)?;
+			ensure!(Members::<T>::contains_key(who.clone()), Error::<T>::NotMember);
+			ensure!(Proposals::<T>::contains_key(proposal_index), Error::<T>::ProposalNotExist);
+			let proposal = Proposals::<T>::get(proposal_index);
+			// check proposal status
+			ensure!(!proposal.flags[0], Error::<T>::ProposalHasSponsored);
+			ensure!(!proposal.flags[3], Error::<T>::ProposalHasAborted);
+			// reject in jailed memeber to process
+			if Members::<T>::contains_key(who.clone()) {
+				ensure!(Members::<T>::get(who.clone()).jailed_at == 0, Error::<T>::MemberInJail);
+			}
+
+			// collect proposal deposit from proposer and store it in the Moloch until the proposal is processed
+			let _ = T::Currency::transfer(&who, &Self::account_id(), ProposalDeposit::<T>::get(), KeepAlive);
+
+			if proposal.flags[5] {
+				ensure!(!ProsedToKick::<T>::contains_key(proposal.applicant.clone()), Error::<T>::MemberInJail);
+				ProsedToKick::<T>::insert(proposal.applicant, true);
+			}
+			let proposal_queue = ProposalQueue::<T>::get();
+			let proposal_period = match proposal_queue.len() {
+				0 => 0,
+				n => Proposals::<T>::get(proposal_queue[n-1]).starting_period
+			};
+			let starting_period = proposal_period.max(Self::get_current_period()).checked_add(1).unwrap();
+			Proposals::<T>::mutate(proposal_index, |p| {
+				p.starting_period = starting_period;
+				// sponsored
+				p.flags[0] = true;
+				p.sponsor = AddressOfDelegates::<T>::get(who.clone());
+			});
+			ProposalQueue::<T>::append(proposal_index);
+
+			Ok(().into())
+		}
+
+		/// One of the members submit a vote
+		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
+		pub fn submit_vote(origin: OriginFor<T>, proposal_index: u128, vote_unit: u8) -> DispatchResultWithPostInfo {
+			let who = ensure_signed(origin)?;
+			ensure!(AddressOfDelegates::<T>::contains_key(who.clone()), Error::<T>::NotMember);
+			let delegate = AddressOfDelegates::<T>::get(who.clone());
+			let member = Members::<T>::get(delegate.clone());
+			ensure!(member.shares > 0, Error::<T>::NoEnoughShares);
+			
+			let proposal_len = ProposalQueue::<T>::get().len();
+			ensure!(proposal_index < proposal_len.try_into().unwrap(), Error::<T>::ProposalNotExist);
+			let _usize_proposal_index = TryInto::<usize>::try_into(proposal_index).ok().unwrap();
+			let proposal_id = ProposalQueue::<T>::get()[_usize_proposal_index];
+			let proposal = Proposals::<T>::get(proposal_id);
+			ensure!(vote_unit < 3 && vote_unit > 0, Error::<T>::InvalidVote);
+			ensure!(Self::get_current_period() >= proposal.starting_period, Error::<T>::ProposalNotStart);
+			ensure!(
+				Self::get_current_period() <  VotingPeriodLength::<T>::get() + proposal.starting_period,
+				Error::<T>::ProposalExpired
+			);
+			ensure!(!ProposalVotes::<T>::contains_key(proposal_index, delegate.clone()), Error::<T>::MemberHasVoted);
+			ensure!(!proposal.flags[3], Error::<T>::ProposalHasAborted);
+			let vote = match vote_unit {
+				1 => Vote::Yes,
+				2 => Vote::No,
+				_ => Vote::Null
+			};
+			ProposalVotes::<T>::insert(proposal_id, delegate.clone(), vote_unit);
+
+			// update proposal
+			Proposals::<T>::mutate(proposal_id, |p| {
+				if vote == Vote::Yes {
+					p.yes_votes = proposal.yes_votes.checked_add(member.shares).unwrap();
+					if proposal_index > member.highest_index_yes_vote {	
+						Members::<T>::mutate(delegate.clone(), |mem| {
+							mem.highest_index_yes_vote = proposal_index;
+						});
+					}
+
+					// update max yes
+					let all_loot_shares = TotalShares::<T>::get().checked_add(TotalLoot::<T>::get()).unwrap();
+					if all_loot_shares > proposal.max_total_shares_at_yes {
+						p.max_total_shares_at_yes = all_loot_shares;
+					}
+				} else if vote == Vote::No {
+					p.no_votes = proposal.no_votes.checked_add(member.shares).unwrap();
+				}
+			});
+			Self::deposit_event(Event::SubmitVote(proposal_index, who, delegate, vote_unit));
+			Ok(().into())
+		}
+
+		/// Process a proposal in queue
+		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
+		pub fn process_proposal(origin: OriginFor<T>, proposal_index: u128) -> DispatchResultWithPostInfo {
+			let who = ensure_signed(origin)?;
+			let proposal_len = ProposalQueue::<T>::get().len();
+			ensure!(proposal_index < proposal_len.try_into().unwrap(), Error::<T>::ProposalNotExist);
+			let _usize_proposal_index = TryInto::<usize>::try_into(proposal_index).ok().unwrap();
+			let proposal_id = ProposalQueue::<T>::get()[_usize_proposal_index];
+			let proposal = &mut Proposals::<T>::get(proposal_id);
+			ensure!(!proposal.flags[4] && !proposal.flags[5], Error::<T>::NotStandardProposal);
+			ensure!(
+				Self::get_current_period() - VotingPeriodLength::<T>::get() - GracePeriodLength::<T>::get() >= proposal.starting_period,
+				Error::<T>::ProposalNotReady
+			);
+			ensure!(proposal.flags[1] == false, Error::<T>::ProposalHasProcessed);
+			ensure!(proposal_index == 0 || Proposals::<T>::get(ProposalQueue::<T>::get()[_usize_proposal_index - 1]).flags[1], 
+			        Error::<T>::PreviousProposalNotProcessed);
+
+			proposal.flags[1] = true;
+			let mut did_pass = Self::should_pass(Proposals::<T>::get(proposal_id));
+			let tribute_offered = Self::u128_to_balance(proposal.tribute_offered);
+			let free_token_num = Self::balance_to_u128(T::Currency::free_balance(&Self::account_id()));
+			// too many tokens requested
+			if proposal.payment_requested > free_token_num {
+				did_pass = false;
+			}
+			// shares+loot overflow
+			let total_requested = proposal.loot_requested.checked_add(proposal.shares_requested).unwrap();
+			let future_shares = TotalShares::<T>::get().checked_add(total_requested).unwrap();
+			ensure!(future_shares.checked_add(TotalLoot::<T>::get()).unwrap() <= T::MaxShares::get(), Error::<T>::SharesOverFlow);
+
+			// TODO: guild is full
+
+			// Proposal passed
+			if did_pass {
+				// mark did_pass to true
+				proposal.flags[2] = true;
+
+				// if the applicant is already a member, add to their existing shares
+				if Members::<T>::contains_key(&proposal.applicant) {
+					Members::<T>::mutate(&proposal.applicant, |mem| {
+						mem.shares = mem.shares.checked_add(proposal.shares_requested).unwrap();
+						mem.loot = mem.loot.checked_add(proposal.loot_requested).unwrap();
+					});
+				} else {
+					// if the applicant address is already taken by a member's delegateKey, reset it to their member address
+					if AddressOfDelegates::<T>::contains_key(proposal.applicant.clone()) {
+						let delegate = AddressOfDelegates::<T>::get(proposal.applicant.clone());
+						Members::<T>::mutate(delegate.clone(), |mem| {
+							mem.delegate_key = delegate.clone();
+						});
+						AddressOfDelegates::<T>::insert(delegate.clone(), delegate.clone());
+					}
+					// add new member
+					let member = super::Member {
+						shares: proposal.shares_requested,
+						highest_index_yes_vote: 0,
+						loot: proposal.loot_requested,
+						jailed_at: 0,
+						exists: true,
+						delegate_key: proposal.applicant.clone(),
+					};
+					Members::<T>::insert(proposal.applicant.clone(), member);
+					AddressOfDelegates::<T>::insert(proposal.applicant.clone(), proposal.applicant.clone());
+				}
+
+				// mint new shares
+				let totoal_shares = TotalShares::<T>::get().checked_add(proposal.shares_requested).unwrap();
+				TotalShares::<T>::put(totoal_shares);
+				// transfer correponding balance from custody account to guild bank's free balance
+				let res = T::Currency::transfer(&Self::custody_account(),  &Self::account_id(), tribute_offered, AllowDeath);
+			} else {
+				// Proposal failed
+				// return the balance of applicant
+				let _ = T::Currency::transfer(&Self::custody_account(),  &proposal.applicant, tribute_offered, AllowDeath);
+			}
+
+			// need to mutate for update
+			Proposals::<T>::insert(proposal_id, proposal.clone());
+
+			// send reward
+			let _ = T::Currency::transfer(&Self::account_id(), &who, ProcessingReward::<T>::get(), KeepAlive);
+			// return deposit with reward slashed
+			let rest_balance = ProposalDeposit::<T>::get() - ProcessingReward::<T>::get();
+			let _ = T::Currency::transfer(&Self::account_id(), &proposal.proposer, rest_balance, KeepAlive);			
+
+			Self::deposit_event(Event::ProcessProposal(
+				proposal_index, 
+				proposal.applicant.clone(),
+				proposal.proposer.clone(),
+				proposal.tribute_offered,
+				proposal.shares_requested,
+				did_pass
+			));
+			Ok(().into())
+		}
+
+		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
+		pub fn process_guild_kick_proposal(origin: OriginFor<T>, proposal_index: u128) -> DispatchResultWithPostInfo {
+			let who = ensure_signed(origin)?;
+			let proposal_len = ProposalQueue::<T>::get().len();
+			ensure!(proposal_index < proposal_len.try_into().unwrap(), Error::<T>::ProposalNotExist);
+			let _usize_proposal_index = TryInto::<usize>::try_into(proposal_index).ok().unwrap();
+			let proposal_id = ProposalQueue::<T>::get()[_usize_proposal_index];
+			let proposal = &mut Proposals::<T>::get(proposal_id);
+			// ensure guild kick proposal
+			ensure!(proposal.flags[5], Error::<T>::NotKickProposal);
+			ensure!(
+				Self::get_current_period() - VotingPeriodLength::<T>::get() - GracePeriodLength::<T>::get() >= proposal.starting_period,
+				Error::<T>::ProposalNotReady
+			);
+			ensure!(proposal.flags[1] == false, Error::<T>::ProposalHasProcessed);
+			ensure!(proposal_index == 0 || Proposals::<T>::get(ProposalQueue::<T>::get()[_usize_proposal_index - 1]).flags[1],
+			        Error::<T>::PreviousProposalNotProcessed);
+
+			proposal.flags[1] = true;
+			let did_pass = Self::should_pass(Proposals::<T>::get(proposal_id));
+			if did_pass {
+				// mark did_pass to true
+				proposal.flags[2] = true;
+				// update memeber status, i.e. jailed and slash shares
+				Members::<T>::mutate(proposal.applicant.clone(), |member| {
+					member.jailed_at = proposal_index;
+					member.loot = member.loot.checked_add(member.shares).unwrap();
+					let total_shares = TotalShares::<T>::get().checked_sub(member.shares).unwrap();
+					let total_loot = TotalLoot::<T>::get().checked_add(member.shares).unwrap();
+					TotalLoot::<T>::put(total_loot);
+					TotalShares::<T>::put(total_shares);
+					member.shares = 0;
+				});
+			}
+
+			ProsedToKick::<T>::insert(proposal.applicant.clone(), false);
+
+			// send reward
+			let _ = T::Currency::transfer(&Self::account_id(), &who, ProcessingReward::<T>::get(), KeepAlive);
+			// return deposit with reward slashed
+			let rest_balance = ProposalDeposit::<T>::get() - ProcessingReward::<T>::get();
+			let _ = T::Currency::transfer(&Self::account_id(), &proposal.proposer, rest_balance, KeepAlive);			
+
+			Ok(().into())
+		}
+
+		/// proposer abort a proposal
+		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
+		pub fn abort(origin: OriginFor<T>, proposal_index: u128) -> DispatchResultWithPostInfo {
+			let who = ensure_signed(origin)?;
+			ensure!(Proposals::<T>::contains_key(proposal_index), Error::<T>::ProposalNotExist);
+			let proposal = &mut Proposals::<T>::get(proposal_index);
+			ensure!(who == proposal.proposer, Error::<T>::NotProposalProposer);
+			ensure!(!proposal.flags[0], Error::<T>::ProposalHasSponsored);
+			ensure!(!proposal.flags[3], Error::<T>::ProposalHasAborted);
+			let token_to_abort = proposal.tribute_offered;
+			proposal.tribute_offered = 0;
+			proposal.flags[3] = true;
+
+			// need to mutate for update
+			Proposals::<T>::insert(proposal_index, proposal.clone());
+			// return the token to applicant and delete record
+			let _ = T::Currency::transfer(&Self::custody_account(),  &proposal.proposer, Self::u128_to_balance(token_to_abort), AllowDeath);
+
+			Self::deposit_event(Event::Abort(proposal_index, who.clone()));
+			Ok(().into())
+		}
+
+		/// Member rage quit
+		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
+		pub fn rage_quit(origin: OriginFor<T>, shares_to_burn: u128, loot_to_burn: u128) -> DispatchResultWithPostInfo {
+			let who = ensure_signed(origin)?;
+			Self::member_quit(who, shares_to_burn, loot_to_burn)
+		}
+
+		/// kick anymember  in jail
+		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
+		pub fn rage_kick(origin: OriginFor<T>, member_to_kick: T::AccountId) -> DispatchResultWithPostInfo {
+			let _ = ensure_signed(origin)?;
+			let member = Members::<T>::get(member_to_kick.clone());
+			ensure!(member.jailed_at != 0, Error::<T>::MemberNotInJail);
+			ensure!(member.loot > 0, Error::<T>::NoEnoughLoot);
+			Self::member_quit(member_to_kick, 0, member.loot)
+		}
+
+		/// update the delegate
+		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
+		pub fn update_delegate(origin: OriginFor<T>, delegate_key: T::AccountId) -> DispatchResultWithPostInfo {
+			let who = ensure_signed(origin)?;
+			// skip checks if member is setting the delegate key to their member address
+			if who != delegate_key {
+				ensure!(!Members::<T>::contains_key(delegate_key.clone()), Error::<T>::NoOverwriteMember);
+				let delegate = AddressOfDelegates::<T>::get(delegate_key.clone());
+				ensure!(!Members::<T>::contains_key(delegate.clone()), Error::<T>::NoOverwriteDelegate);
+			}
+
+			let member = &mut Members::<T>::get(who.clone());
+			AddressOfDelegates::<T>::remove(member.delegate_key.clone());
+			AddressOfDelegates::<T>::insert(delegate_key.clone(), who.clone());
+			member.delegate_key = delegate_key.clone();
+			Self::deposit_event(Event::UpdateDelegateKey(who, delegate_key));
 			Ok(().into())
 		}
 	}
