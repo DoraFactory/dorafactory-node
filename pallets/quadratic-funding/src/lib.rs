@@ -52,10 +52,9 @@ pub mod pallet {
 	use frame_system::pallet_prelude::*;
 	use super::*;
 
-
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
-	pub trait Config: frame_system::Config {
+	pub trait Config: frame_system::Config + pallet_dao_core::Config{
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 		type Currency: ReservableCurrency<Self::AccountId>;
@@ -94,11 +93,11 @@ pub mod pallet {
 	#[pallet::getter(fn rounds)]
 	// Learn more about declaring storage items:
 	// https://substrate.dev/docs/en/knowledgebase/runtime/storage#declaring-storage-items
-	pub(super) type Rounds<T> = StorageMap<_, Blake2_128Concat, u32, Round, ValueQuery>;
+	pub(super) type Rounds<T> = StorageDoubleMap<_, Blake2_128Concat, u32, Blake2_128Concat, u32, Round, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn projects)]
-	pub(super) type Projects<T: Config> = StorageDoubleMap<_, Blake2_128Concat, u32, Blake2_128Concat, T::Hash, ProjectOf<T>, ValueQuery>;
+	pub(super) type Projects<T: Config> = StorageDoubleMap<_, Blake2_128Concat, u64, Blake2_128Concat, T::Hash, ProjectOf<T>, ValueQuery>;
 
 	#[pallet::storage]
 	pub(super) type ProjectVotes<T: Config> = StorageDoubleMap<_, Blake2_128Concat, T::Hash, Blake2_128Concat, T::AccountId, u128, ValueQuery>;
@@ -142,6 +141,7 @@ pub mod pallet {
 		RoundNotExist,
 		RoundHasEnded,
 		DuplicateRound,
+		NotValidOrgMember,
 	}
 
 	#[pallet::hooks]
@@ -155,14 +155,14 @@ pub mod pallet {
 		/// An example dispatchable that takes a singles value as a parameter, writes the value to
 		/// storage and emits an event. This function must be dispatched by a signed extrinsic.
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
-		pub fn donate(origin: OriginFor<T>, round_id: u32, #[pallet::compact] amount: BalanceOf<T>) -> DispatchResultWithPostInfo {
+		pub fn donate(origin: OriginFor<T>, round_id: u32, org_id: u32, #[pallet::compact] amount: BalanceOf<T>) -> DispatchResultWithPostInfo {
 			// Check that the extrinsic was signed and get the signer.
 			// This function will return an error if the extrinsic is not signed.
 			// https://substrate.dev/docs/en/knowledgebase/runtime/origin
 			let who = ensure_signed(origin)?;
 
-			ensure!(Rounds::<T>::contains_key(&round_id), Error::<T>::RoundNotExist);
-			let round = Rounds::<T>::get(round_id);
+			ensure!(Rounds::<T>::contains_key(&round_id, &org_id), Error::<T>::RoundNotExist);
+			let round = Rounds::<T>::get(round_id, org_id);
 			ensure!(true == round.ongoing, Error::<T>::RoundHasEnded);
 			// the minimum unit, make sure the donate is greater than this
 			let min_unit_number = Self::cal_amount(1u128, false);
@@ -171,7 +171,7 @@ pub mod pallet {
 			ensure!(amount_number > min_unit_number, Error::<T>::DonationTooSmall);
 			let _ = T::Currency::transfer(&who, &Self::account_id(), amount, KeepAlive);
 			// update the round
-			Rounds::<T>::mutate(round_id, |rnd| {
+			Rounds::<T>::mutate(round_id, org_id, |rnd| {
 				let ptsp = rnd.pre_tax_support_pool;
 				let sp = rnd.support_pool;
 				let tt = rnd.total_tax;
@@ -184,10 +184,10 @@ pub mod pallet {
 		}
 
 		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
-		pub fn start_round(origin: OriginFor<T>, round_id: u32) -> DispatchResultWithPostInfo {
-			// Only amdin can control the round 
-			T::AdminOrigin::ensure_origin(origin)?;
-			ensure!(!Rounds::<T>::contains_key(&round_id), Error::<T>::RoundExisted);
+		pub fn start_round(origin: OriginFor<T>, round_id: u32, org_id: u32) -> DispatchResultWithPostInfo {
+			let who = ensure_signed(origin)?;
+			ensure!(<pallet_dao_core::Pallet<T>>::validate_member(who.clone(), org_id), Error::<T>::NotValidOrgMember);
+			ensure!(!Rounds::<T>::contains_key(&round_id, &org_id), Error::<T>::RoundExisted);
 			let round = Round {
 				ongoing: true,
 				support_pool: 0,
@@ -195,22 +195,25 @@ pub mod pallet {
 				total_support_area: 0,
 				total_tax: 0
 			};
-			Rounds::<T>::insert(round_id, round);
+			Rounds::<T>::insert(round_id, org_id, round);
 			Self::deposit_event(Event::RoundStarted(round_id));
 			Ok(().into())
 		}
 
 		/// End an `ongoing` round and distribute the funds in sponsor pool, any invalid index or round status will cause errors
 		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
-		pub fn end_round(origin: OriginFor<T>, round_id: u32) -> DispatchResultWithPostInfo {
+		pub fn end_round(origin: OriginFor<T>, round_id: u32, org_id: u32) -> DispatchResultWithPostInfo {
 			// Only amdin can control the round 
-			T::AdminOrigin::ensure_origin(origin)?;
-			ensure!(Rounds::<T>::contains_key(&round_id), Error::<T>::RoundNotExist);
-			let mut round = Rounds::<T>::get(round_id);
+			// T::AdminOrigin::ensure_origin(origin)?;
+			let who = ensure_signed(origin)?;
+			ensure!(<pallet_dao_core::Pallet<T>>::validate_member(who.clone(), org_id), Error::<T>::NotValidOrgMember);
+			ensure!(Rounds::<T>::contains_key(&round_id, &org_id), Error::<T>::RoundNotExist);
+			let mut round = Rounds::<T>::get(round_id, org_id);
+			let project_key = u64::MIN.checked_add(round_id.into()).unwrap().checked_add(org_id.into()).unwrap();
 			ensure!(true == round.ongoing, Error::<T>::RoundHasEnded);
 			let area = round.total_support_area;
 			let pool = round.support_pool;
-			for (_hash, mut project) in Projects::<T>::iter_prefix(round_id) {
+			for (_hash, mut project) in Projects::<T>::iter_prefix(project_key) {
 				if area > 0 {
 					let total = project.grants;
 					project.grants = total.checked_add(
@@ -227,18 +230,21 @@ pub mod pallet {
 				);
 			}
 			round.ongoing = false;
-			Rounds::<T>::insert(round_id, round);
+			Rounds::<T>::insert(round_id, org_id,round);
 			Self::deposit_event(Event::RoundEnded(round_id));
 			Ok(().into())
 		}
 
 		/// Register a project in an ongoing round, so that it can be voted
 		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
-		pub fn register_project(origin: OriginFor<T>, round_id: u32, hash: T::Hash, name: Vec<u8>) -> DispatchResultWithPostInfo {
+		pub fn register_project(origin: OriginFor<T>, round_id: u32, org_id: u32, hash: T::Hash, name: Vec<u8>) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
+			let project_hash = T::Hashing::hash_of(&(&hash, &org_id));
+			let project_key = u64::MIN.checked_add(round_id.into()).unwrap().checked_add(org_id.into()).unwrap();
+			ensure!(<pallet_dao_core::Pallet<T>>::validate_member(who.clone(), org_id), Error::<T>::NotValidOrgMember);
 			ensure!(name.len() >= T::NameMinLength::get(), Error::<T>::ProjectNameTooShort);
 			ensure!(name.len() <= T::NameMaxLength::get(), Error::<T>::ProjectNameTooLong);
-			ensure!(!Projects::<T>::contains_key(&round_id, &hash), Error::<T>::DuplicateProject);
+			ensure!(!Projects::<T>::contains_key(&project_key, &project_hash), Error::<T>::DuplicateProject);
 			let project = Project {
 				total_votes: 0,
 				grants: 0,
@@ -247,20 +253,22 @@ pub mod pallet {
 				name: name,
 				owner: who.clone(),
 			};
-			Projects::<T>::insert(round_id, hash, project);
+			Projects::<T>::insert(project_key, project_hash, project);
 			Self::deposit_event(Event::ProjectRegistered(hash, who));
 			Ok(().into())
 		}
 
 		/// Vote to a project, this function will transfer corresponding amount of token per your input ballot
 		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
-		pub fn vote(origin: OriginFor<T>, round_id: u32, hash: T::Hash, ballot: u128) -> DispatchResultWithPostInfo {
+		pub fn vote(origin: OriginFor<T>, round_id: u32, org_id: u32, hash: T::Hash, ballot: u128) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
-			ensure!(Projects::<T>::contains_key(&round_id, &hash), Error::<T>::ProjectNotExist);
+			let project_hash = T::Hashing::hash_of(&(&hash, &org_id));
+			let project_key = u64::MIN.checked_add(round_id.into()).unwrap().checked_add(org_id.into()).unwrap();
+			ensure!(Projects::<T>::contains_key(&project_key, &project_hash), Error::<T>::ProjectNotExist);
 			ensure!(ballot > 0, Error::<T>::InvalidBallot);
 			// check whether this round still ongoing
-			ensure!(Rounds::<T>::contains_key(&round_id), Error::<T>::RoundNotExist);
-			let round = Rounds::<T>::get(round_id);
+			ensure!(Rounds::<T>::contains_key(&round_id, &org_id), Error::<T>::RoundNotExist);
+			let round = Rounds::<T>::get(round_id, org_id);
 			ensure!(true == round.ongoing, Error::<T>::RoundHasEnded);
 
 			// need to calculate hash of project hash and round_id combination here to avoid conflicts of projects in different rounds
@@ -274,14 +282,14 @@ pub mod pallet {
 
 			// update the project and corresponding round
 			ProjectVotes::<T>::insert(vote_hash, &who, ballot+voted);
-			Projects::<T>::mutate(round_id, hash, |poj| {
+			Projects::<T>::mutate(project_key, project_hash, |poj| {
 				let support_area = ballot.checked_mul(poj.total_votes - voted).unwrap();
 				poj.support_area = support_area.checked_add(poj.support_area).unwrap();
 				poj.total_votes += ballot;
 				poj.grants += amount - fee;
 				//debug::info!("Total votes: {:?}, Current votes: {:?}, Support Area: {:?},Est cost: {:?}",
 				// poj.total_votes, voted, support_area, cost);
-				Rounds::<T>::mutate(round_id, |rnd| {
+				Rounds::<T>::mutate(round_id, org_id, |rnd| {
 					let tsa = rnd.total_support_area;
 					let tt = rnd.total_tax;
 					rnd.total_support_area = support_area.checked_add(tsa).unwrap();
@@ -340,12 +348,13 @@ impl<T: Config> Pallet<T> {
 
 	// TODO, using struct is a little complicate, use tuple instead
 	// (project_id, total_votes, grants, support_grants)
-	pub fn projects_per_round(round_id:u32) -> Vec<(T::Hash, u32, u32, u32)> {
+	pub fn projects_per_round(round_id:u32, org_id: u32) -> Vec<(T::Hash, u32, u32, u32)> {
 		let mut projects  = vec![];
-		let round = Rounds::<T>::get(round_id);
+		let round = Rounds::<T>::get(round_id, org_id);
 		let area = round.total_support_area;
 		let pool = round.support_pool;
-		for (hash, project) in Projects::<T>::iter_prefix(round_id) {
+		let project_key = u64::MIN.checked_add(round_id.into()).unwrap().checked_add(org_id.into()).unwrap();
+		for (hash, project) in Projects::<T>::iter_prefix(project_key) {
 			let mut sg = 0;
 			if area > 0 {
 				sg = project.support_area.checked_mul(pool/area).unwrap()

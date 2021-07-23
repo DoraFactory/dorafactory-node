@@ -38,6 +38,8 @@ std = [
     'codec/std',
     'frame-support/std',
     'frame-system/std',
+        'pallet-dao-core/std',
+
     'frame-benchmarking/std',
 	'pallet-balances/std',
 	'sp-runtime/std',
@@ -84,4 +86,9 @@ version = '3.0.0'
 default-features = false
 git = 'https://github.com/paritytech/substrate.git'
 tag = 'monthly-2021-07'
+version = '3.0.0'
+
+[dependencies.pallet-dao-core]
+default-features = false
+path = '../dao-core'
 version = '3.0.0'

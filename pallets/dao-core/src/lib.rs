@@ -34,8 +34,6 @@ pub struct Orgnization<AccountId> {
 }
 
 type OrgnizationOf<T> = Orgnization<<T as frame_system::Config>::AccountId>;
-type BalanceOf<T> = <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
-type NegativeImbalanceOf<T> = <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::NegativeImbalance;
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -49,22 +47,7 @@ pub mod pallet {
 	pub trait Config: frame_system::Config {
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
-		type Currency: ReservableCurrency<Self::AccountId>;
 		type Call: Parameter + UnfilteredDispatchable<Origin = Self::Origin> + GetDispatchInfo;
-		
-		#[pallet::constant]
-		type PalletId: Get<PalletId>;
-		/// Origin from which admin must come.
-		type AdminOrigin: EnsureOrigin<Self::Origin>;
-
-		/// What to do with slashed funds.
-		type Slashed: OnUnbalanced<NegativeImbalanceOf<Self>>;
-
-		/// The minimum length of project name
-		type NameMinLength: Get<usize>;
-
-		/// The maximum length of project name
-		type NameMaxLength: Get<usize>;
 	}
 
 	#[pallet::pallet]
@@ -102,7 +85,8 @@ pub mod pallet {
 		/// Error names should be descriptive.
 		NoneValue,
 		/// Errors should have helpful documentation associated with them.
-		StorageOverflow
+		OrgnizationNotExist,
+		NotValidOrgMember,
 	}
 
 	#[pallet::hooks]
@@ -125,7 +109,7 @@ pub mod pallet {
 				org_type: 1,
 				description: description.clone(),
 				owner: who.clone(),
-				members: [].to_vec(),
+				members: [who.clone()].to_vec(),
 			};
 			let org_id = <NextOrgId<T>>::get().checked_add(1).unwrap();
 			Orgnizations::<T>::insert(org_id, member);
@@ -140,17 +124,18 @@ pub mod pallet {
 			// This function will return an error if the extrinsic is not signed.
 			// https://substrate.dev/docs/en/knowledgebase/runtime/origin
 			let who = ensure_signed(origin)?;
-			
+			ensure!(Orgnizations::<T>::contains_key(&org_id), Error::<T>::OrgnizationNotExist);
+			Orgnizations::<T>::mutate(org_id, |org| {
+				org.members.push(who.clone());
+			});
 			Self::deposit_event(Event::OrgJoined(org_id, who));
 			Ok(().into())
 		}
 
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
-		pub fn invoke(origin: OriginFor<T>, pallet: Box<<T as Config>::Call>) -> DispatchResultWithPostInfo {
-			// Check that the extrinsic was signed and get the signer.
-			// This function will return an error if the extrinsic is not signed.
-			// https://substrate.dev/docs/en/knowledgebase/runtime/origin
+		pub fn invoke(origin: OriginFor<T>, ord_id: u32, pallet: Box<<T as Config>::Call>) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin.clone())?;
+			ensure!(Self::validate_member(who.clone(), ord_id), Error::<T>::NotValidOrgMember);
 			let _ = pallet.dispatch_bypass_filter(origin);
 			Ok(().into())
 		}
@@ -164,7 +149,19 @@ impl<T: Config> Pallet<T> {
 	///
 	/// This actually does computation. If you need to keep using it, then make sure you cache the
 	/// value and only call this once.
-	pub fn account_id() -> T::AccountId {
-		T::PalletId::get().into_account()
+	pub fn validate_member(account_id: T::AccountId, ord_id: u32) -> bool {
+		if !Orgnizations::<T>::contains_key(ord_id) {
+			false
+		} else {
+			let members = Orgnizations::<T>::get(ord_id).members;
+			match members.binary_search(&account_id) {
+				Ok(_) => {
+					true
+				}
+				Err(_) => {
+					false
+				}
+			}
+		}
 	}
 }

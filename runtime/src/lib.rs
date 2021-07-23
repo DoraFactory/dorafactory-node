@@ -359,20 +359,7 @@ parameter_types! {
 /// Configure the pallet-qf in pallets/quadratic-funding.
 impl pallet_dao_core::Config for Runtime {
 	type Event = Event;
-	type Currency = pallet_balances::Pallet<Runtime>;
-	type PalletId = DaoCorePalletId;
 	type Call = Call;
-	// No action is taken when deposits are forfeited.
-	type Slashed = ();
-
-	// The minimum length of project name
-	type NameMinLength = NameMinLength;
-
-	// The maximum length of project name
-	type NameMaxLength = NameMaxLength;
-
-	// Origin who can control the round
-	type AdminOrigin = EnsureRoot<AccountId>;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
