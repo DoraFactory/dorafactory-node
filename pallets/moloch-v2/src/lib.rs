@@ -10,8 +10,8 @@ use frame_support::{
 	traits::{Currency, ReservableCurrency, OnUnbalanced, Get, ExistenceRequirement::{KeepAlive, AllowDeath}},
 	codec::{Encode, Decode}
 };
-use sp_std::{vec, vec::Vec, convert::{TryInto}};
-use sp_runtime::traits::{Hash, AccountIdConversion};
+use sp_std::{vec::Vec, convert::{TryInto}};
+use sp_runtime::traits::{AccountIdConversion};
 
 #[cfg(test)]
 mod mock;
@@ -510,7 +510,7 @@ pub mod pallet {
 				let totoal_shares = TotalShares::<T>::get().checked_add(proposal.shares_requested).unwrap();
 				TotalShares::<T>::put(totoal_shares);
 				// transfer correponding balance from custody account to guild bank's free balance
-				let res = T::Currency::transfer(&Self::custody_account(),  &Self::account_id(), tribute_offered, AllowDeath);
+				let _res = T::Currency::transfer(&Self::custody_account(),  &Self::account_id(), tribute_offered, AllowDeath);
 			} else {
 				// Proposal failed
 				// return the balance of applicant

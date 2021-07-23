@@ -39,6 +39,7 @@ std = [
     'pallet-sudo/std',
     'pallet-qf/std',
     'pallet-moloch-v2/std',
+    'pallet-dao-core/std',
     'pallet-timestamp/std',
     'pallet-transaction-payment-rpc-runtime-api/std',
     'pallet-transaction-payment/std',
@@ -140,6 +141,11 @@ version = '3.0.0'
 [dependencies.pallet-moloch-v2]
 default-features = false
 path = '../pallets/moloch-v2'
+version = '3.0.0'
+
+[dependencies.pallet-dao-core]
+default-features = false
+path = '../pallets/dao-core'
 version = '3.0.0'
 
 [dependencies.pallet-timestamp]

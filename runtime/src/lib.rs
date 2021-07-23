@@ -350,6 +350,31 @@ impl pallet_moloch_v2::Config for Runtime {
 
 }
 
+parameter_types! {
+	pub const DaoCorePalletId: PalletId = PalletId(*b"py/dcore");
+	//pub const NameMinLength: usize = 3;
+	//pub const NameMaxLength: usize = 32;
+}
+
+/// Configure the pallet-qf in pallets/quadratic-funding.
+impl pallet_dao_core::Config for Runtime {
+	type Event = Event;
+	type Currency = pallet_balances::Pallet<Runtime>;
+	type PalletId = DaoCorePalletId;
+	type Call = Call;
+	// No action is taken when deposits are forfeited.
+	type Slashed = ();
+
+	// The minimum length of project name
+	type NameMinLength = NameMinLength;
+
+	// The maximum length of project name
+	type NameMaxLength = NameMaxLength;
+
+	// Origin who can control the round
+	type AdminOrigin = EnsureRoot<AccountId>;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
 	pub enum Runtime where
@@ -368,6 +393,7 @@ construct_runtime!(
 		// Include the custom logic from the quadratic funding in the runtime
 		QfModule: pallet_qf::{Pallet, Call, Storage, Event<T>},
 		MolochV2Module: pallet_moloch_v2::{Pallet, Call, Storage, Event<T>},
+		DaoCoreModule: pallet_dao_core::{Pallet, Call, Storage, Event<T>},
 	}
 );
 
