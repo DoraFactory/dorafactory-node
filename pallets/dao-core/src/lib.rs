@@ -6,7 +6,7 @@
 pub use pallet::*;
 use frame_support::{
 	PalletId,
-	traits::{Currency, ReservableCurrency, OnUnbalanced, Get, UnfilteredDispatchable},
+	traits::{Currency, ReservableCurrency, OnUnbalanced, Get, UnfilteredDispatchable, ExistenceRequirement::{KeepAlive}},
 	codec::{Encode, Decode},
 	weights::GetDispatchInfo
 };
@@ -33,7 +33,19 @@ pub struct Orgnization<AccountId> {
 	pub members: Vec<AccountId>,
 }
 
+#[derive(Encode, Decode, Default, Clone, PartialEq)]
+pub struct AppInfo<AccountId, Balance> {
+	pub title: Vec<u8>,
+	pub owner: AccountId,
+	pub description: Vec<u8>,
+	pub charge_type: u32,
+	pub price: Balance,
+}
+
 type OrgnizationOf<T> = Orgnization<<T as frame_system::Config>::AccountId>;
+type BalanceOf<T> = <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
+type AppInfoOf<T, P> = AppInfo<<T as frame_system::Config>::AccountId, BalanceOf<P>>;
+
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -48,6 +60,11 @@ pub mod pallet {
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 		type Call: Parameter + UnfilteredDispatchable<Origin = Self::Origin> + GetDispatchInfo;
+		type Currency: ReservableCurrency<Self::AccountId>;
+		#[pallet::constant]
+		type PalletId: Get<PalletId>;
+		type TaxInPercent: Get<u32>;
+		type SupervisorOrigin: EnsureOrigin<Self::Origin>;
 	}
 
 	#[pallet::pallet]
@@ -66,6 +83,14 @@ pub mod pallet {
 	#[pallet::getter(fn orgnizations)]
 	pub(super) type Orgnizations<T: Config> = StorageMap<_, Blake2_128Concat, u32, OrgnizationOf<T>, ValueQuery>;
 
+	#[pallet::storage]
+	#[pallet::getter(fn next_app_id)]
+	pub(super) type NextAppId<T> = StorageValue<_, u8, ValueQuery>; 
+
+	#[pallet::storage]
+	#[pallet::getter(fn registered_apps)]
+	pub(super) type RegisteredApps<T: Config> = StorageMap<_, Blake2_128Concat, u8, AppInfoOf<T, T>, ValueQuery>;
+
 
 	// Pallets use events to inform users when important changes are made.
 	// https://substrate.dev/docs/en/knowledgebase/runtime/events
@@ -77,6 +102,8 @@ pub mod pallet {
 		/// parameters. [ord_id, owner]
 		OrgRegistered(u32, T::AccountId),
 		OrgJoined(u32, T::AccountId),
+		AppRegistered(u8, T::AccountId),
+		AppDeRegistered(u8, T::AccountId),
 	}
 
 	// Errors inform users that something went wrong.
@@ -87,6 +114,7 @@ pub mod pallet {
 		/// Errors should have helpful documentation associated with them.
 		OrgnizationNotExist,
 		NotValidOrgMember,
+		AppNotFound,
 	}
 
 	#[pallet::hooks]
@@ -139,11 +167,58 @@ pub mod pallet {
 			let _ = pallet.dispatch_bypass_filter(origin);
 			Ok(().into())
 		}
+
+		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+		pub fn register_app(
+			origin: OriginFor<T>, 
+			title: Vec<u8>, 
+			owner: T::AccountId,
+			description: Vec<u8>,
+			charge_type: u32,
+			#[pallet::compact] price: BalanceOf<T>
+		) -> DispatchResultWithPostInfo {
+			let _ = T::SupervisorOrigin::ensure_origin(origin)?;
+			let app = super::AppInfo {
+				charge_type: charge_type,
+				title: title.clone(),
+				description: description.clone(),
+				owner: owner.clone(),
+				price: price,
+			};
+			let app_id = <NextAppId<T>>::get().checked_add(1).unwrap();
+			RegisteredApps::<T>::insert(app_id, app);
+			<NextAppId<T>>::put(app_id);
+			Self::deposit_event(Event::AppRegistered(app_id, owner));
+			Ok(().into())
+		}
+
+		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+		pub fn deregister_app(origin: OriginFor<T>, app_id: u8
+		) -> DispatchResultWithPostInfo {
+			let _ = T::SupervisorOrigin::ensure_origin(origin)?;
+			ensure!(RegisteredApps::<T>::contains_key(app_id), Error::<T>::AppNotFound);
+			RegisteredApps::<T>::remove(app_id);
+			Ok(().into())
+		}
 	}
 }
 
 impl<T: Config> Pallet<T> {
-	// Add public immutables and private mutables.
+	fn account_id(app_id: u8) -> T::AccountId {
+		if app_id == 0 {
+			T::PalletId::get().into_account()
+		} else {
+			T::PalletId::get().into_sub_account(app_id)
+		}
+	}
+
+	fn u128_to_balance(cost: u128) -> BalanceOf<T> {
+		TryInto::<BalanceOf::<T>>::try_into(cost).ok().unwrap()
+	}
+
+	fn balance_to_u128(balance: BalanceOf<T>) -> u128 {
+		TryInto::<u128>::try_into(balance).ok().unwrap()
+	}
 
 	/// refer https://github.com/paritytech/substrate/blob/743accbe3256de2fc615adcaa3ab03ebdbbb4dbd/frame/treasury/src/lib.rs#L351
 	///
@@ -163,5 +238,17 @@ impl<T: Config> Pallet<T> {
 				}
 			}
 		}
+	}
+
+	pub fn charge(source: T::AccountId, value: BalanceOf<T>, app_id: u8) -> frame_support::dispatch::DispatchResultWithPostInfo {
+		let value_num = Self::balance_to_u128(value);
+		let tax_num = value_num.checked_mul(T::TaxInPercent::get().into()).unwrap().checked_div(100).unwrap();
+		let tax = Self::u128_to_balance(tax_num);
+		// charge tax
+		let _ = T::Currency::transfer(&source, &Self::account_id(0), tax, KeepAlive);
+		// process rest to App's escrow account
+		let _ = T::Currency::transfer(&source, &Self::account_id(app_id), value - tax, KeepAlive);
+		
+		Ok(().into())
 	}
 }

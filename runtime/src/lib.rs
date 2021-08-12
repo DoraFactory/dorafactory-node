@@ -286,19 +286,16 @@ parameter_types! {
 /// Configure the pallet-qf in pallets/quadratic-funding.
 impl pallet_qf::Config for Runtime {
 	type Event = Event;
-	type Currency = pallet_balances::Pallet<Runtime>;
-	type PalletId = QuadraticFundingPalletId;
-	 // Use the UnitOfVote from the parameter_types block.
-	 type UnitOfVote = VoteUnit;
+	
+	// Use the UnitOfVote from the parameter_types block.
+	type UnitOfVote = VoteUnit;
 
-	 // Use the MinNickLength from the parameter_types block.
-	 type NumberOfUnitPerVote = NumberOfUnit;
+	// Use the MinNickLength from the parameter_types block.
+	type NumberOfUnitPerVote = NumberOfUnit;
 
-	 // No action is taken when deposits are forfeited.
-	 type Slashed = ();
-
-	 // Use the FeeRatio from the parameter_types block.
-	 type FeeRatioPerVote = FeeRatio;
+	// Use the FeeRatio from the parameter_types block.
+	type FeeRatioPerVote = FeeRatio;
+	
 	// The minimum length of project name
 	type NameMinLength = NameMinLength;
 
@@ -352,7 +349,7 @@ impl pallet_moloch_v2::Config for Runtime {
 
 parameter_types! {
 	pub const DaoCorePalletId: PalletId = PalletId(*b"py/dcore");
-	//pub const NameMinLength: usize = 3;
+	pub const TaxPercentNum: u32 = 3;
 	//pub const NameMaxLength: usize = 32;
 }
 
@@ -360,6 +357,10 @@ parameter_types! {
 impl pallet_dao_core::Config for Runtime {
 	type Event = Event;
 	type Call = Call;
+	type Currency = pallet_balances::Pallet<Runtime>;
+	type PalletId = DaoCorePalletId;
+	type TaxInPercent = TaxPercentNum;
+	type SupervisorOrigin = EnsureRoot<AccountId>;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.

@@ -5,12 +5,11 @@
 /// <https://substrate.dev/docs/en/knowledgebase/runtime/frame>
 pub use pallet::*;
 use frame_support::{
-	PalletId,
-	traits::{Currency, ReservableCurrency, OnUnbalanced, Get, ExistenceRequirement::{KeepAlive}},
+	traits::{Currency, Get, ExistenceRequirement::{KeepAlive}},
 	codec::{Encode, Decode}
 };
 use sp_std::{vec, vec::Vec, convert::{TryInto}};
-use sp_runtime::traits::{Hash, AccountIdConversion};
+use sp_runtime::traits::{Hash};
 
 
 #[cfg(test)]
@@ -43,8 +42,7 @@ pub struct Round {
 }
 
 type ProjectOf<T> = Project<<T as frame_system::Config>::AccountId>;
-type BalanceOf<T> = <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
-type NegativeImbalanceOf<T> = <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::NegativeImbalance;
+type BalanceOf<T> = <<T as pallet_dao_core::Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -57,15 +55,9 @@ pub mod pallet {
 	pub trait Config: frame_system::Config + pallet_dao_core::Config{
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
-		type Currency: ReservableCurrency<Self::AccountId>;
-		
-		#[pallet::constant]
-		type PalletId: Get<PalletId>;
+
 		/// Origin from which admin must come.
 		type AdminOrigin: EnsureOrigin<Self::Origin>;
-
-		/// What to do with slashed funds.
-		type Slashed: OnUnbalanced<NegativeImbalanceOf<Self>>;
 
 		/// UnitOfVote, 0.001 Unit token
 		type UnitOfVote: Get<u128>;
@@ -169,7 +161,7 @@ pub mod pallet {
 			let amount_number = Self::balance_to_u128(amount);
 			let fee_number = T::FeeRatioPerVote::get().checked_mul(amount_number / T::NumberOfUnitPerVote::get()).unwrap();
 			ensure!(amount_number > min_unit_number, Error::<T>::DonationTooSmall);
-			let _ = T::Currency::transfer(&who, &Self::account_id(), amount, KeepAlive);
+			// let _ = T::Currency::transfer(&who, &Self::account_id(), amount, KeepAlive);
 			// update the round
 			Rounds::<T>::mutate(round_id, org_id, |rnd| {
 				let ptsp = rnd.pre_tax_support_pool;
@@ -222,12 +214,12 @@ pub mod pallet {
 				}
 				//debug::info!("Hash: {:?}, Total votes: {:?}, Grants: {:?}", hash, project.total_votes, project.grants);
 				// reckon the final grants
-				let _ = T::Currency::transfer(
-					&Self::account_id(),
-					&project.owner,
-					Self::u128_to_balance(project.grants),
-					KeepAlive
-				);
+				// let _ = T::Currency::transfer(
+				// 	&Self::account_id(),
+				// 	&project.owner,
+				// 	Self::u128_to_balance(project.grants),
+				// 	KeepAlive
+				// );
 			}
 			round.ongoing = false;
 			Rounds::<T>::insert(round_id, org_id,round);
@@ -278,7 +270,7 @@ pub mod pallet {
 			let amount = Self::cal_amount(cost, false);
 			let fee = Self::cal_amount(cost, true);
 			// transfer first, update last, as transfer will ensure the free balance is enough
-			let _ = T::Currency::transfer(&who, &Self::account_id(), Self::u128_to_balance(amount), KeepAlive);
+			// let _ = T::Currency::transfer(&who, &Self::account_id(), Self::u128_to_balance(amount), KeepAlive);
 
 			// update the project and corresponding round
 			ProjectVotes::<T>::insert(vote_hash, &who, ballot+voted);
@@ -309,9 +301,6 @@ impl<T: Config> Pallet<T> {
 	///
 	/// This actually does computation. If you need to keep using it, then make sure you cache the
 	/// value and only call this once.
-	pub fn account_id() -> T::AccountId {
-		T::PalletId::get().into_account()
-	}
 
 	pub fn cal_cost(voted: u128, ballot: u128) -> u128 {
 		let mut points = ballot.checked_mul(ballot.checked_add(1).unwrap()).unwrap() / 2; 
