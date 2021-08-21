@@ -1,0 +1,4 @@
+[submodule "dorafactory-dao-core"]
+	path = dorafactory-dao-core
+	url = https://github.com/DoraFactory/dorafactory-dao-core.git
+	branch = main

@@ -90,5 +90,5 @@ version = '3.0.0'
 
 [dependencies.pallet-dao-core]
 default-features = false
-path = '../dao-core'
+path = '../../dorafactory-dao-core/pallets/dao-core'
 version = '3.0.0'
