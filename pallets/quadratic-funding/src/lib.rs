@@ -10,7 +10,7 @@ use frame_support::{
 };
 use sp_std::{vec, vec::Vec, convert::{TryInto}};
 use sp_runtime::traits::{Hash};
-
+use core_services::DoraUserOrigin;
 
 #[cfg(test)]
 mod mock;
@@ -58,6 +58,9 @@ pub mod pallet {
 
 		/// Origin from which admin must come.
 		type AdminOrigin: EnsureOrigin<Self::Origin>;
+
+        type DoraUserOrigin: DoraUserOrigin<AccountId = Self::AccountId, AppId = u8>;
+
 
 		/// UnitOfVote, 0.001 Unit token
 		type UnitOfVote: Get<u128>;

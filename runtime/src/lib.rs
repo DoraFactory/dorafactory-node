@@ -304,6 +304,7 @@ impl pallet_qf::Config for Runtime {
 
 	// Origin who can control the round
 	type AdminOrigin = EnsureRoot<AccountId>;
+    type DoraUserOrigin = DaoCoreModule;
 }
 
 parameter_types! {

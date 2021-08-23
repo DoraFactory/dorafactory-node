@@ -92,3 +92,8 @@ version = '3.0.0'
 default-features = false
 path = '../../dorafactory-dao-core/pallets/dao-core'
 version = '3.0.0'
+
+[dependencies.core-services]
+default-features = false
+path = '../../dorafactory-dao-core/traits'
+version = '3.0.0'
