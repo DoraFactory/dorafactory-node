@@ -281,6 +281,7 @@ parameter_types! {
 	pub const QuadraticFundingPalletId: PalletId = PalletId(*b"py/quafd");
 	pub const NameMinLength: usize = 3;
 	pub const NameMaxLength: usize = 32;
+    pub const AppId: u8 = 1;
 }
 
 /// Configure the pallet-qf in pallets/quadratic-funding.
@@ -305,6 +306,8 @@ impl pallet_qf::Config for Runtime {
 	// Origin who can control the round
 	type AdminOrigin = EnsureRoot<AccountId>;
     type DoraUserOrigin = DaoCoreModule;
+    type DoraPay = DaoCoreModule;
+    type AppId = AppId;
 }
 
 parameter_types! {

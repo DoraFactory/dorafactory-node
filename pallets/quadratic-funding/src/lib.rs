@@ -10,7 +10,7 @@ use frame_support::{
 };
 use sp_std::{vec, vec::Vec, convert::{TryInto}};
 use sp_runtime::traits::{Hash};
-use core_services::DoraUserOrigin;
+use core_services::{DoraUserOrigin, DoraPay};
 
 #[cfg(test)]
 mod mock;
@@ -59,8 +59,10 @@ pub mod pallet {
 		/// Origin from which admin must come.
 		type AdminOrigin: EnsureOrigin<Self::Origin>;
 
-        type DoraUserOrigin: DoraUserOrigin<AccountId = Self::AccountId, AppId = u8>;
-
+        /// Dora services
+        type DoraUserOrigin: DoraUserOrigin<AccountId = Self::AccountId, OrgId = u32, AppId = u8>;
+        type DoraPay: DoraPay<AccountId = Self::AccountId, Balance= BalanceOf<Self>, AppId = u8>;
+        type AppId: Get<u8>;
 
 		/// UnitOfVote, 0.001 Unit token
 		type UnitOfVote: Get<u128>;
@@ -155,6 +157,7 @@ pub mod pallet {
 			// This function will return an error if the extrinsic is not signed.
 			// https://substrate.dev/docs/en/knowledgebase/runtime/origin
 			let who = ensure_signed(origin)?;
+            let _ = T::DoraUserOrigin::ensure_valid(who.clone(), org_id, T::AppId::get());
 
 			ensure!(Rounds::<T>::contains_key(&round_id, &org_id), Error::<T>::RoundNotExist);
 			let round = Rounds::<T>::get(round_id, org_id);
@@ -164,7 +167,7 @@ pub mod pallet {
 			let amount_number = Self::balance_to_u128(amount);
 			let fee_number = T::FeeRatioPerVote::get().checked_mul(amount_number / T::NumberOfUnitPerVote::get()).unwrap();
 			ensure!(amount_number > min_unit_number, Error::<T>::DonationTooSmall);
-			// let _ = T::Currency::transfer(&who, &Self::account_id(), amount, KeepAlive);
+            let _ = T::DoraPay::charge(who.clone(), amount, T::AppId::get());
 			// update the round
 			Rounds::<T>::mutate(round_id, org_id, |rnd| {
 				let ptsp = rnd.pre_tax_support_pool;
@@ -181,6 +184,8 @@ pub mod pallet {
 		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
 		pub fn start_round(origin: OriginFor<T>, round_id: u32, org_id: u32) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
+            let _ = T::DoraUserOrigin::ensure_valid(who.clone(), org_id, T::AppId::get());
+
 			ensure!(<pallet_dao_core::Pallet<T>>::validate_member(who.clone(), org_id), Error::<T>::NotValidOrgMember);
 			ensure!(!Rounds::<T>::contains_key(&round_id, &org_id), Error::<T>::RoundExisted);
 			let round = Round {
@@ -201,6 +206,8 @@ pub mod pallet {
 			// Only amdin can control the round 
 			// T::AdminOrigin::ensure_origin(origin)?;
 			let who = ensure_signed(origin)?;
+            let _ = T::DoraUserOrigin::ensure_valid(who.clone(), org_id, T::AppId::get());
+
 			ensure!(<pallet_dao_core::Pallet<T>>::validate_member(who.clone(), org_id), Error::<T>::NotValidOrgMember);
 			ensure!(Rounds::<T>::contains_key(&round_id, &org_id), Error::<T>::RoundNotExist);
 			let mut round = Rounds::<T>::get(round_id, org_id);
@@ -217,12 +224,11 @@ pub mod pallet {
 				}
 				//debug::info!("Hash: {:?}, Total votes: {:?}, Grants: {:?}", hash, project.total_votes, project.grants);
 				// reckon the final grants
-				// let _ = T::Currency::transfer(
-				// 	&Self::account_id(),
-				// 	&project.owner,
-				// 	Self::u128_to_balance(project.grants),
-				// 	KeepAlive
-				// );
+                let _ = T::DoraPay::withdraw(
+                    project.owner,
+                    Self::u128_to_balance(project.grants),
+                    T::AppId::get()
+                );
 			}
 			round.ongoing = false;
 			Rounds::<T>::insert(round_id, org_id,round);
@@ -234,6 +240,8 @@ pub mod pallet {
 		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
 		pub fn register_project(origin: OriginFor<T>, round_id: u32, org_id: u32, hash: T::Hash, name: Vec<u8>) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
+            let _ = T::DoraUserOrigin::ensure_valid(who.clone(), org_id, T::AppId::get());
+
 			let project_hash = T::Hashing::hash_of(&(&hash, &org_id));
 			let project_key = u64::MIN.checked_add(round_id.into()).unwrap().checked_add(org_id.into()).unwrap();
 			ensure!(<pallet_dao_core::Pallet<T>>::validate_member(who.clone(), org_id), Error::<T>::NotValidOrgMember);
@@ -257,6 +265,8 @@ pub mod pallet {
 		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
 		pub fn vote(origin: OriginFor<T>, round_id: u32, org_id: u32, hash: T::Hash, ballot: u128) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
+            let _ = T::DoraUserOrigin::ensure_valid(who.clone(), org_id, T::AppId::get());
+
 			let project_hash = T::Hashing::hash_of(&(&hash, &org_id));
 			let project_key = u64::MIN.checked_add(round_id.into()).unwrap().checked_add(org_id.into()).unwrap();
 			ensure!(Projects::<T>::contains_key(&project_key, &project_hash), Error::<T>::ProjectNotExist);
@@ -273,7 +283,7 @@ pub mod pallet {
 			let amount = Self::cal_amount(cost, false);
 			let fee = Self::cal_amount(cost, true);
 			// transfer first, update last, as transfer will ensure the free balance is enough
-			// let _ = T::Currency::transfer(&who, &Self::account_id(), Self::u128_to_balance(amount), KeepAlive);
+			let _ = T::DoraPay::charge(who.clone(), Self::u128_to_balance(amount), T::AppId::get());
 
 			// update the project and corresponding round
 			ProjectVotes::<T>::insert(vote_hash, &who, ballot+voted);
