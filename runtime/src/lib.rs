@@ -383,7 +383,7 @@ construct_runtime!(
 		TransactionPayment: pallet_transaction_payment::{Pallet, Storage},
 		Sudo: pallet_sudo::{Pallet, Call, Config<T>, Storage, Event<T>},
 		// Include the custom logic from the quadratic funding in the runtime
-		QfModule: pallet_qf::{Pallet, Call, Storage, Event<T>},
+		QuadraticFunding: pallet_qf::{Pallet, Call, Storage, Event<T>},
 		MolochV2Module: pallet_moloch_v2::{Pallet, Call, Storage, Event<T>},
 		DaoCoreModule: pallet_dao_core::{Pallet, Call, Storage, Event<T>},
 	}
@@ -571,7 +571,7 @@ impl_runtime_apis! {
 			add_benchmark!(params, batches, frame_system, SystemBench::<Runtime>);
 			add_benchmark!(params, batches, pallet_balances, Balances);
 			add_benchmark!(params, batches, pallet_timestamp, Timestamp);
-			add_benchmark!(params, batches, pallet_qf, QfModule);
+			add_benchmark!(params, batches, pallet_qf, QuadraticFunding);
 
 			if batches.is_empty() { return Err("Benchmark not found for this pallet.".into()) }
 			Ok(batches)

@@ -18,7 +18,7 @@ frame_support::construct_runtime!(
 		UncheckedExtrinsic = UncheckedExtrinsic,
 	{
 		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
-		QfModule: pallet_qf::{Pallet, Call, Storage, Event<T>},
+		QuadraticFunding: pallet_qf::{Pallet, Call, Storage, Event<T>},
 	}
 );
 
