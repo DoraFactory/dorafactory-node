@@ -1,8 +1,8 @@
 [workspace]
 members = [
-    'node',
-    'pallets/quadratic-funding',
-    'runtime',
+    "node",
+    "pallets/quadratic-funding",
+    "runtime",
 ]
 [profile.release]
-panic = 'unwind'
+panic = "unwind"

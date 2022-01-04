@@ -2,5 +2,14 @@
 A private chain based on substrate, with Frame V2
 
 ## How to set up
-download submodules 
-```git submodule add -b main https://github.com/DoraFactory/dorafactory-dao-core.git ```
+### 1. clone this repo
+```bash
+> git clone https://github.com/DoraFactory/dorafactory-node.git
+## download submodules
+> git submodule update --init --recursive
+```
+### 2. compile and run
+```
+> cargo build --release
+> ./target/release/dorafactory-node --dev --tmp
+```
