@@ -146,7 +146,7 @@ version = '4.0.0-dev'
 [dependencies.pallet-dao-core]
 default-features = false
 path = '../dorafactory-dao-core/pallets/dao-core'
-version = '0.1.0'
+version = '4.0.0-dev'
 
 [dependencies.pallet-timestamp]
 default-features = false
