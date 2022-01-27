@@ -90,10 +90,10 @@ version = "4.0.0-dev"
 
 [dependencies.pallet-dao-core]
 default-features = false
-path = "../../dorafactory-dao-core/pallets/dao-core"
-version = "3.0.0"
+path = '../../dorafactory-dao-core/pallets/dao-core'
+version = '4.0.0-dev'
 
 [dependencies.core-services]
 default-features = false
-path = "../../dorafactory-dao-core/traits"
-version = "3.0.0"
+path = '../../dorafactory-dao-core/traits'
+version = '4.0.0-dev'
