@@ -38,8 +38,7 @@ std = [
     "codec/std",
     "frame-support/std",
     "frame-system/std",
-        "pallet-dao-core/std",
-
+    "pallet-dao-core/std",
     "frame-benchmarking/std",
 	"pallet-balances/std",
 	"sp-runtime/std",
