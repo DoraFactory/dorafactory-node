@@ -10,26 +10,12 @@ repository = "https://github.com/substrate-developer-hub/substrate-node-template
 version = "4.0.0-dev"
 [package.metadata.docs.rs]
 targets = ["x86_64-unknown-linux-gnu"]
-[dev-dependencies.serde]
-version = "1.0.119"
+[dev-dependencies]
+serde = { version = "1.0.119" }
+sp-core = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.13" }
+sp-runtime = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.13" }
+sp-io = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.13" }
 
-[dev-dependencies.sp-core]
-default-features = false
-git = "https://github.com/paritytech/substrate.git"
-tag = "monthly-2021-09+1"
-version = "4.0.0-dev"
-
-[dev-dependencies.sp-io]
-default-features = false
-git = "https://github.com/paritytech/substrate.git"
-tag = "monthly-2021-09+1"
-version = "4.0.0-dev"
-
-[dev-dependencies.sp-runtime]
-default-features = false
-git = "https://github.com/paritytech/substrate.git"
-tag = "monthly-2021-09+1"
-version = "4.0.0-dev"
 
 [features]
 default = ["std"]
@@ -44,55 +30,21 @@ std = [
 	"sp-runtime/std",
 ]
 try-runtime = ["frame-support/try-runtime"]
-[dependencies.codec]
-default-features = false
-features = ["derive"]
-package = "parity-scale-codec"
-version = "2.0.0"
 
-[dependencies.frame-benchmarking]
-default-features = false
-git = "https://github.com/paritytech/substrate.git"
-optional = true
-tag = "monthly-2021-09+1"
-version = "4.0.0-dev"
+[dependencies]
+codec = { package = "parity-scale-codec", version = "2.0.0", features = ["derive"], default-features = false }
+scale-info = { version = "1.0.0", default-features = false, features = ["derive"] }
 
-[dependencies.frame-support]
-default-features = false
-git = "https://github.com/paritytech/substrate.git"
-tag = "monthly-2021-09+1"
-version = "4.0.0-dev"
+# FRAME library
+frame-benchmarking = { git = "https://github.com/paritytech/substrate", default-features = false, optional = true , branch = "polkadot-v0.9.13" }
+frame-support = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.13" }
+frame-system = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.13" }
 
-[dependencies.frame-system]
-default-features = false
-git = "https://github.com/paritytech/substrate.git"
-tag = "monthly-2021-09+1"
-version = "4.0.0-dev"
+sp-std = {git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.13"}
+sp-runtime = {git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.13"}
 
-[dependencies.pallet-balances]
-default-features = false
-git = "https://github.com/paritytech/substrate.git"
-tag = "monthly-2021-09+1"
-version = "4.0.0-dev"
+pallet-balances = {git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.13"}
 
-[dependencies.sp-std]
-default-features = false
-git = "https://github.com/paritytech/substrate.git"
-tag = "monthly-2021-09+1"
-version = "4.0.0-dev"
-
-[dependencies.sp-runtime]
-default-features = false
-git = "https://github.com/paritytech/substrate.git"
-tag = "monthly-2021-09+1"
-version = "4.0.0-dev"
-
-[dependencies.pallet-dao-core]
-default-features = false
-path = '../../dorafactory-dao-core/pallets/dao-core'
-version = '4.0.0-dev'
-
-[dependencies.core-services]
-default-features = false
-path = '../../dorafactory-dao-core/traits'
-version = '4.0.0-dev'
+# LOCAL library
+pallet-dao-core = {path = '../../dorafactory-dao-core/pallets/dao-core', default-features = false, version = '4.0.0-dev'}
+core-services = {path = '../../dorafactory-dao-core/traits', default-features = false, version = '4.0.0-dev'}

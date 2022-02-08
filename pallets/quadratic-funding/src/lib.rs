@@ -11,6 +11,7 @@ use frame_support::{
 use sp_std::{vec, vec::Vec, convert::{TryInto}};
 use sp_runtime::traits::{Hash};
 use core_services::{DoraUserOrigin, DoraPay};
+use scale_info::TypeInfo;
 
 #[cfg(test)]
 mod mock;
@@ -21,8 +22,7 @@ mod tests;
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarking;
 
-
-#[derive(Encode, Decode, Default, Clone, PartialEq)]
+#[derive(Encode, Decode, Default, Clone, PartialEq, TypeInfo)]
 pub struct Project<AccountId> {
     pub total_votes: u128,
     pub grants: u128,
@@ -32,7 +32,7 @@ pub struct Project<AccountId> {
     pub owner: AccountId,
 }
 
-#[derive(Encode, Decode, Default, Clone, PartialEq)]
+#[derive(Encode, Decode, Default, Clone, PartialEq, TypeInfo)]
 pub struct Round {
     pub name: Vec<u8>,
     pub ongoing: bool,
@@ -104,7 +104,6 @@ pub mod pallet {
     // Pallets use events to inform users when important changes are made.
     // https://substrate.dev/docs/en/knowledgebase/runtime/events
     #[pallet::event]
-    #[pallet::metadata(T::AccountId = "AccountId", T::Hash = "Hash")]
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
     pub enum Event<T: Config> {
         /// Event documentation should end with an array that provides descriptive names for event
