@@ -16,6 +16,7 @@ targets = ["x86_64-unknown-linux-gnu"]
 codec = { package = "parity-scale-codec", version = "2.0.0", default-features = false, features = ["derive"]}
 scale-info = { version = "1.0.0", default-features = false, features = ["derive"] }
 hex-literal = { version = '0.3.1', optional = true }
+serde = { version = "1.0.132", optional = true, features = ["derive"] }
 
 # Substrate Dependencies
 ## Substrate FRAME Dependencies
@@ -79,6 +80,10 @@ xcm = { git = "https://github.com/paritytech/polkadot", default-features = false
 xcm-builder = { git = "https://github.com/paritytech/polkadot", default-features = false , branch = "release-v0.9.16" }
 xcm-executor = { git = "https://github.com/paritytech/polkadot", default-features = false , branch = "release-v0.9.16" }
 
+# orml xcmp
+# ORML Dependencies
+orml-xtokens = { git = "https://github.com/open-web3-stack/open-runtime-module-library", branch = "polkadot-v0.9.16", default-features = false }
+
 [features]
 default = ["std"]
 runtime-benchmarks = [
@@ -97,6 +102,7 @@ runtime-benchmarks = [
 ]
 std = [
     "codec/std",
+	"serde",
     "frame-executive/std",
     "frame-support/std",
     "frame-system-rpc-runtime-api/std",
@@ -140,4 +146,6 @@ std = [
 	"xcm-builder/std",
 	"xcm-executor/std",
 	"xcm/std",
+
+    "orml-xtokens/std",
 ]

@@ -9,13 +9,16 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 /* use pallet_grandpa::{
     fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList,
 }; */
+use codec::{Decode, Encode};
+#[cfg(feature = "std")]
+use serde::{Deserialize, Serialize};
 use sp_api::impl_runtime_apis;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
 use sp_runtime::{
     create_runtime_str, generic, impl_opaque_keys,
-    traits::{AccountIdLookup, BlakeTwo256, Block as BlockT, IdentifyAccount, NumberFor, Verify},
+    traits::{AccountIdLookup, BlakeTwo256, Block as BlockT, IdentifyAccount, NumberFor, Verify, Convert},
     transaction_validity::{TransactionSource, TransactionValidity},
-    ApplyExtrinsicResult, MultiSignature,
+    ApplyExtrinsicResult, MultiSignature, RuntimeDebug,
 };
 use sp_std::prelude::*;
 #[cfg(feature = "std")]
@@ -25,7 +28,7 @@ use sp_version::RuntimeVersion;
 // A few exports that help ease life for downstream crates.
 pub use frame_support::{
     construct_runtime, match_type, parameter_types,
-    traits::{Everything, KeyOwnerProofSystem, Nothing, Randomness, StorageInfo},
+    traits::{Contains, Everything, KeyOwnerProofSystem, Nothing, Randomness, StorageInfo},
     weights::{
         constants::{BlockExecutionWeight, ExtrinsicBaseWeight, WEIGHT_PER_SECOND},
         IdentityFee, Weight, WeightToFeeCoefficient, WeightToFeeCoefficients,
@@ -33,7 +36,7 @@ pub use frame_support::{
     },
     PalletId,
 };
-
+use scale_info::TypeInfo;
 use frame_system::EnsureRoot;
 
 pub use sp_consensus_aura::sr25519::AuthorityId as AuraId;
@@ -57,6 +60,18 @@ use xcm_builder::{
     UsingComponents,
 };
 use xcm_executor::{Config, XcmExecutor};
+
+#[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord, TypeInfo)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+pub enum CurrencyId {
+	Native,
+	DOT,
+	KSM,
+	BTC,
+	WND,
+}
+
+pub type Amount = i128;
 
 /// Import the moloch-v2 pallet.
 pub use pallet_moloch_v2;
@@ -657,6 +672,75 @@ impl pallet_dao_core::Config for Runtime {
     type SupervisorOrigin = EnsureRoot<AccountId>;
 }
 
+
+// orml_xtokens
+pub struct CurrencyIdConvert;
+
+const RELAY_CHAIN_CURRENCY_ID: CurrencyId = CurrencyId::WND;
+
+impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
+	fn convert(id: CurrencyId) -> Option<MultiLocation> {
+		match id {
+			RELAY_CHAIN_CURRENCY_ID => Some(MultiLocation::parent()),
+			_ => None,
+		}
+	}
+}
+impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
+	fn convert(location: MultiLocation) -> Option<CurrencyId> {
+		// match location {
+		//     X1(Parent) => Some(RELAY_CHAIN_CURRENCY_ID),
+		//     _ => None,
+		// }
+		// TODO not sure this, need to check what multiloction mean.
+		if location.parent_count() == 1 {
+			Some(RELAY_CHAIN_CURRENCY_ID)
+		} else {
+			None
+		}
+	}
+}
+impl Convert<MultiAsset, Option<CurrencyId>> for CurrencyIdConvert {
+	fn convert(asset: MultiAsset) -> Option<CurrencyId> {
+		if let MultiAsset { id: Concrete(location), .. } = asset {
+			Self::convert(location)
+		} else {
+			None
+		}
+	}
+}
+
+parameter_types! {
+	pub SelfLocation: MultiLocation = MultiLocation::new(1, X1(Parachain(ParachainInfo::parachain_id().into())));
+
+}
+pub struct AccountIdToMultiLocation;
+
+impl Convert<AccountId, MultiLocation> for AccountIdToMultiLocation {
+	fn convert(account: AccountId) -> MultiLocation {
+		X1(AccountId32 { network: NetworkId::Any, id: account.into() }).into()
+	}
+}
+
+parameter_types! {
+	pub const BaseXcmWeight: Weight = 100_000_000; // TODO: recheck this
+	pub const MaxAssetsForTransfer: usize = 2;
+}
+
+impl orml_xtokens::Config for Runtime {
+	type Event = Event;
+	type Balance = Balance;
+	type CurrencyId = CurrencyId;
+	type CurrencyIdConvert = CurrencyIdConvert;
+	type AccountIdToMultiLocation = AccountIdToMultiLocation;
+	type SelfLocation = SelfLocation;
+	type XcmExecutor = XcmExecutor<XcmConfig>;
+	type Weigher = FixedWeightBounds<UnitWeightCost, Call, MaxInstructions>;
+	type BaseXcmWeight = BaseXcmWeight;
+	type LocationInverter = LocationInverter<Ancestry>;
+	type MaxAssetsForTransfer = MaxAssetsForTransfer;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
     pub enum Runtime where
@@ -691,6 +775,9 @@ construct_runtime!(
         PolkadotXcm: pallet_xcm::{Pallet, Call, Event<T>, Origin, Config},
         CumulusXcm: cumulus_pallet_xcm::{Pallet, Event<T>, Origin},
         DmpQueue: cumulus_pallet_dmp_queue::{Pallet, Call, Storage, Event<T>},
+
+		// ORML XCMP
+		XTokens: orml_xtokens::{Pallet, Storage, Call, Event<T>},
 
         // Include the custom pallet in the runtime.
         QuadraticFunding: pallet_qf::{Pallet, Call, Storage, Event<T>},
