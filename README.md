@@ -7,15 +7,13 @@ A private chain based on substrate, with Frame V2
 ```bash
 git clone https://github.com/DoraFactory/dorafactory-node.git
 ## checkout to dorafactory-parachain(polkadot-v0.9.16)
-git checkout dorafactory-parachain
+cd dorafactory-node && git checkout dorafactory-parachain
 ##download submodules
 git submodule update --init --recursive
-##checkout polkadot-v0.9.16
-cd dorafactory-dao-core && git checkout polkadot-v0.9.16
 ```
 ### 2. compile and run
 ```
-cd ../ && cargo build --release
+cargo build --release
 ```
 
 ## Start Relaychain(Local Rococo relaychain)
