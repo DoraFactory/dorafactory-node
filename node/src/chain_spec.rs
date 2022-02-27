@@ -1,6 +1,6 @@
 use cumulus_primitives_core::ParaId;
 use dorafactory_node_runtime::{
-    AccountId, Signature, SystemConfig, EXISTENTIAL_DEPOSIT, WASM_BINARY,
+    AccountId, Signature, SystemConfig, EXISTENTIAL_DEPOSIT, WASM_BINARY, TokensConfig,
 };
 use sc_chain_spec::{ChainSpecExtension, ChainSpecGroup};
 use sc_service::ChainType;
@@ -278,5 +278,6 @@ fn dorafactory_genesis(
         aura_ext: Default::default(),
         parachain_system: Default::default(),
         polkadot_xcm: Default::default(),
+		tokens: TokensConfig { balances: vec![] },
     }
 }
