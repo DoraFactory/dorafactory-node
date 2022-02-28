@@ -25,6 +25,8 @@ use sp_std::prelude::*;
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
 
+use frame_support::traits::fungibles;
+use frame_support::sp_std::marker::PhantomData;
 // A few exports that help ease life for downstream crates.
 pub use frame_support::{
     construct_runtime, match_type, parameter_types,
@@ -57,8 +59,10 @@ use xcm_builder::{
     EnsureXcmOrigin, FixedWeightBounds, IsConcrete, LocationInverter, NativeAsset, ParentIsDefault,
     RelayChainAsNative, SiblingParachainAsNative, SiblingParachainConvertsVia,
     SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit,
-    UsingComponents, AllowKnownQueryResponses, AllowSubscriptionsFrom, FixedRateOfFungible
+    UsingComponents, AllowKnownQueryResponses, AllowSubscriptionsFrom, FixedRateOfFungible,
+	TakeRevenue, ConvertedConcreteAssetId, FungiblesAdapter,
 };
+use xcm_executor::{traits::JustTry};
 // use xcm_executor::{Config, XcmExecutor};
 
 use orml_traits::parameter_type_with_key;
@@ -220,6 +224,7 @@ parameter_types! {
     pub BlockLength: frame_system::limits::BlockLength = frame_system::limits::BlockLength
         ::max_with_normal_ratio(5 * 1024 * 1024, NORMAL_DISPATCH_RATIO);
     pub const SS58Prefix: u8 = 42;
+	pub CheckingAccount: AccountId = PolkadotXcm::check_account();
 }
 
 // Configure FRAME pallets to include in runtime.
@@ -535,69 +540,138 @@ pub type Barrier = (
 );
 
 
-pub type LocalAssetTransactor = MultiCurrencyAdapter<
+// pub type LocalAssetTransactor = MultiCurrencyAdapter<
+// 	Tokens,
+// 	(),
+// 	IsNativeConcrete<CurrencyId, CurrencyIdConvert>,
+// 	AccountId,
+// 	LocationToAccountId,
+// 	CurrencyId,
+// 	CurrencyIdConvert,
+// 	(),
+// >;
+
+
+// /// Trader - The means of purchasing weight credit for XCM execution.
+// /// We need to ensure we have at least one rule per token we want to handle or else
+// /// the xcm executor won't know how to charge fees for a transfer of said token.
+// pub type Trader = (
+// 	UsingComponents<IdentityFee<Balance>, RelayLocation, AccountId, Balances, ()>,
+// 	FixedRateOfFungible<NativePerSecond, ()>,
+// 	FixedRateOfFungible<FfPerSecond1000, ()>,
+// 	FixedRateOfFungible<FfPerSecond2000, ()>,
+// );
+
+
+/// Means for transacting the fungibles assets of ths parachain.
+pub type FungiblesTransactor = FungiblesAdapter<
+	// Use this fungibles implementation
 	Tokens,
-	(),
-	IsNativeConcrete<CurrencyId, CurrencyIdConvert>,
-	AccountId,
+	// This means that this adapter should handle any token that `CurrencyIdConvert` can convert
+	// to `CurrencyId`, the `CurrencyId` type of `Tokens`, the fungibles implementation it uses.
+	ConvertedConcreteAssetId<CurrencyId, Balance, CurrencyIdConvert, JustTry>,
+	// Convert an XCM MultiLocation into a local account id
 	LocationToAccountId,
-	CurrencyId,
-	CurrencyIdConvert,
-	(),
+	// Our chain's account ID type (we can't get away without mentioning it explicitly)
+	AccountId,
+	// We only want to allow teleports of known assets. We use non-zero issuance as an indication
+	// that this asset is known.
+	NonZeroIssuance<AccountId, Tokens>,
+	// The account to use for tracking teleports.
+	CheckingAccount,
 >;
 
-/// A trader who believes all tokens are created equal to "weight" of any chain,
-/// which is not true, but good enough to mock the fee payment of XCM execution.
-///
-/// This mock will always trade `n` amount of weight to `n` amount of tokens.
-pub struct AllTokensAreCreatedEqualToWeight(MultiLocation);
-impl WeightTrader for AllTokensAreCreatedEqualToWeight {
-	fn new() -> Self {
-		Self(MultiLocation::parent())
-	}
-
-	fn buy_weight(&mut self, weight: Weight, payment: Assets) -> Result<Assets, XcmError> {
-		let asset_id = payment
-			.fungible
-			.iter()
-			.next()
-			.expect("Payment must be something; qed")
-			.0;
-		let required = MultiAsset {
-			id: asset_id.clone(),
-			fun: Fungible(weight as u128),
-		};
-
-		if let MultiAsset {
-			fun: _,
-			id: Concrete(ref id),
-		} = &required
-		{
-			self.0 = id.clone();
-		}
-
-		let unused = payment.checked_sub(required).map_err(|_| XcmError::TooExpensive)?;
-		Ok(unused)
-	}
-
-	fn refund_weight(&mut self, weight: Weight) -> Option<MultiAsset> {
-		if weight.is_zero() {
-			None
-		} else {
-			Some((self.0.clone(), weight as u128).into())
-		}
+/// Allow checking in assets that have issuance > 0.
+/// This is defined in cumulus but it doesn't seem made available to the world.
+pub struct NonZeroIssuance<AccountId, Assets>(PhantomData<(AccountId, Assets)>);
+impl<AccountId, Assets> Contains<<Assets as fungibles::Inspect<AccountId>>::AssetId>
+	for NonZeroIssuance<AccountId, Assets>
+where
+	Assets: fungibles::Inspect<AccountId>,
+{
+	fn contains(id: &<Assets as fungibles::Inspect<AccountId>>::AssetId) -> bool {
+		!Assets::total_issuance(*id).is_zero()
 	}
 }
 
+
+// / A trader who believes all tokens are created equal to "weight" of any chain,
+// / which is not true, but good enough to mock the fee payment of XCM execution.
+// /
+// / This mock will always trade `n` amount of weight to `n` amount of tokens.
+// pub struct AllTokensAreCreatedEqualToWeight(MultiLocation);
+// impl WeightTrader for AllTokensAreCreatedEqualToWeight {
+// 	fn new() -> Self {
+// 		Self(MultiLocation::parent())
+// 	}
+
+// 	fn buy_weight(&mut self, weight: Weight, payment: Assets) -> Result<Assets, XcmError> {
+// 		let asset_id = payment
+// 			.fungible
+// 			.iter()
+// 			.next()
+// 			.expect("Payment must be something; qed")
+// 			.0;
+// 		let required = MultiAsset {
+// 			id: asset_id.clone(),
+// 			fun: Fungible(weight as u128),
+// 		};
+
+// 		if let MultiAsset {
+// 			fun: _,
+// 			id: Concrete(ref id),
+// 		} = &required
+// 		{
+// 			self.0 = id.clone();
+// 		}
+
+// 		let unused = payment.checked_sub(required).map_err(|_| XcmError::TooExpensive)?;
+// 		Ok(unused)
+// 	}
+
+// 	fn refund_weight(&mut self, weight: Weight) -> Option<MultiAsset> {
+// 		if weight.is_zero() {
+// 			None
+// 		} else {
+// 			Some((self.0.clone(), weight as u128).into())
+// 		}
+// 	}
+// }
+
+
+// parameter_types! {
+// 	pub const NativeLocation = MultiLocation {parents: 1, interior: X1(Parachain(1000))};
+// 	pub const DoraLocation = MultiLocation {parents: 1, interior: X1(Parachain(2000))};
+// }
+
+// pub struct ToTreasury;
+// impl TakeRevenue for ToTreasury {
+// 	fn take_revenue(revenue: MultiAsset) {
+// 		if let MultiAsset {
+// 			id: Concrete(location),
+// 			fun: Fungible(amount),
+// 		} = revenue
+// 		{
+// 			if let Some(currency_id) = CurrencyIdConvert::convert(location) {
+// 				// Ensure KaruraTreasuryAccount have ed requirement for native asset, but don't need
+// 				// ed requirement for cross-chain asset because it's one of whitelist accounts.
+// 				// Ignore the result.
+// 				let _ = Currencies::Pallet::deposit(currency_id, &NativeTreasuryAccount::get(), amount);
+// 			}
+// 		}
+// 	}
+// }
 
 /// Trader - The means of purchasing weight credit for XCM execution.
 /// We need to ensure we have at least one rule per token we want to handle or else
 /// the xcm executor won't know how to charge fees for a transfer of said token.
 pub type Trader = (
+	// pub const RelayLocation: MultiLocation = MultiLocation::parent();
 	UsingComponents<IdentityFee<Balance>, RelayLocation, AccountId, Balances, ()>,
+
 	FixedRateOfFungible<NativePerSecond, ()>,
-	FixedRateOfFungible<FfPerSecond1000, ()>,
 	FixedRateOfFungible<FfPerSecond2000, ()>,
+	FixedRateOfFungible<FfPerSecond1000, ()>,
 );
 
 parameter_types! {
@@ -610,7 +684,7 @@ parameter_types! {
 		10_000,
 	);
 
-	pub FfPerSecond1000: (AssetId, u128) = (
+	pub FfPerSecond2000: (AssetId, u128) = (
 		MultiLocation::new(
 			1,
 			X2(Parachain(2000), GeneralKey(CurrencyId::FF.encode())),
@@ -621,7 +695,7 @@ parameter_types! {
 
 	/// We support this Trader for testing purposes when we spawn a sibling clone development
 	/// parachain with id 3000.
-	pub FfPerSecond2000: (AssetId, u128) = (
+	pub FfPerSecond1000: (AssetId, u128) = (
 		MultiLocation::new(
 			1,
 			X2(Parachain(1000), GeneralKey(CurrencyId::FF.encode())),
@@ -636,7 +710,7 @@ impl Config for XcmConfig {
     type Call = Call;
     type XcmSender = XcmRouter;
     // How to withdraw and deposit an asset.
-    type AssetTransactor = LocalAssetTransactor;
+    type AssetTransactor = FungiblesTransactor;
     type OriginConverter = XcmOriginToTransactDispatchOrigin;
     type IsReserve = MultiNativeAsset;
     type IsTeleporter = (); // Teleporting is disabled.
@@ -811,52 +885,119 @@ impl pallet_dao_core::Config for Runtime {
 
 
 // orml_xtokens
+
+/// CurrencyIdConvert
+/// This type implements conversions from our `CurrencyId` type into `MultiLocation` and vice-versa.
+/// A currency locally is identified with a `CurrencyId` variant but in the network it is identified
+/// in the form of a `MultiLocation`, in this case a pair (Para-Id, Currency-Id).
 pub struct CurrencyIdConvert;
+
+/// Convert our `CurrencyId` type into its `MultiLocation` representation.
+/// Other chains need to know how this conversion takes place in order to
+/// handle it on their side.
 impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
 	fn convert(id: CurrencyId) -> Option<MultiLocation> {
-		match id {
+		// Some(native_currency_location(id))
+        match id {
 			CurrencyId::ROC => Some(Parent.into()),
-			CurrencyId::DORA => Some((Parent, Parachain(2000), GeneralKey("DORA".into())).into()),
 			CurrencyId::FF => Some((Parent, Parachain(1000), GeneralKey("FF".into())).into()),
+			CurrencyId::DORA => Some((Parent, Parachain(2000), GeneralKey("DORA".into())).into()),
 		}
 	}
 }
-impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
-	fn convert(l: MultiLocation) -> Option<CurrencyId> {
-		let ff: Vec<u8> = "FF".into();
-		let dora: Vec<u8> = "DORA".into();
 
-		if l == MultiLocation::parent() {
-			return Some(CurrencyId::ROC);
+/// Convert an incoming `MultiLocation` into a `CurrencyId` if possible.
+/// Here we need to know the canonical representation of all the tokens we handle in order to
+/// correctly convert their `MultiLocation` representation into our internal `CurrencyId` type.
+impl xcm_executor::traits::Convert<MultiLocation, CurrencyId> for CurrencyIdConvert {
+	fn convert(location: MultiLocation) -> Result<CurrencyId, MultiLocation> {
+        if location == MultiLocation::parent() {
+			return Ok(CurrencyId::ROC);
 		}
-		match l {
-			MultiLocation { parents, interior } if parents == 1 => match interior {
-				X2(Parachain(2000), GeneralKey(k)) if k == dora => Some(CurrencyId::DORA),
-				X2(Parachain(1000), GeneralKey(k)) if k == ff => Some(CurrencyId::FF),
-				_ => None,
+		match location.clone() {
+			MultiLocation {
+				parents: 1,
+				interior: X2(Parachain(para_id), GeneralKey(key)),
+			} if para_id == 2000 || para_id == 1000 => match &key[..] {
+				[0] => Ok(CurrencyId::DORA),
+				[1] => Ok(CurrencyId::FF),
+				_ => Err(location.clone()),
 			},
-			MultiLocation { parents, interior } if parents == 0 => match interior {
-				X1(GeneralKey(k)) if k == dora => Some(CurrencyId::DORA),
-				X1(GeneralKey(k)) if k == ff => Some(CurrencyId::FF),
-				_ => None,
-			},
-			_ => None,
+			_ => Err(location.clone()),
 		}
 	}
 }
+
 impl Convert<MultiAsset, Option<CurrencyId>> for CurrencyIdConvert {
-	fn convert(a: MultiAsset) -> Option<CurrencyId> {
+	fn convert(asset: MultiAsset) -> Option<CurrencyId> {
 		if let MultiAsset {
-			fun: Fungible(_),
-			id: Concrete(id),
-		} = a
+			id: Concrete(location),
+			..
+		} = asset
 		{
-			Self::convert(id)
+			<CurrencyIdConvert as xcm_executor::traits::Convert<_, _>>::convert(location).ok()
 		} else {
-			Option::None
+			None
 		}
 	}
 }
+
+fn native_currency_location(id: CurrencyId) -> MultiLocation {
+	MultiLocation::new(
+		1,
+		X2(
+			Parachain(ParachainInfo::parachain_id().into()),
+			GeneralKey(id.encode()),
+		),
+	)
+}
+
+// pub struct CurrencyIdConvert;
+// impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
+// 	fn convert(id: CurrencyId) -> Option<MultiLocation> {
+// 		match id {
+// 			CurrencyId::ROC => Some(Parent.into()),
+// 			CurrencyId::DORA => Some((Parent, Parachain(2000), GeneralKey("DORA".into())).into()),
+// 			CurrencyId::FF => Some((Parent, Parachain(1000), GeneralKey("FF".into())).into()),
+// 		}
+// 	}
+// }
+// impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
+// 	fn convert(l: MultiLocation) -> Option<CurrencyId> {
+// 		let ff: Vec<u8> = "FF".into();
+// 		let dora: Vec<u8> = "DORA".into();
+
+// 		if l == MultiLocation::parent() {
+// 			return Some(CurrencyId::ROC);
+// 		}
+// 		match l {
+// 			MultiLocation { parents, interior } if parents == 1 => match interior {
+// 				X2(Parachain(2000), GeneralKey(k)) if k == dora => Some(CurrencyId::DORA),
+// 				X2(Parachain(1000), GeneralKey(k)) if k == ff => Some(CurrencyId::FF),
+// 				_ => None,
+// 			},
+// 			MultiLocation { parents, interior } if parents == 0 => match interior {
+// 				X1(GeneralKey(k)) if k == dora => Some(CurrencyId::DORA),
+// 				X1(GeneralKey(k)) if k == ff => Some(CurrencyId::FF),
+// 				_ => None,
+// 			},
+// 			_ => None,
+// 		}
+// 	}
+// }
+// impl Convert<MultiAsset, Option<CurrencyId>> for CurrencyIdConvert {
+// 	fn convert(a: MultiAsset) -> Option<CurrencyId> {
+// 		if let MultiAsset {
+// 			fun: Fungible(_),
+// 			id: Concrete(id),
+// 		} = a
+// 		{
+// 			Self::convert(id)
+// 		} else {
+// 			Option::None
+// 		}
+// 	}
+// }
 
 pub struct AccountIdToMultiLocation;
 impl Convert<AccountId, MultiLocation> for AccountIdToMultiLocation {
