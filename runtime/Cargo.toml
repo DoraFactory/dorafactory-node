@@ -82,6 +82,8 @@ xcm-executor = { git = "https://github.com/paritytech/polkadot", default-feature
 
 # orml xcmp
 # ORML Dependencies
+orml-currencies = { git = "https://github.com/open-web3-stack/open-runtime-module-library", branch = "polkadot-v0.9.16", default-features = false }
+orml-unknown-tokens = { git = "https://github.com/open-web3-stack/open-runtime-module-library", branch = "polkadot-v0.9.16", default-features = false }
 orml-tokens = { git = "https://github.com/open-web3-stack/open-runtime-module-library", branch = "polkadot-v0.9.16", default-features = false }
 orml-xtokens = { git = "https://github.com/open-web3-stack/open-runtime-module-library", branch = "polkadot-v0.9.16", default-features = false }
 orml-xcm-support = { git = "https://github.com/open-web3-stack/open-runtime-module-library", branch = "polkadot-v0.9.16", default-features = false }
@@ -151,7 +153,9 @@ std = [
 	"xcm-executor/std",
 	"xcm/std",
 
+    "orml-currencies/std",
     "orml-xtokens/std",
+    "orml-unknown-tokens/std",
     "orml-tokens/std",
 	"orml-xcm-support/std",
 	"orml-xcm/std",
