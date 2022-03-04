@@ -526,8 +526,7 @@ parameter_types! {
 			1,
 			X2(Parachain(2000), GeneralKey(b"DORA".to_vec()))
 		).into(),
-		// DORA:KSM = 80:1
-		// roc_per_second() * 80
+		// DORA:ROC = 10:1
         10_000
 	);
 	pub NativeNewPerSecond: (AssetId, u128) = (
@@ -535,8 +534,7 @@ parameter_types! {
 			0,
 			X1(GeneralKey(b"DORA".to_vec()))
 		).into(),
-		// DORA:KSM = 80:1
-		// roc_per_second() * 80
+		// DORA:ROC = 10:1
         10_000
 	);
 
@@ -545,8 +543,7 @@ parameter_types! {
 			1,
 			X2(Parachain(1000), GeneralKey(b"FF".to_vec()))
 		).into(),
-		// DORA:KSM = 100:1
-		// roc_per_second() * 100
+		// FF:ROC = 200:1
         200_000
 	);
 }
