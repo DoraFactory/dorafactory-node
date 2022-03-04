@@ -28,8 +28,6 @@ use sp_std::prelude::*;
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
 
-use frame_support::traits::fungibles;
-use frame_support::sp_std::marker::PhantomData;
 // A few exports that help ease life for downstream crates.
 pub use frame_support::{
     construct_runtime, match_type, parameter_types,
@@ -65,13 +63,11 @@ use xcm_builder::{
     UsingComponents, AllowKnownQueryResponses, AllowSubscriptionsFrom, FixedRateOfFungible,
 	TakeRevenue, ConvertedConcreteAssetId, FungiblesAdapter,
 };
-use xcm_executor::{traits::JustTry};
-// use xcm_executor::{Config, XcmExecutor};
+use xcm_executor::{traits::{WeightTrader, JustTry}, Assets, Config, XcmExecutor};
 
+// ORML Imports
 use orml_traits::parameter_type_with_key;
 use orml_xcm_support::{IsNativeConcrete, MultiCurrencyAdapter, MultiNativeAsset, DepositToAlternative};
-use xcm_executor::{traits::WeightTrader, Assets, Config, XcmExecutor};
-
 use orml_currencies::BasicCurrencyAdapter;
 
 /// Import the moloch-v2 pallet.
@@ -512,7 +508,6 @@ pub type LocalAssetTransactor = MultiCurrencyAdapter<
 /// We need to ensure we have at least one rule per token we want to handle or else
 /// the xcm executor won't know how to charge fees for a transfer of said token.
 pub type Trader = (
-    // UsingComponents<IdentityFee<Balance>, RelayLocation, AccountId, Balances, ()>,
     FixedRateOfFungible<RocPerSecond, ()>,
     FixedRateOfFungible<NativePerSecond, ()>,
     FixedRateOfFungible<NativeNewPerSecond, ()>,
