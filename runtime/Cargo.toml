@@ -90,6 +90,9 @@ orml-xcm-support = { git = "https://github.com/open-web3-stack/open-runtime-modu
 orml-xcm = { git = "https://github.com/open-web3-stack/open-runtime-module-library", branch = "polkadot-v0.9.16", default-features = false }
 orml-traits = { git = "https://github.com/open-web3-stack/open-runtime-module-library", branch = "polkadot-v0.9.16", default-features = false }
 
+pallet-scheduler = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.16" }
+pallet-preimage = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.16', default-features = false }
+
 [features]
 default = ["std"]
 runtime-benchmarks = [
@@ -160,4 +163,7 @@ std = [
 	"orml-xcm-support/std",
 	"orml-xcm/std",
 	"orml-traits/std",
+
+    'pallet-scheduler/std',
+    "pallet-preimage/std",
 ]

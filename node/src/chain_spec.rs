@@ -1,6 +1,7 @@
+use hex_literal::hex;
 use cumulus_primitives_core::ParaId;
 use dorafactory_node_runtime::{
-    AccountId, Signature, SystemConfig, EXISTENTIAL_DEPOSIT, WASM_BINARY, TokensConfig,
+    AccountId, Signature, SystemConfig, EXISTENTIAL_DEPOSIT, WASM_BINARY, TokensConfig, SudoConfig,
 };
 use sc_chain_spec::{ChainSpecExtension, ChainSpecGroup};
 use sc_service::ChainType;
@@ -80,6 +81,8 @@ pub fn development_config() -> ChainSpec {
         ChainType::Development,
         move || {
             dorafactory_genesis(
+                // Sudo Account
+                get_account_id_from_seed::<sr25519::Public>("Alice"),
                 // initial collators.
                 vec![
                     (
@@ -136,6 +139,8 @@ pub fn local_testnet_config() -> ChainSpec {
         ChainType::Local,
         move || {
             dorafactory_genesis(
+                // subkey inspect "$SECRET" - TODO: Change this root key.
+                get_account_id_from_seed::<sr25519::Public>("Alice"),
                 // initial collators.
                 vec![
                     (
@@ -237,6 +242,7 @@ pub fn dorafactory_node_rococo(id: ParaId) -> ChainSpec{
 } */
 
 fn dorafactory_genesis(
+    root_key: AccountId,
     invulnerables: Vec<(AccountId, AuraId)>,
     endowed_accounts: Vec<AccountId>,
     id: ParaId,
@@ -279,5 +285,8 @@ fn dorafactory_genesis(
         parachain_system: Default::default(),
         polkadot_xcm: Default::default(),
 		tokens: TokensConfig { balances: vec![] },
+        sudo: SudoConfig {
+            key: Some(root_key),
+        }
     }
 }
