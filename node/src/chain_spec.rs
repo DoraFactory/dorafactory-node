@@ -139,8 +139,8 @@ pub fn local_testnet_config() -> ChainSpec {
         ChainType::Local,
         move || {
             dorafactory_genesis(
-                // subkey inspect "$SECRET" - TODO: Change this root key.
-                get_account_id_from_seed::<sr25519::Public>("Alice"),
+                // subkey inspect "$SECRET"
+                hex!["34c63c6b3213570b0513c706f6c49a4ce253570ac213e53c919d2cd6f8913a07"].into(),
                 // initial collators.
                 vec![
                     (
