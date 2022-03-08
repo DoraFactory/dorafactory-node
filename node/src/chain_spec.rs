@@ -1,6 +1,7 @@
+use hex_literal::hex;
 use cumulus_primitives_core::ParaId;
 use dorafactory_node_runtime::{
-    AccountId, Signature, SystemConfig, EXISTENTIAL_DEPOSIT, WASM_BINARY,
+    AccountId, Signature, SystemConfig, EXISTENTIAL_DEPOSIT, WASM_BINARY, TokensConfig, SudoConfig,
 };
 use sc_chain_spec::{ChainSpecExtension, ChainSpecGroup};
 use sc_service::ChainType;
@@ -68,7 +69,7 @@ pub fn template_session_keys(keys: AuraId) -> dorafactory_node_runtime::SessionK
 pub fn development_config() -> ChainSpec {
     // Give your base currency a unit name and decimal places
     let mut properties = sc_chain_spec::Properties::new();
-    properties.insert("tokenSymbol".into(), "UNIT".into());
+    properties.insert("tokenSymbol".into(), "DORA".into());
     properties.insert("tokenDecimals".into(), 12.into());
     properties.insert("ss58Format".into(), 42.into());
 
@@ -80,6 +81,8 @@ pub fn development_config() -> ChainSpec {
         ChainType::Development,
         move || {
             dorafactory_genesis(
+                // Sudo Account
+                get_account_id_from_seed::<sr25519::Public>("Alice"),
                 // initial collators.
                 vec![
                     (
@@ -106,7 +109,7 @@ pub fn development_config() -> ChainSpec {
                     get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
                 ],
                 // default spec chain Id : 1000
-                1000.into(),
+                2000.into(),
             )
         },
         Vec::new(),
@@ -116,7 +119,7 @@ pub fn development_config() -> ChainSpec {
         None,
         Extensions {
             relay_chain: "rococo-local".into(), // You MUST set this to the correct network!
-            para_id: 1000,
+            para_id: 2000,
         },
     )
 }
@@ -124,7 +127,7 @@ pub fn development_config() -> ChainSpec {
 pub fn local_testnet_config() -> ChainSpec {
     // Give your base currency a unit name and decimal places
     let mut properties = sc_chain_spec::Properties::new();
-    properties.insert("tokenSymbol".into(), "UNIT".into());
+    properties.insert("tokenSymbol".into(), "DORA".into());
     properties.insert("tokenDecimals".into(), 12.into());
     properties.insert("ss58Format".into(), 42.into());
 
@@ -136,6 +139,8 @@ pub fn local_testnet_config() -> ChainSpec {
         ChainType::Local,
         move || {
             dorafactory_genesis(
+                // subkey inspect "$SECRET"
+                hex!["34c63c6b3213570b0513c706f6c49a4ce253570ac213e53c919d2cd6f8913a07"].into(),
                 // initial collators.
                 vec![
                     (
@@ -161,7 +166,7 @@ pub fn local_testnet_config() -> ChainSpec {
                     get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
                     get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
                 ],
-                1000.into(),
+                2000.into(),
             )
         },
         // Bootnodes
@@ -177,7 +182,7 @@ pub fn local_testnet_config() -> ChainSpec {
         // Extensions
         Extensions {
             relay_chain: "rococo-local".into(), // You MUST set this to the correct network!
-            para_id: 1000,
+            para_id: 2000,
         },
     )
 }
@@ -237,6 +242,7 @@ pub fn dorafactory_node_rococo(id: ParaId) -> ChainSpec{
 } */
 
 fn dorafactory_genesis(
+    root_key: AccountId,
     invulnerables: Vec<(AccountId, AuraId)>,
     endowed_accounts: Vec<AccountId>,
     id: ParaId,
@@ -278,5 +284,9 @@ fn dorafactory_genesis(
         aura_ext: Default::default(),
         parachain_system: Default::default(),
         polkadot_xcm: Default::default(),
+		tokens: TokensConfig { balances: vec![] },
+        sudo: SudoConfig {
+            key: Some(root_key),
+        }
     }
 }
