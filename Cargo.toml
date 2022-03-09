@@ -3,6 +3,7 @@ members = [
     "node",
     "pallets/quadratic-funding",
     "runtime",
+    "primitives",
 ]
 [profile.release]
 panic = "unwind"

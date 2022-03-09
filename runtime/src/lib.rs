@@ -10,8 +10,6 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
     fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList,
 }; */
 use codec::{Decode, Encode};
-#[cfg(feature = "std")]
-use serde::{Deserialize, Serialize};
 use sp_api::impl_runtime_apis;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
 use sp_runtime::{
@@ -75,28 +73,35 @@ pub use pallet_moloch_v2;
 /// local Imports
 /// Import the qudratic-funding pallet.
 pub use pallet_qf;
-
-/// An index to a block.
-pub type BlockNumber = u32;
-
-/// Alias to 512-bit hash when used in the context of a transaction signature on the chain.
-pub type Signature = MultiSignature;
-
-/// Some way of identifying an account on the chain. We intentionally make it equivalent
-/// to the public key of our transaction signing scheme.
-pub type AccountId = <<Signature as Verify>::Signer as IdentifyAccount>::AccountId;
-
-/// Balance of an account.
-pub type Balance = u128;
-
-/// Index of a transaction in the chain.
-pub type Index = u32;
-
-/// A hash of some data used by the chain.
-pub type Hash = sp_core::H256;
-
-/// The address format for describing accounts.
-pub type Address = sp_runtime::MultiAddress<AccountId, ()>;
+// use primitives::currency::CurrencyId;
+//
+pub use primitives::{
+    BlockNumber, Signature, AccountId, Balance, Index, Hash,
+    Address, MILLISECS_PER_BLOCK, SLOT_DURATION, MINUTES, HOURS, DAYS, UNIT, MILLIUNIT,
+    MICROUNIT, MILLICENTS, CENTS, DOLLARS, EXISTENTIAL_DEPOSIT,
+    currency::CurrencyId,
+};
+// /// An index to a block.
+// pub type BlockNumber = u32;
+//
+// /// Alias to 512-bit hash when used in the context of a transaction signature on the chain.
+// pub type Signature = MultiSignature;
+//
+// /// Some way of identifying an account on the chain. We intentionally make it equivalent
+// /// to the public key of our transaction signing scheme.
+// pub type AccountId = <<Signature as Verify>::Signer as IdentifyAccount>::AccountId;
+//
+// /// Balance of an account.
+// pub type Balance = u128;
+//
+// /// Index of a transaction in the chain.
+// pub type Index = u32;
+//
+// /// A hash of some data used by the chain.
+// pub type Hash = sp_core::H256;
+//
+// /// The address format for describing accounts.
+// pub type Address = sp_runtime::MultiAddress<AccountId, ()>;
 /// Block header type as expected by this runtime.
 pub type Header = generic::Header<BlockNumber, BlakeTwo256>;
 /// Block type as expected by this runtime.
@@ -158,34 +163,45 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     state_version: 0,
 };
 
-/// This determines the average expected block time that we are targeting.
-/// Blocks will be produced at a minimum duration defined by `SLOT_DURATION`.
-/// `SLOT_DURATION` is picked up by `pallet_timestamp` which is in turn picked
-/// up by `pallet_aura` to implement `fn slot_duration()`.
-///
-/// Change this to adjust the block time.
-pub const MILLISECS_PER_BLOCK: u64 = 6000;
-
-// NOTE: Currently it is not possible to change the slot duration after the chain has started.
-//       Attempting to do so will brick block production.
-pub const SLOT_DURATION: u64 = MILLISECS_PER_BLOCK;
-
-// Time is measured by number of blocks.
-pub const MINUTES: BlockNumber = 60_000 / (MILLISECS_PER_BLOCK as BlockNumber);
-pub const HOURS: BlockNumber = MINUTES * 60;
-pub const DAYS: BlockNumber = HOURS * 24;
-
-// Unit = the base number of indivisible units for balances
-pub const UNIT: Balance = 1_000_000_000_000;
-pub const MILLIUNIT: Balance = 1_000_000_000;
-pub const MICROUNIT: Balance = 1_000_000;
-
-pub const MILLICENTS: Balance = 1_000 * MICROUNIT;
-pub const CENTS: Balance = 1_000 * MILLICENTS; // assume this is worth about a cent.
-pub const DOLLARS: Balance = 100 * CENTS;
-
-/// The existential deposit. Set to 1/10 of the Connected Relay Chain.
-pub const EXISTENTIAL_DEPOSIT: Balance = MILLIUNIT;
+// /// This determines the average expected block time that we are targeting.
+// /// Blocks will be produced at a minimum duration defined by `SLOT_DURATION`.
+// /// `SLOT_DURATION` is picked up by `pallet_timestamp` which is in turn picked
+// /// up by `pallet_aura` to implement `fn slot_duration()`.
+// ///
+// /// Change this to adjust the block time.
+// pub const MILLISECS_PER_BLOCK: u64 = 6000;
+//
+// // NOTE: Currently it is not possible to change the slot duration after the chain has started.
+// //       Attempting to do so will brick block production.
+// pub const SLOT_DURATION: u64 = MILLISECS_PER_BLOCK;
+//
+// // Time is measured by number of blocks.
+// pub const MINUTES: BlockNumber = 60_000 / (MILLISECS_PER_BLOCK as BlockNumber);
+// pub const HOURS: BlockNumber = MINUTES * 60;
+// pub const DAYS: BlockNumber = HOURS * 24;
+//
+// // Unit = the base number of indivisible units for balances
+// pub const UNIT: Balance = 1_000_000_000_000;
+// pub const MILLIUNIT: Balance = 1_000_000_000;
+// pub const MICROUNIT: Balance = 1_000_000;
+//
+// pub const MILLICENTS: Balance = 1_000 * MICROUNIT;
+// pub const CENTS: Balance = 1_000 * MILLICENTS; // assume this is worth about a cent.
+// pub const DOLLARS: Balance = 100 * CENTS;
+//
+// /// The existential deposit. Set to 1/10 of the Connected Relay Chain.
+// pub const EXISTENTIAL_DEPOSIT: Balance = MILLIUNIT;
+//
+// /// We assume that ~5% of the block weight is consumed by `on_initialize` handlers. This is
+// /// used to limit the maximal weight of a single extrinsic.
+// const AVERAGE_ON_INITIALIZE_RATIO: Perbill = Perbill::from_percent(5);
+//
+// /// We allow `Normal` extrinsics to fill up the block up to 75%, the rest can be used by
+// /// `Operational` extrinsics.
+// const NORMAL_DISPATCH_RATIO: Perbill = Perbill::from_percent(75);
+//
+// /// We allow for 0.5 of a second of compute with a 12 second average block time.
+// const MAXIMUM_BLOCK_WEIGHT: Weight = WEIGHT_PER_SECOND / 2;
 
 /// We assume that ~5% of the block weight is consumed by `on_initialize` handlers. This is
 /// used to limit the maximal weight of a single extrinsic.
@@ -686,21 +702,28 @@ parameter_types! {
     pub const NameMinLength: usize = 3;
     pub const NameMaxLength: usize = 32;
     pub const AppId: u8 = 1;
+    pub const StringLimit: u32 = 50;
 }
 
 /// Configure the pallet-qf in pallets/quadratic-funding.
 impl pallet_qf::Config for Runtime {
     type Event = Event;
-
+    // type CurrencyId = CurrencyId;
+    type MultiCurrency = Currencies;
+    type PalletId = QuadraticFundingPalletId;
     // Use the UnitOfVote from the parameter_types block.
     type UnitOfVote = VoteUnit;
 
     // Use the MinNickLength from the parameter_types block.
     type NumberOfUnitPerVote = NumberOfUnit;
 
+    // No action is taken when deposits are forfeited.
+    // type Slashed = ();
+
+    type StringLimit = StringLimit;
+
     // Use the FeeRatio from the parameter_types block.
     type FeeRatioPerVote = FeeRatio;
-
     // The minimum length of project name
     type NameMinLength = NameMinLength;
 
@@ -709,10 +732,32 @@ impl pallet_qf::Config for Runtime {
 
     // Origin who can control the round
     type AdminOrigin = EnsureRoot<AccountId>;
-    type DoraUserOrigin = DaoCoreModule;
-    type DoraPay = DaoCoreModule;
-    type AppId = AppId;
 }
+
+// impl pallet_qf::Config for Runtime {
+//     type Event = Event;
+//
+//     // Use the UnitOfVote from the parameter_types block.
+//     type UnitOfVote = VoteUnit;
+//
+//     // Use the MinNickLength from the parameter_types block.
+//     type NumberOfUnitPerVote = NumberOfUnit;
+//
+//     // Use the FeeRatio from the parameter_types block.
+//     type FeeRatioPerVote = FeeRatio;
+//
+//     // The minimum length of project name
+//     type NameMinLength = NameMinLength;
+//
+//     // The maximum length of project name
+//     type NameMaxLength = NameMaxLength;
+//
+//     // Origin who can control the round
+//     type AdminOrigin = EnsureRoot<AccountId>;
+//     type DoraUserOrigin = DaoCoreModule;
+//     type DoraPay = DaoCoreModule;
+//     type AppId = AppId;
+// }
 
 parameter_types! {
     // Use moduleid to generate internal accountid
@@ -770,16 +815,16 @@ impl pallet_dao_core::Config for Runtime {
 }
 
 // orml_xtokens
-#[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord, codec::MaxEncodedLen, TypeInfo)]
-#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
-pub enum CurrencyId {
-    // Relay chain token.
-    ROC,
-    // Native TokenSymbol
-    DORA,
-    // Parachain B token
-    FF,
-}
+// #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord, codec::MaxEncodedLen, TypeInfo)]
+// #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+// pub enum CurrencyId {
+//     // Relay chain token.
+//     ROC,
+//     // Native TokenSymbol
+//     DORA,
+//     // Parachain B token
+//     FF,
+// }
 
 pub type Amount = i128;
 
