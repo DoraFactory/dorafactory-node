@@ -73,35 +73,14 @@ pub use pallet_moloch_v2;
 /// local Imports
 /// Import the qudratic-funding pallet.
 pub use pallet_qf;
-// use primitives::currency::CurrencyId;
-//
+
 pub use primitives::{
-    BlockNumber, Signature, AccountId, Balance, Index, Hash,
-    Address, MILLISECS_PER_BLOCK, SLOT_DURATION, MINUTES, HOURS, DAYS, UNIT, MILLIUNIT,
+    BlockNumber, Signature, AccountId, Balance, Amount, Index, Hash, Address,
+    MILLISECS_PER_BLOCK, SLOT_DURATION, MINUTES, HOURS, DAYS, UNIT, MILLIUNIT,
     MICROUNIT, MILLICENTS, CENTS, DOLLARS, EXISTENTIAL_DEPOSIT,
-    currency::CurrencyId,
+    CurrencyId,
 };
-// /// An index to a block.
-// pub type BlockNumber = u32;
-//
-// /// Alias to 512-bit hash when used in the context of a transaction signature on the chain.
-// pub type Signature = MultiSignature;
-//
-// /// Some way of identifying an account on the chain. We intentionally make it equivalent
-// /// to the public key of our transaction signing scheme.
-// pub type AccountId = <<Signature as Verify>::Signer as IdentifyAccount>::AccountId;
-//
-// /// Balance of an account.
-// pub type Balance = u128;
-//
-// /// Index of a transaction in the chain.
-// pub type Index = u32;
-//
-// /// A hash of some data used by the chain.
-// pub type Hash = sp_core::H256;
-//
-// /// The address format for describing accounts.
-// pub type Address = sp_runtime::MultiAddress<AccountId, ()>;
+
 /// Block header type as expected by this runtime.
 pub type Header = generic::Header<BlockNumber, BlakeTwo256>;
 /// Block type as expected by this runtime.
@@ -708,8 +687,9 @@ parameter_types! {
 /// Configure the pallet-qf in pallets/quadratic-funding.
 impl pallet_qf::Config for Runtime {
     type Event = Event;
-    // type CurrencyId = CurrencyId;
+
     type MultiCurrency = Currencies;
+
     type PalletId = QuadraticFundingPalletId;
     // Use the UnitOfVote from the parameter_types block.
     type UnitOfVote = VoteUnit;
@@ -733,31 +713,6 @@ impl pallet_qf::Config for Runtime {
     // Origin who can control the round
     type AdminOrigin = EnsureRoot<AccountId>;
 }
-
-// impl pallet_qf::Config for Runtime {
-//     type Event = Event;
-//
-//     // Use the UnitOfVote from the parameter_types block.
-//     type UnitOfVote = VoteUnit;
-//
-//     // Use the MinNickLength from the parameter_types block.
-//     type NumberOfUnitPerVote = NumberOfUnit;
-//
-//     // Use the FeeRatio from the parameter_types block.
-//     type FeeRatioPerVote = FeeRatio;
-//
-//     // The minimum length of project name
-//     type NameMinLength = NameMinLength;
-//
-//     // The maximum length of project name
-//     type NameMaxLength = NameMaxLength;
-//
-//     // Origin who can control the round
-//     type AdminOrigin = EnsureRoot<AccountId>;
-//     type DoraUserOrigin = DaoCoreModule;
-//     type DoraPay = DaoCoreModule;
-//     type AppId = AppId;
-// }
 
 parameter_types! {
     // Use moduleid to generate internal accountid
@@ -813,20 +768,6 @@ impl pallet_dao_core::Config for Runtime {
     type TaxInPercent = TaxPercentNum;
     type SupervisorOrigin = EnsureRoot<AccountId>;
 }
-
-// orml_xtokens
-// #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord, codec::MaxEncodedLen, TypeInfo)]
-// #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
-// pub enum CurrencyId {
-//     // Relay chain token.
-//     ROC,
-//     // Native TokenSymbol
-//     DORA,
-//     // Parachain B token
-//     FF,
-// }
-
-pub type Amount = i128;
 
 pub struct CurrencyIdConvert;
 impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
@@ -887,7 +828,6 @@ impl Convert<AccountId, MultiLocation> for AccountIdToMultiLocation {
 		.into()
 	}
 }
-
 
 parameter_types! {
 	pub SelfLocation: MultiLocation = MultiLocation::new(1, X1(Parachain(ParachainInfo::parachain_id().into())));
