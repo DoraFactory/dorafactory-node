@@ -2,27 +2,18 @@
 #![allow(clippy::unnecessary_cast)]
 #![allow(clippy::upper_case_acronyms)]
 use sp_runtime::{
-    traits::{
-        Block as BlockT, IdentifyAccount, Verify
-    },
+    traits::{Block as BlockT, IdentifyAccount, Verify},
     MultiSignature,
 };
 
 pub use sp_runtime::{MultiAddress, Perbill};
 
 // A few exports that help ease life for downstream crates.
-pub use frame_support::{
-    weights::{
-        constants::{WEIGHT_PER_SECOND},
-        Weight, WeightToFeeCoefficient,
-    },
-};
+pub use frame_support::weights::{constants::WEIGHT_PER_SECOND, Weight, WeightToFeeCoefficient};
 
 pub mod currency;
 
-pub use crate::{
-    currency::{CurrencyId},
-};
+pub use crate::currency::CurrencyId;
 
 /// An index to a block.
 pub type BlockNumber = u32;

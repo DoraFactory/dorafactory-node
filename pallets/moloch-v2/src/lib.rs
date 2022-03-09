@@ -20,9 +20,6 @@ mod mock;
 #[cfg(test)]
 mod tests;
 
-#[cfg(feature = "runtime-benchmarks")]
-mod benchmarking;
-
 // TODO: Not support enum in storage
 #[derive(Encode, Decode, Clone, PartialEq)]
 pub enum Vote {
@@ -31,6 +28,7 @@ pub enum Vote {
     Yes,
     No,
 }
+
 #[derive(Encode, Decode, Default, Clone, PartialEq, TypeInfo)]
 pub struct Member<AccountId> {
     // the # of shares assigned to this member
@@ -398,7 +396,10 @@ pub mod pallet {
                 member.clone().unwrap().shares > 0 || member.clone().unwrap().loot > 0,
                 Error::<T>::NoEnoughShares
             );
-            ensure!(member.clone().unwrap().jailed_at == 0, Error::<T>::MemberInJail);
+            ensure!(
+                member.clone().unwrap().jailed_at == 0,
+                Error::<T>::MemberInJail
+            );
 
             // [sponsored, processed, didPass, cancelled, whitelist, guildkick]
             let mut flags = [false; 6];
@@ -432,8 +433,14 @@ pub mod pallet {
             );
             let proposal = Proposals::<T>::get(proposal_index);
             // check proposal status
-            ensure!(!proposal.clone().unwrap().flags[0], Error::<T>::ProposalHasSponsored);
-            ensure!(!proposal.clone().unwrap().flags[3], Error::<T>::ProposalHasAborted);
+            ensure!(
+                !proposal.clone().unwrap().flags[0],
+                Error::<T>::ProposalHasSponsored
+            );
+            ensure!(
+                !proposal.clone().unwrap().flags[3],
+                Error::<T>::ProposalHasAborted
+            );
             // reject in jailed memeber to process
             if Members::<T>::contains_key(who.clone()) {
                 ensure!(
@@ -460,7 +467,12 @@ pub mod pallet {
             let proposal_queue = ProposalQueue::<T>::get();
             let proposal_period = match proposal_queue.len() {
                 0 => 0,
-                n => Proposals::<T>::get(proposal_queue[n - 1]).clone().unwrap().starting_period,
+                n => {
+                    Proposals::<T>::get(proposal_queue[n - 1])
+                        .clone()
+                        .unwrap()
+                        .starting_period
+                }
             };
             let starting_period = proposal_period
                 .max(Self::get_current_period())
@@ -470,7 +482,8 @@ pub mod pallet {
                 p.clone().unwrap().starting_period = starting_period;
                 // sponsored
                 p.clone().unwrap().flags[0] = true;
-                p.clone().unwrap().sponsor = AddressOfDelegates::<T>::get(who.clone()).clone().unwrap();
+                p.clone().unwrap().sponsor =
+                    AddressOfDelegates::<T>::get(who.clone()).clone().unwrap();
             });
             ProposalQueue::<T>::append(proposal_index);
 
@@ -491,7 +504,10 @@ pub mod pallet {
             );
             let delegate = AddressOfDelegates::<T>::get(who.clone());
             let member = Members::<T>::get(delegate.clone().unwrap().clone());
-            ensure!(member.clone().unwrap().shares > 0, Error::<T>::NoEnoughShares);
+            ensure!(
+                member.clone().unwrap().shares > 0,
+                Error::<T>::NoEnoughShares
+            );
 
             let proposal_len = ProposalQueue::<T>::get().len();
             ensure!(
@@ -512,10 +528,16 @@ pub mod pallet {
                 Error::<T>::ProposalExpired
             );
             ensure!(
-                !ProposalVotes::<T>::contains_key(proposal_index, delegate.clone().unwrap().clone()),
+                !ProposalVotes::<T>::contains_key(
+                    proposal_index,
+                    delegate.clone().unwrap().clone()
+                ),
                 Error::<T>::MemberHasVoted
             );
-            ensure!(!proposal.clone().unwrap().flags[3], Error::<T>::ProposalHasAborted);
+            ensure!(
+                !proposal.clone().unwrap().flags[3],
+                Error::<T>::ProposalHasAborted
+            );
             let vote = match vote_unit {
                 1 => Vote::Yes,
                 2 => Vote::No,
@@ -526,7 +548,12 @@ pub mod pallet {
             // update proposal
             Proposals::<T>::mutate(proposal_id, |p| {
                 if vote == Vote::Yes {
-                    p.clone().unwrap().yes_votes = proposal.clone().unwrap().yes_votes.checked_add(member.clone().unwrap().shares).unwrap();
+                    p.clone().unwrap().yes_votes = proposal
+                        .clone()
+                        .unwrap()
+                        .yes_votes
+                        .checked_add(member.clone().unwrap().shares)
+                        .unwrap();
                     if proposal_index > member.unwrap().highest_index_yes_vote {
                         Members::<T>::mutate(delegate.clone().unwrap().clone(), |mem| {
                             mem.clone().unwrap().highest_index_yes_vote = proposal_index;
@@ -541,10 +568,20 @@ pub mod pallet {
                         p.clone().unwrap().max_total_shares_at_yes = all_loot_shares;
                     }
                 } else if vote == Vote::No {
-                    p.clone().unwrap().no_votes = proposal.clone().unwrap().no_votes.checked_add(member.clone().unwrap().shares).unwrap();
+                    p.clone().unwrap().no_votes = proposal
+                        .clone()
+                        .unwrap()
+                        .no_votes
+                        .checked_add(member.clone().unwrap().shares)
+                        .unwrap();
                 }
             });
-            Self::deposit_event(Event::SubmitVote(proposal_index, who, delegate.clone().unwrap(), vote_unit));
+            Self::deposit_event(Event::SubmitVote(
+                proposal_index,
+                who,
+                delegate.clone().unwrap(),
+                vote_unit,
+            ));
             Ok(().into())
         }
 
@@ -574,10 +611,14 @@ pub mod pallet {
                     >= proposal.clone().unwrap().starting_period,
                 Error::<T>::ProposalNotReady
             );
-            ensure!(proposal.clone().unwrap().flags[1] == false, Error::<T>::ProposalHasProcessed);
+            ensure!(
+                proposal.clone().unwrap().flags[1] == false,
+                Error::<T>::ProposalHasProcessed
+            );
             ensure!(
                 proposal_index == 0
-                    || Proposals::<T>::get(ProposalQueue::<T>::get()[_usize_proposal_index - 1]).unwrap()
+                    || Proposals::<T>::get(ProposalQueue::<T>::get()[_usize_proposal_index - 1])
+                        .unwrap()
                         .flags[1],
                 Error::<T>::PreviousProposalNotProcessed
             );
@@ -592,7 +633,9 @@ pub mod pallet {
                 did_pass = false;
             }
             // shares+loot overflow
-            let total_requested = proposal.clone().unwrap()
+            let total_requested = proposal
+                .clone()
+                .unwrap()
                 .loot_requested
                 .checked_add(proposal.clone().unwrap().shares_requested)
                 .unwrap();
@@ -614,17 +657,34 @@ pub mod pallet {
                 // if the applicant is already a member, add to their existing shares
                 if Members::<T>::contains_key(&proposal.clone().unwrap().applicant) {
                     Members::<T>::mutate(&proposal.clone().unwrap().applicant, |mem| {
-                        mem.clone().unwrap().shares = mem.clone().unwrap().shares.checked_add(proposal.clone().unwrap().shares_requested).unwrap();
-                        mem.clone().unwrap().loot = mem.clone().unwrap().loot.checked_add(proposal.clone().unwrap().loot_requested).unwrap();
+                        mem.clone().unwrap().shares = mem
+                            .clone()
+                            .unwrap()
+                            .shares
+                            .checked_add(proposal.clone().unwrap().shares_requested)
+                            .unwrap();
+                        mem.clone().unwrap().loot = mem
+                            .clone()
+                            .unwrap()
+                            .loot
+                            .checked_add(proposal.clone().unwrap().loot_requested)
+                            .unwrap();
                     });
                 } else {
                     // if the applicant address is already taken by a member's delegateKey, reset it to their member address
-                    if AddressOfDelegates::<T>::contains_key(proposal.clone().unwrap().applicant.clone()) {
-                        let delegate = AddressOfDelegates::<T>::get(proposal.clone().unwrap().applicant.clone());
+                    if AddressOfDelegates::<T>::contains_key(
+                        proposal.clone().unwrap().applicant.clone(),
+                    ) {
+                        let delegate = AddressOfDelegates::<T>::get(
+                            proposal.clone().unwrap().applicant.clone(),
+                        );
                         Members::<T>::mutate(delegate.clone().unwrap().clone(), |mem| {
                             mem.clone().unwrap().delegate_key = delegate.clone().unwrap().clone();
                         });
-                        AddressOfDelegates::<T>::insert(delegate.clone().unwrap().clone(), delegate.clone().unwrap().clone());
+                        AddressOfDelegates::<T>::insert(
+                            delegate.clone().unwrap().clone(),
+                            delegate.clone().unwrap().clone(),
+                        );
                     }
                     // add new member
                     let member = super::Member {
@@ -710,7 +770,10 @@ pub mod pallet {
             let proposal_id = ProposalQueue::<T>::get()[_usize_proposal_index];
             let proposal = &mut Proposals::<T>::get(proposal_id);
             // ensure guild kick proposal
-            ensure!(proposal.clone().unwrap().flags[5], Error::<T>::NotKickProposal);
+            ensure!(
+                proposal.clone().unwrap().flags[5],
+                Error::<T>::NotKickProposal
+            );
             ensure!(
                 Self::get_current_period()
                     - VotingPeriodLength::<T>::get()
@@ -718,10 +781,14 @@ pub mod pallet {
                     >= proposal.clone().unwrap().starting_period,
                 Error::<T>::ProposalNotReady
             );
-            ensure!(proposal.clone().unwrap().flags[1] == false, Error::<T>::ProposalHasProcessed);
+            ensure!(
+                proposal.clone().unwrap().flags[1] == false,
+                Error::<T>::ProposalHasProcessed
+            );
             ensure!(
                 proposal_index == 0
-                    || Proposals::<T>::get(ProposalQueue::<T>::get()[_usize_proposal_index - 1]).unwrap()
+                    || Proposals::<T>::get(ProposalQueue::<T>::get()[_usize_proposal_index - 1])
+                        .unwrap()
                         .flags[1],
                 Error::<T>::PreviousProposalNotProcessed
             );
@@ -734,9 +801,18 @@ pub mod pallet {
                 // update memeber status, i.e. jailed and slash shares
                 Members::<T>::mutate(proposal.clone().unwrap().applicant.clone(), |member| {
                     member.clone().unwrap().jailed_at = proposal_index;
-                    member.clone().unwrap().loot = member.clone().unwrap().loot.checked_add(member.clone().unwrap().shares).unwrap();
-                    let total_shares = TotalShares::<T>::get().checked_sub(member.clone().unwrap().shares).unwrap();
-                    let total_loot = TotalLoot::<T>::get().checked_add(member.clone().unwrap().shares).unwrap();
+                    member.clone().unwrap().loot = member
+                        .clone()
+                        .unwrap()
+                        .loot
+                        .checked_add(member.clone().unwrap().shares)
+                        .unwrap();
+                    let total_shares = TotalShares::<T>::get()
+                        .checked_sub(member.clone().unwrap().shares)
+                        .unwrap();
+                    let total_loot = TotalLoot::<T>::get()
+                        .checked_add(member.clone().unwrap().shares)
+                        .unwrap();
                     TotalLoot::<T>::put(total_loot);
                     TotalShares::<T>::put(total_shares);
                     member.clone().unwrap().shares = 0;
@@ -773,9 +849,18 @@ pub mod pallet {
                 Error::<T>::ProposalNotExist
             );
             let proposal = &mut Proposals::<T>::get(proposal_index);
-            ensure!(who == proposal.clone().unwrap().proposer, Error::<T>::NotProposalProposer);
-            ensure!(!proposal.clone().unwrap().flags[0], Error::<T>::ProposalHasSponsored);
-            ensure!(!proposal.clone().unwrap().flags[3], Error::<T>::ProposalHasAborted);
+            ensure!(
+                who == proposal.clone().unwrap().proposer,
+                Error::<T>::NotProposalProposer
+            );
+            ensure!(
+                !proposal.clone().unwrap().flags[0],
+                Error::<T>::ProposalHasSponsored
+            );
+            ensure!(
+                !proposal.clone().unwrap().flags[3],
+                Error::<T>::ProposalHasAborted
+            );
             let token_to_abort = proposal.clone().unwrap().tribute_offered;
             proposal.clone().unwrap().tribute_offered = 0;
             proposal.clone().unwrap().flags[3] = true;
@@ -813,7 +898,10 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             let _ = ensure_signed(origin)?;
             let member = Members::<T>::get(member_to_kick.clone());
-            ensure!(member.clone().unwrap().jailed_at != 0, Error::<T>::MemberNotInJail);
+            ensure!(
+                member.clone().unwrap().jailed_at != 0,
+                Error::<T>::MemberNotInJail
+            );
             ensure!(member.clone().unwrap().loot > 0, Error::<T>::NoEnoughLoot);
             Self::member_quit(member_to_kick, 0, member.clone().unwrap().loot)
         }
@@ -935,7 +1023,11 @@ pub mod pallet {
                 pass = false;
             }
 
-            if Members::<T>::get(proposal.applicant.clone()).unwrap().jailed_at != 0 {
+            if Members::<T>::get(proposal.applicant.clone())
+                .unwrap()
+                .jailed_at
+                != 0
+            {
                 pass = false;
             }
             pass
@@ -953,7 +1045,10 @@ pub mod pallet {
                 Error::<T>::NotMember
             );
             let member = Members::<T>::get(who.clone());
-            ensure!(member.clone().unwrap().shares >= shares_to_burn, Error::<T>::NoEnoughShares);
+            ensure!(
+                member.clone().unwrap().shares >= shares_to_burn,
+                Error::<T>::NoEnoughShares
+            );
             // check if can rage quit
             let proposal_index = member.clone().unwrap().highest_index_yes_vote;
             ensure!(
@@ -967,8 +1062,18 @@ pub mod pallet {
 
             // burn shares and loot
             Members::<T>::mutate(who.clone(), |mem| {
-                mem.clone().unwrap().shares = member.clone().unwrap().shares.checked_sub(shares_to_burn).unwrap();
-                mem.clone().unwrap().loot = member.clone().unwrap().loot.checked_sub(loot_to_burn).unwrap();
+                mem.clone().unwrap().shares = member
+                    .clone()
+                    .unwrap()
+                    .shares
+                    .checked_sub(shares_to_burn)
+                    .unwrap();
+                mem.clone().unwrap().loot = member
+                    .clone()
+                    .unwrap()
+                    .loot
+                    .checked_sub(loot_to_burn)
+                    .unwrap();
             });
             let initial_total = TotalShares::<T>::get()
                 .checked_add(TotalLoot::<T>::get())

@@ -1,8 +1,8 @@
-use hex_literal::hex;
 use cumulus_primitives_core::ParaId;
 use dorafactory_node_runtime::{
-    AccountId, Signature, SystemConfig, EXISTENTIAL_DEPOSIT, WASM_BINARY, TokensConfig, SudoConfig,
+    AccountId, Signature, SudoConfig, SystemConfig, TokensConfig, EXISTENTIAL_DEPOSIT, WASM_BINARY,
 };
+use hex_literal::hex;
 use sc_chain_spec::{ChainSpecExtension, ChainSpecGroup};
 use sc_service::ChainType;
 use serde::{Deserialize, Serialize};
@@ -284,9 +284,9 @@ fn dorafactory_genesis(
         aura_ext: Default::default(),
         parachain_system: Default::default(),
         polkadot_xcm: Default::default(),
-		tokens: TokensConfig { balances: vec![] },
+        tokens: TokensConfig { balances: vec![] },
         sudo: SudoConfig {
             key: Some(root_key),
-        }
+        },
     }
 }

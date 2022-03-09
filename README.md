@@ -8,7 +8,7 @@ A private chain based on substrate, with Frame V2
 git clone https://github.com/DoraFactory/dorafactory-node.git
 ## checkout to dorafactory-parachain(polkadot-v0.9.16)
 cd dorafactory-node && git checkout dorafactory-parachain
-##download submodules
+## download submodules
 git submodule update --init --recursive
 ```
 ### 2. compile and run

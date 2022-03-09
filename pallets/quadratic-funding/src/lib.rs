@@ -1,14 +1,11 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
+use codec::MaxEncodedLen;
 use frame_support::{
     codec::{Decode, Encode},
-    traits::{
-        Currency, EnsureOrigin, Get, OnUnbalanced,
-        ReservableCurrency,
-    },
-    PalletId, Parameter, BoundedVec,
+    traits::{Currency, EnsureOrigin, Get, OnUnbalanced, ReservableCurrency},
+    BoundedVec, PalletId, Parameter,
 };
-use codec::MaxEncodedLen;
 use orml_traits::MultiCurrency;
 /// Edit this file to define custom logic or remove it if it is not needed.
 /// Learn more about FRAME and the core library of Substrate FRAME pallets:
@@ -67,7 +64,6 @@ pub mod pallet {
         // type MultiCurrency: MultiCurrency<Self::AccountId, CurrencyId = CurrencyId, Balance = Balance>;
         type MultiCurrency: MultiCurrency<AccountIdOf<Self>, CurrencyId = CurrencyId>;
 
-
         #[pallet::constant]
         type PalletId: Get<PalletId>;
         /// Origin from which admin must come.
@@ -107,7 +103,8 @@ pub mod pallet {
     #[pallet::getter(fn rounds)]
     // Learn more about declaring storage items:
     // https://substrate.dev/docs/en/knowledgebase/runtime/storage#declaring-storage-items
-    pub(super) type Rounds<T: Config> = StorageMap<_, Blake2_128Concat, u32, Round<BoundedVec<u8, T::StringLimit>>>;
+    pub(super) type Rounds<T: Config> =
+        StorageMap<_, Blake2_128Concat, u32, Round<BoundedVec<u8, T::StringLimit>>>;
 
     #[pallet::storage]
     #[pallet::getter(fn projects)]
@@ -121,14 +118,8 @@ pub mod pallet {
     >;
 
     #[pallet::storage]
-    pub(super) type ProjectVotes<T: Config> = StorageDoubleMap<
-        _,
-        Blake2_128Concat,
-        T::Hash,
-        Blake2_128Concat,
-        T::AccountId,
-        u128,
-    >;
+    pub(super) type ProjectVotes<T: Config> =
+        StorageDoubleMap<_, Blake2_128Concat, T::Hash, Blake2_128Concat, T::AccountId, u128>;
 
     // Pallets use events to inform users when important changes are made.
     // https://substrate.dev/docs/en/knowledgebase/runtime/events
@@ -214,24 +205,18 @@ pub mod pallet {
             );
             let _ = T::MultiCurrency::transfer(currency_id, &who, &Self::account_id(), amount);
             // update the round
-            Rounds::<T>::mutate(round_id, |rnd| {
-                match rnd {
-                    Some(round) => {
-                        let ptsp = round.pre_tax_support_pool;
-                        let sp = round.support_pool;
-                        let tt = round.total_tax;
-                        round.pre_tax_support_pool = amount_number.checked_add(ptsp).unwrap();
-                        round.support_pool = (amount_number - fee_number).checked_add(sp).unwrap();
-                        round.total_tax = fee_number.checked_add(tt).unwrap();
-                    }
-                    _ => (),
+            Rounds::<T>::mutate(round_id, |rnd| match rnd {
+                Some(round) => {
+                    let ptsp = round.pre_tax_support_pool;
+                    let sp = round.support_pool;
+                    let tt = round.total_tax;
+                    round.pre_tax_support_pool = amount_number.checked_add(ptsp).unwrap();
+                    round.support_pool = (amount_number - fee_number).checked_add(sp).unwrap();
+                    round.total_tax = fee_number.checked_add(tt).unwrap();
                 }
+                _ => (),
             });
-            Self::deposit_event(Event::DonateSucceed(
-                round_id,
-                who,
-                amount,
-            ));
+            Self::deposit_event(Event::DonateSucceed(round_id, who, amount));
             Ok(().into())
         }
 
@@ -386,23 +371,22 @@ pub mod pallet {
                 match poj {
                     Some(project) => {
                         let support_area = ballot.checked_mul(project.total_votes - voted).unwrap();
-                        project.support_area = support_area.checked_add(project.support_area).unwrap();
+                        project.support_area =
+                            support_area.checked_add(project.support_area).unwrap();
                         project.total_votes += ballot;
                         project.grants += amount - fee;
                         //debug::info!("Total votes: {:?}, Current votes: {:?}, Support Area: {:?},Est cost: {:?}",
                         // poj.total_votes, voted, support_area, cost);
-                        Rounds::<T>::mutate(round_id, |rnd| {
-                           match rnd {
-                               Some(round) => {
-                                   let tsa = round.total_support_area;
-                                   let tt = round.total_tax;
-                                   round.total_support_area = support_area.checked_add(tsa).unwrap();
-                                   round.total_tax = fee.checked_add(tt).unwrap();
-                               },
-                               _ => (),
-                           }
+                        Rounds::<T>::mutate(round_id, |rnd| match rnd {
+                            Some(round) => {
+                                let tsa = round.total_support_area;
+                                let tt = round.total_tax;
+                                round.total_support_area = support_area.checked_add(tsa).unwrap();
+                                round.total_tax = fee.checked_add(tt).unwrap();
+                            }
+                            _ => (),
                         });
-                    },
+                    }
                     _ => (),
                 }
             });

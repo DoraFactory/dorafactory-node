@@ -15,8 +15,8 @@ use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
 use sp_runtime::{
     create_runtime_str, generic, impl_opaque_keys,
     traits::{
-        AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT, IdentifyAccount,
-        NumberFor, Verify, Convert, Zero
+        AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT, Convert,
+        IdentifyAccount, NumberFor, Verify, Zero,
     },
     transaction_validity::{TransactionSource, TransactionValidity},
     ApplyExtrinsicResult, MultiSignature, RuntimeDebug,
@@ -29,7 +29,10 @@ use sp_version::RuntimeVersion;
 // A few exports that help ease life for downstream crates.
 pub use frame_support::{
     construct_runtime, match_type, parameter_types,
-    traits::{Contains, Everything, KeyOwnerProofSystem, Nothing, Randomness, StorageInfo, EqualPrivilegeOnly},
+    traits::{
+        Contains, EqualPrivilegeOnly, Everything, KeyOwnerProofSystem, Nothing, Randomness,
+        StorageInfo,
+    },
     weights::{
         constants::{BlockExecutionWeight, ExtrinsicBaseWeight, WEIGHT_PER_SECOND},
         IdentityFee, Weight, WeightToFeeCoefficient, WeightToFeeCoefficients,
@@ -37,8 +40,8 @@ pub use frame_support::{
     },
     PalletId,
 };
-use scale_info::TypeInfo;
 use frame_system::EnsureRoot;
+use scale_info::TypeInfo;
 
 pub use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 pub use sp_runtime::{MultiAddress, Perbill, Permill};
@@ -54,19 +57,25 @@ use polkadot_runtime_common::{RocksDbWeight, SlowAdjustingFeeUpdate};
 // XCM Imports
 use xcm::latest::prelude::*;
 use xcm_builder::{
-    AccountId32Aliases, AllowTopLevelPaidExecutionFrom, AllowUnpaidExecutionFrom, CurrencyAdapter,
-    EnsureXcmOrigin, FixedWeightBounds, IsConcrete, LocationInverter, NativeAsset, ParentIsDefault,
-    RelayChainAsNative, SiblingParachainAsNative, SiblingParachainConvertsVia,
-    SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit,
-    UsingComponents, AllowKnownQueryResponses, AllowSubscriptionsFrom, FixedRateOfFungible,
-	TakeRevenue, ConvertedConcreteAssetId, FungiblesAdapter,
+    AccountId32Aliases, AllowKnownQueryResponses, AllowSubscriptionsFrom,
+    AllowTopLevelPaidExecutionFrom, AllowUnpaidExecutionFrom, ConvertedConcreteAssetId,
+    CurrencyAdapter, EnsureXcmOrigin, FixedRateOfFungible, FixedWeightBounds, FungiblesAdapter,
+    IsConcrete, LocationInverter, NativeAsset, ParentIsDefault, RelayChainAsNative,
+    SiblingParachainAsNative, SiblingParachainConvertsVia, SignedAccountId32AsNative,
+    SignedToAccountId32, SovereignSignedViaLocation, TakeRevenue, TakeWeightCredit,
+    UsingComponents,
 };
-use xcm_executor::{traits::{WeightTrader, JustTry}, Assets, Config, XcmExecutor};
+use xcm_executor::{
+    traits::{JustTry, WeightTrader},
+    Assets, Config, XcmExecutor,
+};
 
 // ORML Imports
-use orml_traits::parameter_type_with_key;
-use orml_xcm_support::{IsNativeConcrete, MultiCurrencyAdapter, MultiNativeAsset, DepositToAlternative};
 use orml_currencies::BasicCurrencyAdapter;
+use orml_traits::parameter_type_with_key;
+use orml_xcm_support::{
+    DepositToAlternative, IsNativeConcrete, MultiCurrencyAdapter, MultiNativeAsset,
+};
 
 /// Import the moloch-v2 pallet.
 pub use pallet_moloch_v2;
@@ -75,10 +84,9 @@ pub use pallet_moloch_v2;
 pub use pallet_qf;
 
 pub use primitives::{
-    BlockNumber, Signature, AccountId, Balance, Amount, Index, Hash, Address,
-    MILLISECS_PER_BLOCK, SLOT_DURATION, MINUTES, HOURS, DAYS, UNIT, MILLIUNIT,
-    MICROUNIT, MILLICENTS, CENTS, DOLLARS, EXISTENTIAL_DEPOSIT,
-    CurrencyId,
+    AccountId, Address, Amount, Balance, BlockNumber, CurrencyId, Hash, Index, Signature, CENTS,
+    DAYS, DOLLARS, EXISTENTIAL_DEPOSIT, HOURS, MICROUNIT, MILLICENTS, MILLISECS_PER_BLOCK,
+    MILLIUNIT, MINUTES, SLOT_DURATION, UNIT,
 };
 
 /// Block header type as expected by this runtime.
@@ -219,7 +227,7 @@ parameter_types! {
     pub BlockLength: frame_system::limits::BlockLength = frame_system::limits::BlockLength
         ::max_with_normal_ratio(5 * 1024 * 1024, NORMAL_DISPATCH_RATIO);
     pub const SS58Prefix: u8 = 42;
-	pub CheckingAccount: AccountId = PolkadotXcm::check_account();
+    pub CheckingAccount: AccountId = PolkadotXcm::check_account();
     pub const TreasuryPalletId: PalletId = PalletId(*b"dora/try");
 }
 
@@ -484,20 +492,20 @@ match_type! {
 
 /// 配置parachain2000和parachain3000之间可以进行消息传递
 match_type! {
-	pub type SpecParachain: impl Contains<MultiLocation> = {
-		// 当前上一级中继链下的parachain 1000
-		MultiLocation {parents: 1, interior: X1(Parachain(1000))} |
-		// 当前上一级中继链下的parachain 2000
-		MultiLocation {parents: 1, interior: X1(Parachain(2000))}
-	};
+    pub type SpecParachain: impl Contains<MultiLocation> = {
+        // 当前上一级中继链下的parachain 1000
+        MultiLocation {parents: 1, interior: X1(Parachain(1000))} |
+        // 当前上一级中继链下的parachain 2000
+        MultiLocation {parents: 1, interior: X1(Parachain(2000))}
+    };
 }
 
 pub type Barrier = (
-	TakeWeightCredit,
-	AllowTopLevelPaidExecutionFrom<Everything>,
-	AllowUnpaidExecutionFrom<ParentOrParentsExecutivePlurality>,
-	// ^^^ Parent and its exec plurality get free execution
-	AllowUnpaidExecutionFrom<SpecParachain>,
+    TakeWeightCredit,
+    AllowTopLevelPaidExecutionFrom<Everything>,
+    AllowUnpaidExecutionFrom<ParentOrParentsExecutivePlurality>,
+    // ^^^ Parent and its exec plurality get free execution
+    AllowUnpaidExecutionFrom<SpecParachain>,
 );
 
 pub type LocalAssetTransactor = MultiCurrencyAdapter<
@@ -522,33 +530,33 @@ pub type Trader = (
 );
 
 parameter_types! {
-	pub RocPerSecond: (AssetId, u128) = (MultiLocation::parent().into(), roc_per_second());
-	pub NativePerSecond: (AssetId, u128) = (
-		MultiLocation::new(
-			1,
-			X2(Parachain(2000), GeneralKey(b"DORA".to_vec()))
-		).into(),
-		// DORA:ROC = 80:1
+    pub RocPerSecond: (AssetId, u128) = (MultiLocation::parent().into(), roc_per_second());
+    pub NativePerSecond: (AssetId, u128) = (
+        MultiLocation::new(
+            1,
+            X2(Parachain(2000), GeneralKey(b"DORA".to_vec()))
+        ).into(),
+        // DORA:ROC = 80:1
         roc_per_second() * 80
-	);
-	pub NativeNewPerSecond: (AssetId, u128) = (
-		MultiLocation::new(
-			0,
-			X1(GeneralKey(b"DORA".to_vec()))
-		).into(),
-		// DORA:ROC = 80:1
+    );
+    pub NativeNewPerSecond: (AssetId, u128) = (
+        MultiLocation::new(
+            0,
+            X1(GeneralKey(b"DORA".to_vec()))
+        ).into(),
+        // DORA:ROC = 80:1
         roc_per_second() * 80
 
-	);
+    );
 
-	pub FfPerSecond: (AssetId, u128) = (
-		MultiLocation::new(
-			1,
-			X2(Parachain(1000), GeneralKey(b"FF".to_vec()))
-		).into(),
-		// FF:ROC = 100:1
+    pub FfPerSecond: (AssetId, u128) = (
+        MultiLocation::new(
+            1,
+            X2(Parachain(1000), GeneralKey(b"FF".to_vec()))
+        ).into(),
+        // FF:ROC = 100:1
         roc_per_second() * 100
-	);
+    );
 }
 
 pub struct XcmConfig;
@@ -582,7 +590,7 @@ pub type LocalOriginToLocation = SignedToAccountId32<Origin, AccountId, RelayNet
 /// queues.
 pub type XcmRouter = (
     // Two routers - use UMP to communicate with the relay chain:
-	cumulus_primitives_utility::ParentAsUmp<ParachainSystem, PolkadotXcm>,
+    cumulus_primitives_utility::ParentAsUmp<ParachainSystem, PolkadotXcm>,
     // ..and XCMP to communicate with the sibling chains.
     XcmpQueue,
 );
@@ -596,8 +604,8 @@ impl pallet_xcm::Config for Runtime {
     // ^ Disable dispatchable execute on the XCM pallet.
     // Needs to be `Everything` for local testing.
     type XcmExecutor = XcmExecutor<XcmConfig>;
-	type XcmTeleportFilter = Nothing;
-	type XcmReserveTransferFilter = Everything;
+    type XcmTeleportFilter = Nothing;
+    type XcmReserveTransferFilter = Everything;
     type Weigher = FixedWeightBounds<UnitWeightCost, Call, MaxInstructions>;
     type LocationInverter = LocationInverter<Ancestry>;
     type Origin = Origin;
@@ -635,7 +643,7 @@ impl pallet_sudo::Config for Runtime {
 parameter_types! {
     pub MaximumSchedulerWeight: Weight = 10_000_000;
     pub const MaxScheduledPerBlock: u32 = 50;
-	pub const NoPreimagePostponement: Option<u32> = Some(5 * MINUTES);
+    pub const NoPreimagePostponement: Option<u32> = Some(5 * MINUTES);
 }
 
 // Configure the runtime's implementation of the Scheduler pallet.
@@ -654,9 +662,9 @@ impl pallet_scheduler::Config for Runtime {
 }
 
 parameter_types! {
-	pub const PreimageMaxSize: u32 = 4096 * 1024;
-	pub const PreimageBaseDeposit: Balance = 1 * DOLLARS;
-	pub const PreimageByteDeposit: Balance = 1 * CENTS;
+    pub const PreimageMaxSize: u32 = 4096 * 1024;
+    pub const PreimageBaseDeposit: Balance = 1 * DOLLARS;
+    pub const PreimageByteDeposit: Balance = 1 * CENTS;
 }
 
 impl pallet_preimage::Config for Runtime {
@@ -807,8 +815,7 @@ impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
 impl Convert<MultiAsset, Option<CurrencyId>> for CurrencyIdConvert {
     fn convert(asset: MultiAsset) -> Option<CurrencyId> {
         if let MultiAsset {
-            id: Concrete(id),
-            ..
+            id: Concrete(id), ..
         } = asset
         {
             Self::convert(id)
@@ -820,42 +827,42 @@ impl Convert<MultiAsset, Option<CurrencyId>> for CurrencyIdConvert {
 
 pub struct AccountIdToMultiLocation;
 impl Convert<AccountId, MultiLocation> for AccountIdToMultiLocation {
-	fn convert(account: AccountId) -> MultiLocation {
-		X1(AccountId32 {
-			network: NetworkId::Any,
-			id: account.into(),
-		})
-		.into()
-	}
+    fn convert(account: AccountId) -> MultiLocation {
+        X1(AccountId32 {
+            network: NetworkId::Any,
+            id: account.into(),
+        })
+        .into()
+    }
 }
 
 parameter_types! {
-	pub SelfLocation: MultiLocation = MultiLocation::new(1, X1(Parachain(ParachainInfo::parachain_id().into())));
-	pub const BaseXcmWeight: Weight = 100_000_000;
-	pub const MaxAssetsForTransfer: usize = 2;
+    pub SelfLocation: MultiLocation = MultiLocation::new(1, X1(Parachain(ParachainInfo::parachain_id().into())));
+    pub const BaseXcmWeight: Weight = 100_000_000;
+    pub const MaxAssetsForTransfer: usize = 2;
 }
 
 impl orml_xtokens::Config for Runtime {
-	type Event = Event;
-	type Balance = Balance;
-	type CurrencyId = CurrencyId;
-	type CurrencyIdConvert = CurrencyIdConvert;
-	type AccountIdToMultiLocation = AccountIdToMultiLocation;
-	type SelfLocation = SelfLocation;
-	type XcmExecutor = XcmExecutor<XcmConfig>;
-	type Weigher = FixedWeightBounds<UnitWeightCost, Call, MaxInstructions>;
-	type BaseXcmWeight = BaseXcmWeight;
-	type LocationInverter = LocationInverter<Ancestry>;
-	type MaxAssetsForTransfer = MaxAssetsForTransfer;
+    type Event = Event;
+    type Balance = Balance;
+    type CurrencyId = CurrencyId;
+    type CurrencyIdConvert = CurrencyIdConvert;
+    type AccountIdToMultiLocation = AccountIdToMultiLocation;
+    type SelfLocation = SelfLocation;
+    type XcmExecutor = XcmExecutor<XcmConfig>;
+    type Weigher = FixedWeightBounds<UnitWeightCost, Call, MaxInstructions>;
+    type BaseXcmWeight = BaseXcmWeight;
+    type LocationInverter = LocationInverter<Ancestry>;
+    type MaxAssetsForTransfer = MaxAssetsForTransfer;
 }
 
 parameter_type_with_key! {
-	pub ExistentialDeposits: |currency_id: CurrencyId| -> Balance {
-		// every currency has a zero existential deposit
-		match currency_id {
-			_ => 0,
-		}
-	};
+    pub ExistentialDeposits: |currency_id: CurrencyId| -> Balance {
+        // every currency has a zero existential deposit
+        match currency_id {
+            _ => 0,
+        }
+    };
 }
 
 parameter_types! {
@@ -864,24 +871,24 @@ parameter_types! {
 }
 
 impl orml_tokens::Config for Runtime {
-	type Event = Event;
-	type Balance = Balance;
-	type Amount = Amount;
-	type CurrencyId = CurrencyId;
-	type WeightInfo = ();
-	type ExistentialDeposits = ExistentialDeposits;
-	type OnDust = ();
-	type MaxLocks = ORMLMaxLocks;
-	type DustRemovalWhitelist = Nothing;
+    type Event = Event;
+    type Balance = Balance;
+    type Amount = Amount;
+    type CurrencyId = CurrencyId;
+    type WeightInfo = ();
+    type ExistentialDeposits = ExistentialDeposits;
+    type OnDust = ();
+    type MaxLocks = ORMLMaxLocks;
+    type DustRemovalWhitelist = Nothing;
 }
 
 impl orml_xcm::Config for Runtime {
-	type Event = Event;
-	type SovereignOrigin = EnsureRoot<AccountId>;
+    type Event = Event;
+    type SovereignOrigin = EnsureRoot<AccountId>;
 }
 
 parameter_types! {
-	pub const GetNativeCurrencyId: CurrencyId = CurrencyId::DORA;
+    pub const GetNativeCurrencyId: CurrencyId = CurrencyId::DORA;
 }
 
 impl orml_currencies::Config for Runtime {
@@ -913,8 +920,8 @@ construct_runtime!(
         Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent},
         ParachainInfo: parachain_info::{Pallet, Storage, Config},
         Sudo: pallet_sudo::{Pallet, Call, Config<T>, Storage, Event<T>},
-		Scheduler: pallet_scheduler::{Pallet, Call, Storage, Event<T>} ,
-		Preimage: pallet_preimage::{Pallet, Call, Storage, Event<T>},
+        Scheduler: pallet_scheduler::{Pallet, Call, Storage, Event<T>} ,
+        Preimage: pallet_preimage::{Pallet, Call, Storage, Event<T>},
         // Grandpa: pallet_grandpa::{Pallet, Call, Storage, Config, Event},
 
         // Monetary stuff.
@@ -934,12 +941,12 @@ construct_runtime!(
         CumulusXcm: cumulus_pallet_xcm::{Pallet, Event<T>, Origin},
         DmpQueue: cumulus_pallet_dmp_queue::{Pallet, Call, Storage, Event<T>},
 
-		// ORML XCMP
-		XTokens: orml_xtokens::{Pallet, Storage, Call, Event<T>},
-		Tokens: orml_tokens::{Pallet, Storage, Event<T>, Config<T>},
-		OrmlXcm: orml_xcm::{Pallet, Call, Event<T>},
+        // ORML XCMP
+        XTokens: orml_xtokens::{Pallet, Storage, Call, Event<T>},
+        Tokens: orml_tokens::{Pallet, Storage, Event<T>, Config<T>},
+        OrmlXcm: orml_xcm::{Pallet, Call, Event<T>},
         UnknownTokens: orml_unknown_tokens::{Pallet, Storage, Event},
-		Currencies: orml_currencies::{Pallet, Call, Event<T>},
+        Currencies: orml_currencies::{Pallet, Call, Event<T>},
 
 
         // Include the custom pallet in the runtime.
