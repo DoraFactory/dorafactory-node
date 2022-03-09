@@ -11,6 +11,7 @@ use frame_support::{
 use sp_std::{vec, vec::Vec, convert::{TryInto}};
 use sp_runtime::traits::{Hash};
 use core_services::{DoraUserOrigin, DoraPay};
+use scale_info::TypeInfo;
 
 #[cfg(test)]
 mod mock;
@@ -21,8 +22,7 @@ mod tests;
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarking;
 
-
-#[derive(Encode, Decode, Default, Clone, PartialEq)]
+#[derive(Encode, Decode, Default, Clone, PartialEq, TypeInfo)]
 pub struct Project<AccountId> {
     pub total_votes: u128,
     pub grants: u128,
@@ -32,7 +32,7 @@ pub struct Project<AccountId> {
     pub owner: AccountId,
 }
 
-#[derive(Encode, Decode, Default, Clone, PartialEq)]
+#[derive(Encode, Decode, Default, Clone, PartialEq, TypeInfo)]
 pub struct Round {
     pub name: Vec<u8>,
     pub ongoing: bool,
@@ -83,6 +83,7 @@ pub mod pallet {
 
     #[pallet::pallet]
     #[pallet::generate_store(pub(super) trait Store)]
+    #[pallet::without_storage_info]
     pub struct Pallet<T>(_);
 
     // The pallet's runtime storage items.
@@ -95,7 +96,7 @@ pub mod pallet {
 
     #[pallet::storage]
     #[pallet::getter(fn projects)]
-    pub(super) type Projects<T: Config> = StorageDoubleMap<_, Blake2_128Concat, u64, Blake2_128Concat, T::Hash, ProjectOf<T>, ValueQuery>;
+    pub(super) type Projects<T: Config> = StorageDoubleMap<_, Blake2_128Concat, u64, Blake2_128Concat, T::Hash, ProjectOf<T>, OptionQuery>;
 
     #[pallet::storage]
     pub(super) type ProjectVotes<T: Config> = StorageDoubleMap<_, Blake2_128Concat, T::Hash, Blake2_128Concat, T::AccountId, u128, ValueQuery>;
@@ -104,7 +105,6 @@ pub mod pallet {
     // Pallets use events to inform users when important changes are made.
     // https://substrate.dev/docs/en/knowledgebase/runtime/events
     #[pallet::event]
-    #[pallet::metadata(T::AccountId = "AccountId", T::Hash = "Hash")]
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
     pub enum Event<T: Config> {
         /// Event documentation should end with an array that provides descriptive names for event
@@ -292,10 +292,10 @@ pub mod pallet {
             // update the project and corresponding round
             ProjectVotes::<T>::insert(vote_hash, &who, ballot+voted);
             Projects::<T>::mutate(project_key, project_hash, |poj| {
-                let support_area = ballot.checked_mul(poj.total_votes - voted).unwrap();
-                poj.support_area = support_area.checked_add(poj.support_area).unwrap();
-                poj.total_votes += ballot;
-                poj.grants += amount - fee;
+                let support_area = ballot.checked_mul(poj.clone().unwrap().total_votes - voted).unwrap();
+                poj.clone().unwrap().support_area = support_area.checked_add(poj.clone().unwrap().support_area).unwrap();
+                poj.clone().unwrap().total_votes += ballot;
+                poj.clone().unwrap().grants += amount - fee;
                 //debug::info!("Total votes: {:?}, Current votes: {:?}, Support Area: {:?},Est cost: {:?}",
                 // poj.total_votes, voted, support_area, cost);
                 Rounds::<T>::mutate(org_id, round_id, |rnd| {
