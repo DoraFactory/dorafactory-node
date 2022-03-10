@@ -16,7 +16,7 @@ targets = ["x86_64-unknown-linux-gnu"]
 codec = { package = "parity-scale-codec", version = "2.0.0", default-features = false, features = ["derive"]}
 scale-info = { version = "1.0.0", default-features = false, features = ["derive"] }
 hex-literal = { version = '0.3.1', optional = true }
-serde = { version = "1.0.132", optional = true, features = ["derive"] }
+serde = { version = "1.0.119", optional = true, features = ["derive"] }
 
 # Substrate Dependencies
 ## Substrate FRAME Dependencies
@@ -92,6 +92,8 @@ orml-traits = { git = "https://github.com/open-web3-stack/open-runtime-module-li
 pallet-scheduler = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.16" }
 pallet-preimage = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.16', default-features = false }
 
+primitives = { package = "primitives", path = "../primitives", default-features = false }
+
 [features]
 default = ["std"]
 runtime-benchmarks = [
@@ -165,4 +167,6 @@ std = [
 
     'pallet-scheduler/std',
     "pallet-preimage/std",
+
+    "primitives/std"
 ]

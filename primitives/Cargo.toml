@@ -1,0 +1,30 @@
+[package]
+name = "primitives"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+serde = { version = "1.0.119", optional = true, features = ["derive"] }
+codec = { package = "parity-scale-codec", version = "2.3.1", default-features = false, features = ["max-encoded-len"] }
+scale-info = { version = "1.0", default-features = false, features = ["derive"] }
+
+sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.16", default-features = false }
+sp-std = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.16", default-features = false }
+sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.16", default-features = false }
+
+frame-support = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.16", default-features = false }
+
+[features]
+default = ["std"]
+std = [
+    "serde",
+    "codec/std",
+    "scale-info/std",
+    "sp-runtime/std",
+    "sp-std/std",
+    "sp-core/std",
+
+    "frame-support/std",
+]

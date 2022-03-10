@@ -48,3 +48,8 @@ pallet-balances = {git = "https://github.com/paritytech/substrate", default-feat
 # LOCAL library
 pallet-dao-core = {path = '../../dorafactory-dao-core/pallets/dao-core', default-features = false, version = '4.0.0-dev'}
 core-services = {path = '../../dorafactory-dao-core/traits', default-features = false, version = '4.0.0-dev'}
+
+# ORML library
+orml-traits = { git = "https://github.com/open-web3-stack/open-runtime-module-library", branch = "polkadot-v0.9.16", default-features = false }
+
+primitives = { package = "primitives", path = "../../primitives", default-features = false }
