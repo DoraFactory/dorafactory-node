@@ -6,7 +6,11 @@ use frame_support::{
     traits::{Currency, EnsureOrigin, Get, OnUnbalanced, ReservableCurrency},
     BoundedVec, PalletId, Parameter,
 };
-use orml_traits::MultiCurrency;
+// use frame_system::Config::AccountId;
+use orml_traits::{
+    MultiCurrency, MultiCurrencyExtended, MultiLockableCurrency, MultiReservableCurrency,
+};
+pub use pallet::*;
 /// Edit this file to define custom logic or remove it if it is not needed.
 /// Learn more about FRAME and the core library of Substrate FRAME pallets:
 /// <https://substrate.dev/docs/en/knowledgebase/runtime/frame>
@@ -15,8 +19,6 @@ use scale_info::TypeInfo;
 use sp_runtime::traits::{AccountIdConversion, Hash, Member};
 use sp_runtime::RuntimeDebug;
 use sp_std::{convert::TryInto, vec, vec::Vec};
-
-pub use pallet::*;
 
 #[cfg(test)]
 mod mock;
@@ -43,6 +45,7 @@ pub struct Round<BoundedString> {
     pub pre_tax_support_pool: u128,
     pub total_support_area: u128,
     pub total_tax: u128,
+    pub total_pool: u128,
 }
 
 type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
@@ -62,7 +65,10 @@ pub mod pallet {
 
         /// Currency to transfer assets
         // type MultiCurrency: MultiCurrency<Self::AccountId, CurrencyId = CurrencyId, Balance = Balance>;
-        type MultiCurrency: MultiCurrency<AccountIdOf<Self>, CurrencyId = CurrencyId>;
+        type MultiCurrency: MultiCurrency<AccountIdOf<Self>, CurrencyId = CurrencyId>
+            + MultiCurrencyExtended<Self::AccountId, CurrencyId = CurrencyId>
+            + MultiLockableCurrency<Self::AccountId, CurrencyId = CurrencyId>
+            + MultiReservableCurrency<Self::AccountId, CurrencyId = CurrencyId>;
 
         #[pallet::constant]
         type PalletId: Get<PalletId>;
@@ -140,6 +146,8 @@ pub mod pallet {
         RoundEnded(u32),
         /// parameters. [round_id, who, amount]
         DonateSucceed(u32, T::AccountId, BalanceOf<T>),
+        /// parameters. [dest, amount]
+        WithdrawSucceed(AccountIdOf<T>, BalanceOf<T>),
     }
 
     // Errors inform users that something went wrong.
@@ -204,6 +212,8 @@ pub mod pallet {
                 Error::<T>::DonationTooSmall
             );
             let _ = T::MultiCurrency::transfer(currency_id, &who, &Self::account_id(), amount);
+            // TODO: add deposit to pallet account.
+            let _ = T::MultiCurrency::reserve(currency_id, &Self::account_id(), amount);
             // update the round
             Rounds::<T>::mutate(round_id, |rnd| match rnd {
                 Some(round) => {
@@ -213,10 +223,24 @@ pub mod pallet {
                     round.pre_tax_support_pool = amount_number.checked_add(ptsp).unwrap();
                     round.support_pool = (amount_number - fee_number).checked_add(sp).unwrap();
                     round.total_tax = fee_number.checked_add(tt).unwrap();
+                    round.total_pool = amount_number.checked_add(ptsp).unwrap();
                 }
                 _ => (),
             });
             Self::deposit_event(Event::DonateSucceed(round_id, who, amount));
+            Ok(().into())
+        }
+
+        #[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
+        pub fn sudo_withdraw(
+            origin: OriginFor<T>,
+            currency_id: CurrencyId,
+            dest: AccountIdOf<T>,
+            #[pallet::compact] amount: BalanceOf<T>,
+        ) -> DispatchResultWithPostInfo {
+            T::AdminOrigin::ensure_origin(origin)?;
+            let _ = T::MultiCurrency::transfer(currency_id, &Self::account_id(), &dest, amount);
+            Self::deposit_event(Event::WithdrawSucceed(dest, amount));
             Ok(().into())
         }
 
@@ -241,6 +265,7 @@ pub mod pallet {
                 pre_tax_support_pool: 0,
                 total_support_area: 0,
                 total_tax: 0,
+                total_pool: 0,
             };
             Rounds::<T>::insert(round_id, round);
             Self::deposit_event(Event::RoundStarted(round_id));
@@ -261,6 +286,12 @@ pub mod pallet {
             let area = round.total_support_area;
             let pool = round.support_pool;
             let currency_id = round.currency_id;
+            let total_pool = round.total_pool;
+            let _ = T::MultiCurrency::unreserve(
+                currency_id,
+                &Self::account_id(),
+                Self::u128_to_balance(total_pool),
+            );
             for (hash, mut project) in Projects::<T>::iter_prefix(round_id) {
                 if area > 0 {
                     let total = project.grants;
@@ -364,7 +395,11 @@ pub mod pallet {
                 &Self::account_id(),
                 Self::u128_to_balance(amount),
             );
-
+            let _ = T::MultiCurrency::reserve(
+                currency_id,
+                &Self::account_id(),
+                Self::u128_to_balance(amount),
+            );
             // update the project and corresponding round
             ProjectVotes::<T>::insert(vote_hash, &who, ballot + voted);
             Projects::<T>::mutate(round_id, hash, |poj| {
@@ -379,10 +414,12 @@ pub mod pallet {
                         // poj.total_votes, voted, support_area, cost);
                         Rounds::<T>::mutate(round_id, |rnd| match rnd {
                             Some(round) => {
+                                let ptsp = round.pre_tax_support_pool;
                                 let tsa = round.total_support_area;
                                 let tt = round.total_tax;
                                 round.total_support_area = support_area.checked_add(tsa).unwrap();
                                 round.total_tax = fee.checked_add(tt).unwrap();
+                                round.total_pool = amount.checked_add(ptsp).unwrap();
                             }
                             _ => (),
                         });

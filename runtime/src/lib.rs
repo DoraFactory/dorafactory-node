@@ -11,6 +11,7 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 }; */
 use codec::{Decode, Encode};
 use sp_api::impl_runtime_apis;
+use sp_core::u32_trait::{_1, _2, _3, _4, _5};
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
 use sp_runtime::{
     create_runtime_str, generic, impl_opaque_keys,
@@ -30,8 +31,8 @@ use sp_version::RuntimeVersion;
 pub use frame_support::{
     construct_runtime, match_type, parameter_types,
     traits::{
-        Contains, EqualPrivilegeOnly, Everything, KeyOwnerProofSystem, Nothing, Randomness,
-        StorageInfo,
+        Contains, EnsureOneOf, EqualPrivilegeOnly, Everything, KeyOwnerProofSystem, Nothing,
+        Randomness, StorageInfo,
     },
     weights::{
         constants::{BlockExecutionWeight, ExtrinsicBaseWeight, WEIGHT_PER_SECOND},
@@ -519,6 +520,25 @@ pub type LocalAssetTransactor = MultiCurrencyAdapter<
     DepositToAlternative<NativeTreasuryAccount, Currencies, CurrencyId, AccountId, Balance>,
 >;
 
+// TODO: add treasury;
+// pub struct ToTreasury;
+// impl TakeRevenue for ToTreasury {
+//     fn take_revenue(revenue: MultiAsset) {
+//         if let MultiAsset {
+//             id: Concrete(location),
+//             fun: Fungible(amount),
+//         } = revenue
+//         {
+//             if let Some(currency_id) = CurrencyIdConvert::convert(location) {
+//                 // Ensure AcalaTreasuryAccount have ed requirement for native asset, but don't need
+//                 // ed requirement for cross-chain asset because it's one of whitelist accounts.
+//                 // Ignore the result.
+//                 let _ = Currencies::deposit(currency_id, &NativeTreasuryAccount::get(), amount);
+//             }
+//         }
+//     }
+// }
+
 /// Trader - The means of purchasing weight credit for XCM execution.
 /// We need to ensure we have at least one rule per token we want to handle or else
 /// the xcm executor won't know how to charge fees for a transfer of said token.
@@ -676,6 +696,50 @@ impl pallet_preimage::Config for Runtime {
     type BaseDeposit = PreimageBaseDeposit;
     type ByteDeposit = PreimageByteDeposit;
 }
+
+// parameter_types! {
+//     pub const ProposalBond: Permill = Permill::from_percent(5);
+//     pub const ProposalBondMinimum: Balance = 1 * DOLLARS;
+//     pub const SpendPeriod: BlockNumber = 1 * DAYS;
+//     pub const Burn: Permill = Permill::from_percent(50);
+//     pub const TipCountdown: BlockNumber = 1 * DAYS;
+//     pub const TipFindersFee: Percent = Percent::from_percent(20);
+//     pub const TipReportDepositBase: Balance = 1 * DOLLARS;
+//     pub const DataDepositPerByte: Balance = 1 * CENTS;
+//     pub const BountyDepositBase: Balance = 1 * DOLLARS;
+//     pub const BountyDepositPayoutDelay: BlockNumber = 1 * DAYS;
+//     pub const TreasuryPalletId: PalletId = PalletId(*b"py/trsry");
+//     pub const BountyUpdatePeriod: BlockNumber = 14 * DAYS;
+//     pub const MaximumReasonLength: u32 = 16384;
+//     pub const BountyCuratorDeposit: Permill = Permill::from_percent(50);
+//     pub const BountyValueMinimum: Balance = 5 * DOLLARS;
+//     pub const MaxApprovals: u32 = 100;
+//     pub const ProposalBondMaximum: Balance = 100 * DOLLARS;
+// }
+//
+// impl pallet_treasury::Config for Runtime {
+//     type PalletId = TreasuryPalletId;
+//     type ProposalBondMaximum = ProposalBondMaximum;
+//     type Currency = Balances;
+//     type ApproveOrigin = EnsureOneOf<
+//         EnsureRoot<AccountId>,
+//         pallet_collective::EnsureProportionAtLeast<_3, _5, AccountId, CouncilCollective>,
+//     >;
+//     type RejectOrigin = EnsureOneOf<
+//         EnsureRoot<AccountId>,
+//         pallet_collective::EnsureProportionMoreThan<_1, _2, AccountId, CouncilCollective>,
+//     >;
+//     type Event = Event;
+//     type OnSlash = ();
+//     type ProposalBond = ProposalBond;
+//     type ProposalBondMinimum = ProposalBondMinimum;
+//     type SpendPeriod = SpendPeriod;
+//     type Burn = Burn;
+//     type BurnDestination = ();
+//     type SpendFunds = Bounties;
+//     type WeightInfo = ();
+//     type MaxApprovals = MaxApprovals;
+// }
 
 /// Configure the pallet-qf in pallets/quadratic-funding.
 parameter_types! {
@@ -877,7 +941,8 @@ impl orml_tokens::Config for Runtime {
     type CurrencyId = CurrencyId;
     type WeightInfo = ();
     type ExistentialDeposits = ExistentialDeposits;
-    type OnDust = ();
+    // type OnDust = ();
+    type OnDust = orml_tokens::TransferDust<Runtime, NativeTreasuryAccount>;
     type MaxLocks = ORMLMaxLocks;
     type DustRemovalWhitelist = Nothing;
 }
