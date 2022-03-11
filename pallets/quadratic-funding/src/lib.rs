@@ -45,7 +45,7 @@ pub struct Round<BoundedString> {
     pub pre_tax_support_pool: u128,
     pub total_support_area: u128,
     pub total_tax: u128,
-    pub total_pool: u128,
+    // pub total_pool: u128,
 }
 
 type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
@@ -213,7 +213,7 @@ pub mod pallet {
             );
             let _ = T::MultiCurrency::transfer(currency_id, &who, &Self::account_id(), amount);
             // TODO: add deposit to pallet account.
-            let _ = T::MultiCurrency::reserve(currency_id, &Self::account_id(), amount);
+            // let _ = T::MultiCurrency::reserve(currency_id, &Self::account_id(), amount);
             // update the round
             Rounds::<T>::mutate(round_id, |rnd| match rnd {
                 Some(round) => {
@@ -223,7 +223,7 @@ pub mod pallet {
                     round.pre_tax_support_pool = amount_number.checked_add(ptsp).unwrap();
                     round.support_pool = (amount_number - fee_number).checked_add(sp).unwrap();
                     round.total_tax = fee_number.checked_add(tt).unwrap();
-                    round.total_pool = amount_number.checked_add(ptsp).unwrap();
+                    // round.total_pool = amount_number.checked_add(ptsp).unwrap();
                 }
                 _ => (),
             });
@@ -265,7 +265,7 @@ pub mod pallet {
                 pre_tax_support_pool: 0,
                 total_support_area: 0,
                 total_tax: 0,
-                total_pool: 0,
+                // total_pool: 0,
             };
             Rounds::<T>::insert(round_id, round);
             Self::deposit_event(Event::RoundStarted(round_id));
@@ -286,12 +286,12 @@ pub mod pallet {
             let area = round.total_support_area;
             let pool = round.support_pool;
             let currency_id = round.currency_id;
-            let total_pool = round.total_pool;
-            let _ = T::MultiCurrency::unreserve(
-                currency_id,
-                &Self::account_id(),
-                Self::u128_to_balance(total_pool),
-            );
+            // let total_pool = round.total_pool;
+            // let _ = T::MultiCurrency::unreserve(
+            //     currency_id,
+            //     &Self::account_id(),
+            //     Self::u128_to_balance(total_pool),
+            // );
             for (hash, mut project) in Projects::<T>::iter_prefix(round_id) {
                 if area > 0 {
                     let total = project.grants;
@@ -395,11 +395,11 @@ pub mod pallet {
                 &Self::account_id(),
                 Self::u128_to_balance(amount),
             );
-            let _ = T::MultiCurrency::reserve(
-                currency_id,
-                &Self::account_id(),
-                Self::u128_to_balance(amount),
-            );
+            // let _ = T::MultiCurrency::reserve(
+            //     currency_id,
+            //     &Self::account_id(),
+            //     Self::u128_to_balance(amount),
+            // );
             // update the project and corresponding round
             ProjectVotes::<T>::insert(vote_hash, &who, ballot + voted);
             Projects::<T>::mutate(round_id, hash, |poj| {
@@ -419,7 +419,7 @@ pub mod pallet {
                                 let tt = round.total_tax;
                                 round.total_support_area = support_area.checked_add(tsa).unwrap();
                                 round.total_tax = fee.checked_add(tt).unwrap();
-                                round.total_pool = amount.checked_add(ptsp).unwrap();
+                                // round.total_pool = amount.checked_add(ptsp).unwrap();
                             }
                             _ => (),
                         });
