@@ -11,6 +11,7 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 }; */
 use codec::{Decode, Encode};
 use sp_api::impl_runtime_apis;
+use sp_core::u32_trait::{_1, _2, _3, _4, _5};
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
 use sp_runtime::{
     create_runtime_str, generic, impl_opaque_keys,
@@ -30,8 +31,8 @@ use sp_version::RuntimeVersion;
 pub use frame_support::{
     construct_runtime, match_type, parameter_types,
     traits::{
-        Contains, EqualPrivilegeOnly, Everything, KeyOwnerProofSystem, Nothing, Randomness,
-        StorageInfo,
+        Contains, EnsureOneOf, EqualPrivilegeOnly, Everything, KeyOwnerProofSystem, Nothing,
+        Randomness, StorageInfo,
     },
     weights::{
         constants::{BlockExecutionWeight, ExtrinsicBaseWeight, WEIGHT_PER_SECOND},
@@ -497,6 +498,7 @@ match_type! {
         MultiLocation {parents: 1, interior: X1(Parachain(1000))} |
         // 当前上一级中继链下的parachain 2000
         MultiLocation {parents: 1, interior: X1(Parachain(2000))}
+        // MultiLocation {parents: 1, interior: X1(Parachain(3000))}
     };
 }
 
@@ -519,6 +521,25 @@ pub type LocalAssetTransactor = MultiCurrencyAdapter<
     DepositToAlternative<NativeTreasuryAccount, Currencies, CurrencyId, AccountId, Balance>,
 >;
 
+// TODO: add treasury;
+// pub struct ToTreasury;
+// impl TakeRevenue for ToTreasury {
+//     fn take_revenue(revenue: MultiAsset) {
+//         if let MultiAsset {
+//             id: Concrete(location),
+//             fun: Fungible(amount),
+//         } = revenue
+//         {
+//             if let Some(currency_id) = CurrencyIdConvert::convert(location) {
+//                 // Ensure AcalaTreasuryAccount have ed requirement for native asset, but don't need
+//                 // ed requirement for cross-chain asset because it's one of whitelist accounts.
+//                 // Ignore the result.
+//                 let _ = Currencies::deposit(currency_id, &NativeTreasuryAccount::get(), amount);
+//             }
+//         }
+//     }
+// }
+
 /// Trader - The means of purchasing weight credit for XCM execution.
 /// We need to ensure we have at least one rule per token we want to handle or else
 /// the xcm executor won't know how to charge fees for a transfer of said token.
@@ -527,6 +548,7 @@ pub type Trader = (
     FixedRateOfFungible<NativePerSecond, ()>,
     FixedRateOfFungible<NativeNewPerSecond, ()>,
     FixedRateOfFungible<FfPerSecond, ()>,
+    // FixedRateOfFungible<DdPerSecond, ()>,
 );
 
 parameter_types! {
@@ -557,6 +579,15 @@ parameter_types! {
         // FF:ROC = 100:1
         roc_per_second() * 100
     );
+
+    // pub DdPerSecond: (AssetId, u128) = (
+    //     MultiLocation::new(
+    //         1,
+    //         X2(Parachain(3000), GeneralKey(b"DD".to_vec()))
+    //     ).into(),
+    //     // DD:ROC = 100:1
+    //     roc_per_second() * 100
+    // );
 }
 
 pub struct XcmConfig;
@@ -677,6 +708,50 @@ impl pallet_preimage::Config for Runtime {
     type ByteDeposit = PreimageByteDeposit;
 }
 
+// parameter_types! {
+//     pub const ProposalBond: Permill = Permill::from_percent(5);
+//     pub const ProposalBondMinimum: Balance = 1 * DOLLARS;
+//     pub const SpendPeriod: BlockNumber = 1 * DAYS;
+//     pub const Burn: Permill = Permill::from_percent(50);
+//     pub const TipCountdown: BlockNumber = 1 * DAYS;
+//     pub const TipFindersFee: Percent = Percent::from_percent(20);
+//     pub const TipReportDepositBase: Balance = 1 * DOLLARS;
+//     pub const DataDepositPerByte: Balance = 1 * CENTS;
+//     pub const BountyDepositBase: Balance = 1 * DOLLARS;
+//     pub const BountyDepositPayoutDelay: BlockNumber = 1 * DAYS;
+//     pub const TreasuryPalletId: PalletId = PalletId(*b"py/trsry");
+//     pub const BountyUpdatePeriod: BlockNumber = 14 * DAYS;
+//     pub const MaximumReasonLength: u32 = 16384;
+//     pub const BountyCuratorDeposit: Permill = Permill::from_percent(50);
+//     pub const BountyValueMinimum: Balance = 5 * DOLLARS;
+//     pub const MaxApprovals: u32 = 100;
+//     pub const ProposalBondMaximum: Balance = 100 * DOLLARS;
+// }
+//
+// impl pallet_treasury::Config for Runtime {
+//     type PalletId = TreasuryPalletId;
+//     type ProposalBondMaximum = ProposalBondMaximum;
+//     type Currency = Balances;
+//     type ApproveOrigin = EnsureOneOf<
+//         EnsureRoot<AccountId>,
+//         pallet_collective::EnsureProportionAtLeast<_3, _5, AccountId, CouncilCollective>,
+//     >;
+//     type RejectOrigin = EnsureOneOf<
+//         EnsureRoot<AccountId>,
+//         pallet_collective::EnsureProportionMoreThan<_1, _2, AccountId, CouncilCollective>,
+//     >;
+//     type Event = Event;
+//     type OnSlash = ();
+//     type ProposalBond = ProposalBond;
+//     type ProposalBondMinimum = ProposalBondMinimum;
+//     type SpendPeriod = SpendPeriod;
+//     type Burn = Burn;
+//     type BurnDestination = ();
+//     type SpendFunds = Bounties;
+//     type WeightInfo = ();
+//     type MaxApprovals = MaxApprovals;
+// }
+
 /// Configure the pallet-qf in pallets/quadratic-funding.
 parameter_types! {
     // pow(10,12) => Unit, for easy fee control, we use pow(10,9)
@@ -782,8 +857,9 @@ impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
     fn convert(id: CurrencyId) -> Option<MultiLocation> {
         match id {
             CurrencyId::ROC => Some(Parent.into()),
-            CurrencyId::FF => Some((Parent, Parachain(1000), GeneralKey("FF".into())).into()),
             CurrencyId::DORA => Some((Parent, Parachain(2000), GeneralKey("DORA".into())).into()),
+            CurrencyId::FF => Some((Parent, Parachain(1000), GeneralKey("FF".into())).into()),
+            // CurrencyId::DD => Some((Parent, Parachain(3000), GeneralKey("DD".into())).into()),
         }
     }
 }
@@ -792,6 +868,7 @@ impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
     fn convert(l: MultiLocation) -> Option<CurrencyId> {
         let ff: Vec<u8> = "FF".into();
         let dora: Vec<u8> = "DORA".into();
+        // let dd: Vec<u8> = "DD".into();
         if l == MultiLocation::parent() {
             return Some(CurrencyId::ROC);
         }
@@ -800,11 +877,13 @@ impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
             MultiLocation { parents, interior } if parents == 1 => match interior {
                 X2(Parachain(1000), GeneralKey(k)) if k == ff => Some(CurrencyId::FF),
                 X2(Parachain(2000), GeneralKey(k)) if k == dora => Some(CurrencyId::DORA),
+                // X2(Parachain(3000), GeneralKey(k)) if k == dd => Some(CurrencyId::DD),
                 _ => None,
             },
             MultiLocation { parents, interior } if parents == 0 => match interior {
                 X1(GeneralKey(k)) if k == ff => Some(CurrencyId::FF),
                 X1(GeneralKey(k)) if k == dora => Some(CurrencyId::DORA),
+                // X1(GeneralKey(k)) if k == dd => Some(CurrencyId::DD),
                 _ => None,
             },
             _ => None,
@@ -878,6 +957,7 @@ impl orml_tokens::Config for Runtime {
     type WeightInfo = ();
     type ExistentialDeposits = ExistentialDeposits;
     type OnDust = ();
+    // type OnDust = orml_tokens::TransferDust<Runtime, NativeTreasuryAccount>;
     type MaxLocks = ORMLMaxLocks;
     type DustRemovalWhitelist = Nothing;
 }
