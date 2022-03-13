@@ -956,8 +956,8 @@ impl orml_tokens::Config for Runtime {
     type CurrencyId = CurrencyId;
     type WeightInfo = ();
     type ExistentialDeposits = ExistentialDeposits;
-    // type OnDust = ();
-    type OnDust = orml_tokens::TransferDust<Runtime, NativeTreasuryAccount>;
+    type OnDust = ();
+    // type OnDust = orml_tokens::TransferDust<Runtime, NativeTreasuryAccount>;
     type MaxLocks = ORMLMaxLocks;
     type DustRemovalWhitelist = Nothing;
 }
