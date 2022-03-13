@@ -146,8 +146,8 @@ pub mod pallet {
         RoundEnded(u32),
         /// parameters. [round_id, who, amount]
         DonateSucceed(u32, T::AccountId, BalanceOf<T>),
-        /// parameters. [dest, amount]
-        WithdrawSucceed(AccountIdOf<T>, BalanceOf<T>),
+        // parameters. [dest, amount]
+        // WithdrawSucceed(AccountIdOf<T>, BalanceOf<T>),
     }
 
     // Errors inform users that something went wrong.
@@ -231,18 +231,18 @@ pub mod pallet {
             Ok(().into())
         }
 
-        #[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
-        pub fn sudo_withdraw(
-            origin: OriginFor<T>,
-            currency_id: CurrencyId,
-            dest: AccountIdOf<T>,
-            #[pallet::compact] amount: BalanceOf<T>,
-        ) -> DispatchResultWithPostInfo {
-            T::AdminOrigin::ensure_origin(origin)?;
-            let _ = T::MultiCurrency::transfer(currency_id, &Self::account_id(), &dest, amount);
-            Self::deposit_event(Event::WithdrawSucceed(dest, amount));
-            Ok(().into())
-        }
+        // #[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
+        // pub fn sudo_withdraw(
+        //     origin: OriginFor<T>,
+        //     currency_id: CurrencyId,
+        //     dest: AccountIdOf<T>,
+        //     #[pallet::compact] amount: BalanceOf<T>,
+        // ) -> DispatchResultWithPostInfo {
+        //     T::AdminOrigin::ensure_origin(origin)?;
+        //     let _ = T::MultiCurrency::transfer(currency_id, &Self::account_id(), &dest, amount);
+        //     Self::deposit_event(Event::WithdrawSucceed(dest, amount));
+        //     Ok(().into())
+        // }
 
         #[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
         pub fn start_round(

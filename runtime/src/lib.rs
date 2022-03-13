@@ -498,6 +498,7 @@ match_type! {
         MultiLocation {parents: 1, interior: X1(Parachain(1000))} |
         // 当前上一级中继链下的parachain 2000
         MultiLocation {parents: 1, interior: X1(Parachain(2000))}
+        // MultiLocation {parents: 1, interior: X1(Parachain(3000))}
     };
 }
 
@@ -547,6 +548,7 @@ pub type Trader = (
     FixedRateOfFungible<NativePerSecond, ()>,
     FixedRateOfFungible<NativeNewPerSecond, ()>,
     FixedRateOfFungible<FfPerSecond, ()>,
+    // FixedRateOfFungible<DdPerSecond, ()>,
 );
 
 parameter_types! {
@@ -577,6 +579,15 @@ parameter_types! {
         // FF:ROC = 100:1
         roc_per_second() * 100
     );
+
+    // pub DdPerSecond: (AssetId, u128) = (
+    //     MultiLocation::new(
+    //         1,
+    //         X2(Parachain(3000), GeneralKey(b"DD".to_vec()))
+    //     ).into(),
+    //     // DD:ROC = 100:1
+    //     roc_per_second() * 100
+    // );
 }
 
 pub struct XcmConfig;
@@ -846,8 +857,9 @@ impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
     fn convert(id: CurrencyId) -> Option<MultiLocation> {
         match id {
             CurrencyId::ROC => Some(Parent.into()),
-            CurrencyId::FF => Some((Parent, Parachain(1000), GeneralKey("FF".into())).into()),
             CurrencyId::DORA => Some((Parent, Parachain(2000), GeneralKey("DORA".into())).into()),
+            CurrencyId::FF => Some((Parent, Parachain(1000), GeneralKey("FF".into())).into()),
+            // CurrencyId::DD => Some((Parent, Parachain(3000), GeneralKey("DD".into())).into()),
         }
     }
 }
@@ -856,6 +868,7 @@ impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
     fn convert(l: MultiLocation) -> Option<CurrencyId> {
         let ff: Vec<u8> = "FF".into();
         let dora: Vec<u8> = "DORA".into();
+        // let dd: Vec<u8> = "DD".into();
         if l == MultiLocation::parent() {
             return Some(CurrencyId::ROC);
         }
@@ -864,11 +877,13 @@ impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
             MultiLocation { parents, interior } if parents == 1 => match interior {
                 X2(Parachain(1000), GeneralKey(k)) if k == ff => Some(CurrencyId::FF),
                 X2(Parachain(2000), GeneralKey(k)) if k == dora => Some(CurrencyId::DORA),
+                // X2(Parachain(3000), GeneralKey(k)) if k == dd => Some(CurrencyId::DD),
                 _ => None,
             },
             MultiLocation { parents, interior } if parents == 0 => match interior {
                 X1(GeneralKey(k)) if k == ff => Some(CurrencyId::FF),
                 X1(GeneralKey(k)) if k == dora => Some(CurrencyId::DORA),
+                // X1(GeneralKey(k)) if k == dd => Some(CurrencyId::DD),
                 _ => None,
             },
             _ => None,
