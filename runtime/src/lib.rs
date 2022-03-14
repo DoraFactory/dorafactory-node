@@ -61,7 +61,7 @@ use xcm_builder::{
     AccountId32Aliases, AllowKnownQueryResponses, AllowSubscriptionsFrom,
     AllowTopLevelPaidExecutionFrom, AllowUnpaidExecutionFrom, ConvertedConcreteAssetId,
     CurrencyAdapter, EnsureXcmOrigin, FixedRateOfFungible, FixedWeightBounds, FungiblesAdapter,
-    IsConcrete, LocationInverter, NativeAsset, ParentIsDefault, RelayChainAsNative,
+    IsConcrete, LocationInverter, NativeAsset, ParentIsPreset, RelayChainAsNative,
     SiblingParachainAsNative, SiblingParachainConvertsVia, SignedAccountId32AsNative,
     SignedToAccountId32, SovereignSignedViaLocation, TakeRevenue, TakeWeightCredit,
     UsingComponents,
@@ -450,7 +450,7 @@ parameter_types! {
 /// `Transact` in order to determine the dispatch Origin.
 pub type LocationToAccountId = (
     // The parent (Relay-chain) origin converts to the default `AccountId`.
-    ParentIsDefault<AccountId>,
+    ParentIsPreset<AccountId>,
     // Sibling parachain origins convert to AccountId via the `ParaId::into`.
     SiblingParachainConvertsVia<Sibling, AccountId>,
     // Straight up local `AccountId32` origins just alias directly to `AccountId`.
@@ -497,8 +497,8 @@ match_type! {
         // 当前上一级中继链下的parachain 1000
         MultiLocation {parents: 1, interior: X1(Parachain(1000))} |
         // 当前上一级中继链下的parachain 2000
-        MultiLocation {parents: 1, interior: X1(Parachain(2000))}
-        // MultiLocation {parents: 1, interior: X1(Parachain(3000))}
+        MultiLocation {parents: 1, interior: X1(Parachain(2000))} |
+        MultiLocation {parents: 1, interior: X1(Parachain(3000))}
     };
 }
 
@@ -548,7 +548,7 @@ pub type Trader = (
     FixedRateOfFungible<NativePerSecond, ()>,
     FixedRateOfFungible<NativeNewPerSecond, ()>,
     FixedRateOfFungible<FfPerSecond, ()>,
-    // FixedRateOfFungible<DdPerSecond, ()>,
+    FixedRateOfFungible<DdPerSecond, ()>,
 );
 
 parameter_types! {
@@ -580,14 +580,14 @@ parameter_types! {
         roc_per_second() * 100
     );
 
-    // pub DdPerSecond: (AssetId, u128) = (
-    //     MultiLocation::new(
-    //         1,
-    //         X2(Parachain(3000), GeneralKey(b"DD".to_vec()))
-    //     ).into(),
-    //     // DD:ROC = 100:1
-    //     roc_per_second() * 100
-    // );
+    pub DdPerSecond: (AssetId, u128) = (
+        MultiLocation::new(
+            1,
+            X2(Parachain(3000), GeneralKey(b"DD".to_vec()))
+        ).into(),
+        // DD:ROC = 100:1
+        roc_per_second() * 100
+    );
 }
 
 pub struct XcmConfig;
@@ -657,6 +657,8 @@ impl cumulus_pallet_xcmp_queue::Config for Runtime {
     type ChannelInfo = ParachainSystem;
     type VersionWrapper = ();
     type ExecuteOverweightOrigin = EnsureRoot<AccountId>;
+    type ControllerOrigin = EnsureRoot<AccountId>;
+    type ControllerOriginConverter = XcmOriginToTransactDispatchOrigin;
 }
 
 impl cumulus_pallet_dmp_queue::Config for Runtime {
@@ -774,27 +776,27 @@ impl pallet_qf::Config for Runtime {
     type MultiCurrency = Currencies;
 
     type PalletId = QuadraticFundingPalletId;
+    // Origin who can control the round
+    type AdminOrigin = EnsureRoot<AccountId>;
+
+    type StringLimit = StringLimit;
+
+    // No action is taken when deposits are forfeited.
+    // type Slashed = ();
+
     // Use the UnitOfVote from the parameter_types block.
     type UnitOfVote = VoteUnit;
 
     // Use the MinNickLength from the parameter_types block.
     type NumberOfUnitPerVote = NumberOfUnit;
-
-    // No action is taken when deposits are forfeited.
-    // type Slashed = ();
-
-    type StringLimit = StringLimit;
-
     // Use the FeeRatio from the parameter_types block.
     type FeeRatioPerVote = FeeRatio;
+
     // The minimum length of project name
     type NameMinLength = NameMinLength;
 
     // The maximum length of project name
     type NameMaxLength = NameMaxLength;
-
-    // Origin who can control the round
-    type AdminOrigin = EnsureRoot<AccountId>;
 }
 
 parameter_types! {
@@ -859,31 +861,31 @@ impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
             CurrencyId::ROC => Some(Parent.into()),
             CurrencyId::DORA => Some((Parent, Parachain(2000), GeneralKey("DORA".into())).into()),
             CurrencyId::FF => Some((Parent, Parachain(1000), GeneralKey("FF".into())).into()),
-            // CurrencyId::DD => Some((Parent, Parachain(3000), GeneralKey("DD".into())).into()),
+            CurrencyId::DD => Some((Parent, Parachain(3000), GeneralKey("DD".into())).into()),
         }
     }
 }
 
 impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
     fn convert(l: MultiLocation) -> Option<CurrencyId> {
-        let ff: Vec<u8> = "FF".into();
         let dora: Vec<u8> = "DORA".into();
-        // let dd: Vec<u8> = "DD".into();
+        let ff: Vec<u8> = "FF".into();
+        let dd: Vec<u8> = "DD".into();
         if l == MultiLocation::parent() {
             return Some(CurrencyId::ROC);
         }
 
         match l {
             MultiLocation { parents, interior } if parents == 1 => match interior {
-                X2(Parachain(1000), GeneralKey(k)) if k == ff => Some(CurrencyId::FF),
                 X2(Parachain(2000), GeneralKey(k)) if k == dora => Some(CurrencyId::DORA),
-                // X2(Parachain(3000), GeneralKey(k)) if k == dd => Some(CurrencyId::DD),
+                X2(Parachain(1000), GeneralKey(k)) if k == ff => Some(CurrencyId::FF),
+                X2(Parachain(3000), GeneralKey(k)) if k == dd => Some(CurrencyId::DD),
                 _ => None,
             },
             MultiLocation { parents, interior } if parents == 0 => match interior {
-                X1(GeneralKey(k)) if k == ff => Some(CurrencyId::FF),
                 X1(GeneralKey(k)) if k == dora => Some(CurrencyId::DORA),
-                // X1(GeneralKey(k)) if k == dd => Some(CurrencyId::DD),
+                X1(GeneralKey(k)) if k == ff => Some(CurrencyId::FF),
+                X1(GeneralKey(k)) if k == dd => Some(CurrencyId::DD),
                 _ => None,
             },
             _ => None,
@@ -921,6 +923,16 @@ parameter_types! {
     pub const MaxAssetsForTransfer: usize = 2;
 }
 
+parameter_type_with_key! {
+    pub ParachainMinFee: |location: MultiLocation| -> u128 {
+        #[allow(clippy::match_ref_pats)] // false positive
+        match (location.parents, location.first_interior()) {
+            (1, Some(Parachain(2000))) => 4_000_000_000,
+            _ => u128::MAX,
+        }
+    };
+}
+
 impl orml_xtokens::Config for Runtime {
     type Event = Event;
     type Balance = Balance;
@@ -928,6 +940,7 @@ impl orml_xtokens::Config for Runtime {
     type CurrencyIdConvert = CurrencyIdConvert;
     type AccountIdToMultiLocation = AccountIdToMultiLocation;
     type SelfLocation = SelfLocation;
+    type MinXcmFee = ParachainMinFee;
     type XcmExecutor = XcmExecutor<XcmConfig>;
     type Weigher = FixedWeightBounds<UnitWeightCost, Call, MaxInstructions>;
     type BaseXcmWeight = BaseXcmWeight;

@@ -2,11 +2,11 @@
 A private chain based on substrate, with Frame V2
 
 ## How to set up
-> This version(`polkadot-v0.9.16`) requires Rust version: `nightly-2021-11-07-x86_64-unknown-linux-gnu`
+> This version(`polkadot-v0.9.17`) requires Rust version: `nightly-2021-11-07-x86_64-unknown-linux-gnu`
 ### 1. clone repo
 ```bash
 git clone https://github.com/DoraFactory/dorafactory-node.git
-## checkout to dorafactory-parachain(polkadot-v0.9.16)
+## checkout to dorafactory-parachain(polkadot-v0.9.17)
 cd dorafactory-node && git checkout dorafactory-parachain
 ## download submodules
 git submodule update --init --recursive
