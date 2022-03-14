@@ -288,5 +288,9 @@ fn dorafactory_genesis(
         sudo: SudoConfig {
             key: Some(root_key),
         },
+        dora_rewards: dorafactory_node_runtime::DoraRewardsConfig {
+			// set the funds
+			funded_amount: 1 << 60,
+		},
     }
 }

@@ -84,6 +84,9 @@ pub use pallet_moloch_v2;
 /// Import the qudratic-funding pallet.
 pub use pallet_qf;
 
+/// import the dora-rewards pallet
+pub use pallet_dora_rewards;
+
 pub use primitives::{
     AccountId, Address, Amount, Balance, BlockNumber, CurrencyId, Hash, Index, Signature, CENTS,
     DAYS, DOLLARS, EXISTENTIAL_DEPOSIT, HOURS, MICROUNIT, MILLICENTS, MILLISECS_PER_BLOCK,
@@ -854,6 +857,19 @@ impl pallet_dao_core::Config for Runtime {
     type SupervisorOrigin = EnsureRoot<AccountId>;
 }
 
+parameter_types! {
+	pub const FirstVestPercentage: Perbill = Perbill::from_percent(20);
+}
+
+impl pallet_dora_rewards::Config for Runtime {
+	type Event = Event;
+	type Currency = Balances;
+	type VestingBlockNumber = cumulus_primitives_core::relay_chain::BlockNumber;
+	type VestingBlockProvider = cumulus_pallet_parachain_system::RelaychainBlockNumberProvider<Self>;
+	type FirstVestPercentage = FirstVestPercentage;
+	
+}
+
 pub struct CurrencyIdConvert;
 impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
     fn convert(id: CurrencyId) -> Option<MultiLocation> {
@@ -1046,6 +1062,7 @@ construct_runtime!(
         QuadraticFunding: pallet_qf::{Pallet, Call, Storage, Event<T>},
         MolochV2Module: pallet_moloch_v2::{Pallet, Call, Storage, Event<T>},
         DaoCoreModule: pallet_dao_core::{Pallet, Call, Storage, Event<T>},
+		DoraRewards: pallet_dora_rewards::{Pallet, Call, Storage, Event<T>, Config<T>},
     }
 );
 
