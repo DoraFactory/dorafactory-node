@@ -29,5 +29,5 @@ pub enum CurrencyId {
     // Parachain B token
     FF,
     // Demo Parachain token
-    // DD,
+    DD,
 }
