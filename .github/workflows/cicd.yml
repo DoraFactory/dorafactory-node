@@ -41,7 +41,7 @@ jobs:
           build-args: |
             BIN=${{ matrix.bin }}
             PROFILE=release
-          tags: df/${{ matrix.bin }}:${{ steps.docker_tag.outputs.value }}
+          tags: df/${{ matrix.bin }}:alpha
       - name: Image digest
         if: steps.has_changed_path.outputs.changed == 'true'
         run: echo ${{ steps.docker_build.outputs.digest }}
