@@ -858,16 +858,18 @@ impl pallet_dao_core::Config for Runtime {
 }
 
 parameter_types! {
-	pub const FirstVestPercentage: Perbill = Perbill::from_percent(20);
+    pub const FirstVestPercentage: Perbill = Perbill::from_percent(20);
+    pub const MaxContributorsNumber: u32 = 5;
 }
 
 impl pallet_dora_rewards::Config for Runtime {
-	type Event = Event;
-	type Currency = Balances;
-	type VestingBlockNumber = cumulus_primitives_core::relay_chain::BlockNumber;
-	type VestingBlockProvider = cumulus_pallet_parachain_system::RelaychainBlockNumberProvider<Self>;
-	type FirstVestPercentage = FirstVestPercentage;
-	
+    type Event = Event;
+    type Currency = Balances;
+    type VestingBlockNumber = cumulus_primitives_core::relay_chain::BlockNumber;
+    type VestingBlockProvider =
+        cumulus_pallet_parachain_system::RelaychainBlockNumberProvider<Self>;
+    type FirstVestPercentage = FirstVestPercentage;
+    type MaxContributorsNumber = MaxContributorsNumber;
 }
 
 pub struct CurrencyIdConvert;
@@ -1062,7 +1064,7 @@ construct_runtime!(
         QuadraticFunding: pallet_qf::{Pallet, Call, Storage, Event<T>},
         MolochV2Module: pallet_moloch_v2::{Pallet, Call, Storage, Event<T>},
         DaoCoreModule: pallet_dao_core::{Pallet, Call, Storage, Event<T>},
-		DoraRewards: pallet_dora_rewards::{Pallet, Call, Storage, Event<T>, Config<T>},
+        DoraRewards: pallet_dora_rewards::{Pallet, Call, Storage, Event<T>, Config<T>},
     }
 );
 
