@@ -1,17 +1,17 @@
 {
   "name": "Local Testnet",
   "id": "local_testnet",
-  "chainType": "Local",
+  "chainType": "Live",
   "bootNodes": [],
   "telemetryEndpoints": null,
-  "protocolId": "template-local",
+  "protocolId": "dorafactory",
   "properties": {
     "ss58Format": 42,
     "tokenDecimals": 12,
     "tokenSymbol": "DORA"
   },
-  "relay_chain": "rococo-local",
-  "para_id": 2000,
+  "relay_chain": "rococo",
+  "para_id": 2078,
   "consensusEngine": null,
   "codeSubstitutes": {},
   "genesis": {
@@ -21,7 +21,7 @@
       },
       "parachainSystem": null,
       "parachainInfo": {
-        "parachainId": 2000
+        "parachainId": 2078
       },
       "sudo": {
         "key": "5DFuEcgNPjBmrJncevFzHmrNn52G5JC5aoTJPstnbRsyBRu2"
