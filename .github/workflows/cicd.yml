@@ -28,7 +28,7 @@ jobs:
         fetch-depth: 2
     - name: Checkout LFS objects
       run: git lfs checkout
-      - name: Configure AWS Credentials
+    - name: Configure AWS Credentials
       uses: aws-actions/configure-aws-credentials@master
       with:
         role-to-assume: ${{ secrets.AWS_ROLE }}
