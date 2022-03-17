@@ -16,11 +16,9 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         bin: ["dorafactory-node"]
-    
     permissions:
       id-token: write
       contents: read
-    
     steps:
       - name: Checkout github repo (+ download lfs dependencies)
         uses: actions/checkout@v2
