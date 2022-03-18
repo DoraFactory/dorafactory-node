@@ -27,7 +27,7 @@ pub enum CurrencyId {
     // Native TokenSymbol
     DORA,
     // Parachain B token
-    FF,
+    // FF,
     // Demo Parachain token
     DD,
 }

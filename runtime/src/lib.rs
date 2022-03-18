@@ -494,14 +494,14 @@ match_type! {
     };
 }
 
-/// 配置parachain2000和parachain3000之间可以进行消息传递
+/// 配置parachain2000和parachain2001之间可以进行消息传递
 match_type! {
     pub type SpecParachain: impl Contains<MultiLocation> = {
         // 当前上一级中继链下的parachain 1000
-        MultiLocation {parents: 1, interior: X1(Parachain(1000))} |
+        // MultiLocation {parents: 1, interior: X1(Parachain(1000))} |
         // 当前上一级中继链下的parachain 2000
-        MultiLocation {parents: 1, interior: X1(Parachain(2000))} |
-        MultiLocation {parents: 1, interior: X1(Parachain(3000))}
+        MultiLocation {parents: 1, interior: X1(Parachain(2008))} |
+        MultiLocation {parents: 1, interior: X1(Parachain(2009))}
     };
 }
 
@@ -550,7 +550,7 @@ pub type Trader = (
     FixedRateOfFungible<RocPerSecond, ()>,
     FixedRateOfFungible<NativePerSecond, ()>,
     FixedRateOfFungible<NativeNewPerSecond, ()>,
-    FixedRateOfFungible<FfPerSecond, ()>,
+    // FixedRateOfFungible<FfPerSecond, ()>,
     FixedRateOfFungible<DdPerSecond, ()>,
 );
 
@@ -559,7 +559,7 @@ parameter_types! {
     pub NativePerSecond: (AssetId, u128) = (
         MultiLocation::new(
             1,
-            X2(Parachain(2000), GeneralKey(b"DORA".to_vec()))
+            X2(Parachain(2008), GeneralKey(b"DORA".to_vec()))
         ).into(),
         // DORA:ROC = 80:1
         roc_per_second() * 80
@@ -574,19 +574,19 @@ parameter_types! {
 
     );
 
-    pub FfPerSecond: (AssetId, u128) = (
-        MultiLocation::new(
-            1,
-            X2(Parachain(1000), GeneralKey(b"FF".to_vec()))
-        ).into(),
-        // FF:ROC = 100:1
-        roc_per_second() * 100
-    );
+    // pub FfPerSecond: (AssetId, u128) = (
+    //     MultiLocation::new(
+    //         1,
+    //         X2(Parachain(1000), GeneralKey(b"FF".to_vec()))
+    //     ).into(),
+    //     // FF:ROC = 100:1
+    //     roc_per_second() * 100
+    // );
 
     pub DdPerSecond: (AssetId, u128) = (
         MultiLocation::new(
             1,
-            X2(Parachain(3000), GeneralKey(b"DD".to_vec()))
+            X2(Parachain(2009), GeneralKey(b"DD".to_vec()))
         ).into(),
         // DD:ROC = 100:1
         roc_per_second() * 100
@@ -877,9 +877,9 @@ impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
     fn convert(id: CurrencyId) -> Option<MultiLocation> {
         match id {
             CurrencyId::ROC => Some(Parent.into()),
-            CurrencyId::DORA => Some((Parent, Parachain(2000), GeneralKey("DORA".into())).into()),
-            CurrencyId::FF => Some((Parent, Parachain(1000), GeneralKey("FF".into())).into()),
-            CurrencyId::DD => Some((Parent, Parachain(3000), GeneralKey("DD".into())).into()),
+            CurrencyId::DORA => Some((Parent, Parachain(2008), GeneralKey("DORA".into())).into()),
+            // CurrencyId::FF => Some((Parent, Parachain(1000), GeneralKey("FF".into())).into()),
+            CurrencyId::DD => Some((Parent, Parachain(2009), GeneralKey("DD".into())).into()),
         }
     }
 }
@@ -887,7 +887,7 @@ impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
 impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
     fn convert(l: MultiLocation) -> Option<CurrencyId> {
         let dora: Vec<u8> = "DORA".into();
-        let ff: Vec<u8> = "FF".into();
+        // let ff: Vec<u8> = "FF".into();
         let dd: Vec<u8> = "DD".into();
         if l == MultiLocation::parent() {
             return Some(CurrencyId::ROC);
@@ -895,14 +895,14 @@ impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
 
         match l {
             MultiLocation { parents, interior } if parents == 1 => match interior {
-                X2(Parachain(2000), GeneralKey(k)) if k == dora => Some(CurrencyId::DORA),
-                X2(Parachain(1000), GeneralKey(k)) if k == ff => Some(CurrencyId::FF),
-                X2(Parachain(3000), GeneralKey(k)) if k == dd => Some(CurrencyId::DD),
+                X2(Parachain(2008), GeneralKey(k)) if k == dora => Some(CurrencyId::DORA),
+                // X2(Parachain(1000), GeneralKey(k)) if k == ff => Some(CurrencyId::FF),
+                X2(Parachain(2009), GeneralKey(k)) if k == dd => Some(CurrencyId::DD),
                 _ => None,
             },
             MultiLocation { parents, interior } if parents == 0 => match interior {
                 X1(GeneralKey(k)) if k == dora => Some(CurrencyId::DORA),
-                X1(GeneralKey(k)) if k == ff => Some(CurrencyId::FF),
+                // X1(GeneralKey(k)) if k == ff => Some(CurrencyId::FF),
                 X1(GeneralKey(k)) if k == dd => Some(CurrencyId::DD),
                 _ => None,
             },
@@ -945,7 +945,7 @@ parameter_type_with_key! {
     pub ParachainMinFee: |location: MultiLocation| -> u128 {
         #[allow(clippy::match_ref_pats)] // false positive
         match (location.parents, location.first_interior()) {
-            (1, Some(Parachain(2000))) => 4_000_000_000,
+            (1, Some(Parachain(2008))) => 4_000_000_000,
             _ => u128::MAX,
         }
     };
