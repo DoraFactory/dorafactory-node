@@ -49,18 +49,3 @@ jobs:
       run: |
         docker tag dorafactory-node:local $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-    - name: Build and push
-      id: docker_build
-      uses: docker/build-push-action@v2
-      with:
-        context: .
-        file: Dockerfile
-        push: true
-        platforms: linux/amd64
-        build-args: |
-          BIN=${{ matrix.bin }}
-          PROFILE=release
-        tags: df/${{ matrix.bin }}:alpha
-    - name: Image digest
-      if: steps.has_changed_path.outputs.changed == 'true'
-      run: echo ${{ steps.docker_build.outputs.digest }}
