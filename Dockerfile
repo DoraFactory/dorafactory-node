@@ -7,7 +7,7 @@ WORKDIR /dorafactory
 
 COPY . /dorafactory
 
-RUN cargo build --$PROFILE --bin $BIN --features runtime-benchmarks --features try-runtime
+RUN cargo build --$PROFILE --bin $BIN
 
 # ===== SECOND STAGE ======
 
