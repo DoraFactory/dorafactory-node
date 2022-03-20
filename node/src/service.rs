@@ -18,19 +18,12 @@ use cumulus_relay_chain_local::build_relay_chain_interface;
 
 // Substrate imports
 use sc_client_api::ExecutorProvider;
-use sc_consensus_aura::{ImportQueueParams, StartAuraParams};
 pub use sc_executor::NativeElseWasmExecutor;
-use sc_finality_grandpa::SharedVoterState;
-use sc_keystore::LocalKeystore;
 use sc_network::NetworkService;
-use sc_service::{
-    error::Error as ServiceError, Configuration, PartialComponents, Role, TFullBackend,
-    TFullClient, TaskManager,
-};
+use sc_service::{Configuration, PartialComponents, Role, TFullBackend, TFullClient, TaskManager};
 use sc_telemetry::{Telemetry, TelemetryHandle, TelemetryWorker, TelemetryWorkerHandle};
 use sp_api::ConstructRuntimeApi;
 use sp_consensus::SlotData;
-use sp_consensus_aura::sr25519::AuthorityPair as AuraPair;
 use sp_keystore::SyncCryptoStorePtr;
 use sp_runtime::traits::BlakeTwo256;
 use std::{sync::Arc, time::Duration};

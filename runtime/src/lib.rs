@@ -9,18 +9,13 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 /* use pallet_grandpa::{
     fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList,
 }; */
-use codec::{Decode, Encode};
 use sp_api::impl_runtime_apis;
-use sp_core::u32_trait::{_1, _2, _3, _4, _5};
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
 use sp_runtime::{
     create_runtime_str, generic, impl_opaque_keys,
-    traits::{
-        AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT, Convert,
-        IdentifyAccount, NumberFor, Verify, Zero,
-    },
+    traits::{AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT, Convert},
     transaction_validity::{TransactionSource, TransactionValidity},
-    ApplyExtrinsicResult, MultiSignature, RuntimeDebug,
+    ApplyExtrinsicResult,
 };
 use sp_std::prelude::*;
 #[cfg(feature = "std")]
@@ -42,7 +37,6 @@ pub use frame_support::{
     PalletId,
 };
 use frame_system::EnsureRoot;
-use scale_info::TypeInfo;
 
 pub use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 pub use sp_runtime::{MultiAddress, Perbill, Permill};
@@ -53,23 +47,17 @@ pub use sp_runtime::BuildStorage;
 // Polkadot Imports
 use pallet_xcm::XcmPassthrough;
 use polkadot_parachain::primitives::Sibling;
-use polkadot_runtime_common::{RocksDbWeight, SlowAdjustingFeeUpdate};
+use polkadot_runtime_common::RocksDbWeight;
 
 // XCM Imports
 use xcm::latest::prelude::*;
 use xcm_builder::{
-    AccountId32Aliases, AllowKnownQueryResponses, AllowSubscriptionsFrom,
-    AllowTopLevelPaidExecutionFrom, AllowUnpaidExecutionFrom, ConvertedConcreteAssetId,
-    CurrencyAdapter, EnsureXcmOrigin, FixedRateOfFungible, FixedWeightBounds, FungiblesAdapter,
-    IsConcrete, LocationInverter, NativeAsset, ParentIsPreset, RelayChainAsNative,
+    AccountId32Aliases, AllowTopLevelPaidExecutionFrom, AllowUnpaidExecutionFrom, EnsureXcmOrigin,
+    FixedRateOfFungible, FixedWeightBounds, LocationInverter, ParentIsPreset, RelayChainAsNative,
     SiblingParachainAsNative, SiblingParachainConvertsVia, SignedAccountId32AsNative,
-    SignedToAccountId32, SovereignSignedViaLocation, TakeRevenue, TakeWeightCredit,
-    UsingComponents,
+    SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit,
 };
-use xcm_executor::{
-    traits::{JustTry, WeightTrader},
-    Assets, Config, XcmExecutor,
-};
+use xcm_executor::XcmExecutor;
 
 // ORML Imports
 use orml_currencies::BasicCurrencyAdapter;
@@ -115,7 +103,7 @@ pub type Executive = frame_executive::Executive<
     Block,
     frame_system::ChainContext<Runtime>,
     Runtime,
-    AllPallets,
+    AllPalletsWithSystem,
 >;
 
 /// Opaque types. These are used by the CLI to instantiate machinery that don't need to know
@@ -194,9 +182,9 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 // /// We allow for 0.5 of a second of compute with a 12 second average block time.
 // const MAXIMUM_BLOCK_WEIGHT: Weight = WEIGHT_PER_SECOND / 2;
 
-/// We assume that ~5% of the block weight is consumed by `on_initialize` handlers. This is
-/// used to limit the maximal weight of a single extrinsic.
-const AVERAGE_ON_INITIALIZE_RATIO: Perbill = Perbill::from_percent(5);
+// We assume that ~5% of the block weight is consumed by `on_initialize` handlers. This is
+// used to limit the maximal weight of a single extrinsic.
+// const AVERAGE_ON_INITIALIZE_RATIO: Perbill = Perbill::from_percent(5);
 
 /// We allow `Normal` extrinsics to fill up the block up to 75%, the rest can be used by
 /// `Operational` extrinsics.
@@ -494,7 +482,6 @@ match_type! {
     };
 }
 
-/// 配置parachain2000和parachain2001之间可以进行消息传递
 match_type! {
     pub type SpecParachain: impl Contains<MultiLocation> = {
         // 当前上一级中继链下的parachain 1000
@@ -757,7 +744,7 @@ impl pallet_preimage::Config for Runtime {
 //     type MaxApprovals = MaxApprovals;
 // }
 
-/// Configure the pallet-qf in pallets/quadratic-funding.
+// Configure the pallet-qf in pallets/quadratic-funding.
 parameter_types! {
     // pow(10,12) => Unit, for easy fee control, we use pow(10,9)
     pub const VoteUnit: u128 = 1000000000;

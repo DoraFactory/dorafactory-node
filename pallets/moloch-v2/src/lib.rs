@@ -1,7 +1,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use frame_support::{
-    codec::{Decode, Encode, MaxEncodedLen},
+    codec::{Decode, Encode},
     traits::{
         Currency,
         ExistenceRequirement::{AllowDeath, KeepAlive},

@@ -1,6 +1,6 @@
 use cumulus_primitives_core::ParaId;
 use dorafactory_node_runtime::{
-    AccountId, Signature, SudoConfig, SystemConfig, TokensConfig, EXISTENTIAL_DEPOSIT, WASM_BINARY,
+    AccountId, Signature, SudoConfig, TokensConfig, EXISTENTIAL_DEPOSIT,
 };
 use hex_literal::hex;
 use sc_chain_spec::{ChainSpecExtension, ChainSpecGroup};
@@ -8,7 +8,6 @@ use sc_service::ChainType;
 use serde::{Deserialize, Serialize};
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::{sr25519, Pair, Public};
-use sp_finality_grandpa::AuthorityId as GrandpaId;
 use sp_runtime::traits::{IdentifyAccount, Verify};
 
 // The URL for the telemetry server.
@@ -235,8 +234,8 @@ fn dorafactory_genesis(
             key: Some(root_key),
         },
         dora_rewards: dorafactory_node_runtime::DoraRewardsConfig {
-			// set the funds
-			funded_amount: 1 << 60,
-		},
+            // set the funds
+            funded_amount: 1 << 60,
+        },
     }
 }
