@@ -9,18 +9,13 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 /* use pallet_grandpa::{
     fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList,
 }; */
-use codec::{Decode, Encode};
 use sp_api::impl_runtime_apis;
-use sp_core::u32_trait::{_1, _2, _3, _4, _5};
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
 use sp_runtime::{
     create_runtime_str, generic, impl_opaque_keys,
-    traits::{
-        AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT, Convert,
-        IdentifyAccount, NumberFor, Verify, Zero,
-    },
+    traits::{AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT, Convert},
     transaction_validity::{TransactionSource, TransactionValidity},
-    ApplyExtrinsicResult, MultiSignature, RuntimeDebug,
+    ApplyExtrinsicResult,
 };
 use sp_std::prelude::*;
 #[cfg(feature = "std")]
@@ -42,7 +37,6 @@ pub use frame_support::{
     PalletId,
 };
 use frame_system::EnsureRoot;
-use scale_info::TypeInfo;
 
 pub use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 pub use sp_runtime::{MultiAddress, Perbill, Permill};
@@ -53,23 +47,17 @@ pub use sp_runtime::BuildStorage;
 // Polkadot Imports
 use pallet_xcm::XcmPassthrough;
 use polkadot_parachain::primitives::Sibling;
-use polkadot_runtime_common::{RocksDbWeight, SlowAdjustingFeeUpdate};
+use polkadot_runtime_common::RocksDbWeight;
 
 // XCM Imports
 use xcm::latest::prelude::*;
 use xcm_builder::{
-    AccountId32Aliases, AllowKnownQueryResponses, AllowSubscriptionsFrom,
-    AllowTopLevelPaidExecutionFrom, AllowUnpaidExecutionFrom, ConvertedConcreteAssetId,
-    CurrencyAdapter, EnsureXcmOrigin, FixedRateOfFungible, FixedWeightBounds, FungiblesAdapter,
-    IsConcrete, LocationInverter, NativeAsset, ParentIsPreset, RelayChainAsNative,
+    AccountId32Aliases, AllowTopLevelPaidExecutionFrom, AllowUnpaidExecutionFrom, EnsureXcmOrigin,
+    FixedRateOfFungible, FixedWeightBounds, LocationInverter, ParentIsPreset, RelayChainAsNative,
     SiblingParachainAsNative, SiblingParachainConvertsVia, SignedAccountId32AsNative,
-    SignedToAccountId32, SovereignSignedViaLocation, TakeRevenue, TakeWeightCredit,
-    UsingComponents,
+    SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit,
 };
-use xcm_executor::{
-    traits::{JustTry, WeightTrader},
-    Assets, Config, XcmExecutor,
-};
+use xcm_executor::XcmExecutor;
 
 // ORML Imports
 use orml_currencies::BasicCurrencyAdapter;
@@ -115,7 +103,7 @@ pub type Executive = frame_executive::Executive<
     Block,
     frame_system::ChainContext<Runtime>,
     Runtime,
-    AllPallets,
+    AllPalletsWithSystem,
 >;
 
 /// Opaque types. These are used by the CLI to instantiate machinery that don't need to know
@@ -194,9 +182,9 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 // /// We allow for 0.5 of a second of compute with a 12 second average block time.
 // const MAXIMUM_BLOCK_WEIGHT: Weight = WEIGHT_PER_SECOND / 2;
 
-/// We assume that ~5% of the block weight is consumed by `on_initialize` handlers. This is
-/// used to limit the maximal weight of a single extrinsic.
-const AVERAGE_ON_INITIALIZE_RATIO: Perbill = Perbill::from_percent(5);
+// We assume that ~5% of the block weight is consumed by `on_initialize` handlers. This is
+// used to limit the maximal weight of a single extrinsic.
+// const AVERAGE_ON_INITIALIZE_RATIO: Perbill = Perbill::from_percent(5);
 
 /// We allow `Normal` extrinsics to fill up the block up to 75%, the rest can be used by
 /// `Operational` extrinsics.
@@ -494,14 +482,13 @@ match_type! {
     };
 }
 
-/// 配置parachain2000和parachain3000之间可以进行消息传递
 match_type! {
     pub type SpecParachain: impl Contains<MultiLocation> = {
         // 当前上一级中继链下的parachain 1000
-        MultiLocation {parents: 1, interior: X1(Parachain(1000))} |
+        // MultiLocation {parents: 1, interior: X1(Parachain(1000))} |
         // 当前上一级中继链下的parachain 2000
-        MultiLocation {parents: 1, interior: X1(Parachain(2000))} |
-        MultiLocation {parents: 1, interior: X1(Parachain(3000))}
+        MultiLocation {parents: 1, interior: X1(Parachain(2008))} |
+        MultiLocation {parents: 1, interior: X1(Parachain(2009))}
     };
 }
 
@@ -550,7 +537,7 @@ pub type Trader = (
     FixedRateOfFungible<RocPerSecond, ()>,
     FixedRateOfFungible<NativePerSecond, ()>,
     FixedRateOfFungible<NativeNewPerSecond, ()>,
-    FixedRateOfFungible<FfPerSecond, ()>,
+    // FixedRateOfFungible<FfPerSecond, ()>,
     FixedRateOfFungible<DdPerSecond, ()>,
 );
 
@@ -559,7 +546,7 @@ parameter_types! {
     pub NativePerSecond: (AssetId, u128) = (
         MultiLocation::new(
             1,
-            X2(Parachain(2000), GeneralKey(b"DORA".to_vec()))
+            X2(Parachain(2008), GeneralKey(b"DORA".to_vec()))
         ).into(),
         // DORA:ROC = 80:1
         roc_per_second() * 80
@@ -574,19 +561,19 @@ parameter_types! {
 
     );
 
-    pub FfPerSecond: (AssetId, u128) = (
-        MultiLocation::new(
-            1,
-            X2(Parachain(1000), GeneralKey(b"FF".to_vec()))
-        ).into(),
-        // FF:ROC = 100:1
-        roc_per_second() * 100
-    );
+    // pub FfPerSecond: (AssetId, u128) = (
+    //     MultiLocation::new(
+    //         1,
+    //         X2(Parachain(1000), GeneralKey(b"FF".to_vec()))
+    //     ).into(),
+    //     // FF:ROC = 100:1
+    //     roc_per_second() * 100
+    // );
 
     pub DdPerSecond: (AssetId, u128) = (
         MultiLocation::new(
             1,
-            X2(Parachain(3000), GeneralKey(b"DD".to_vec()))
+            X2(Parachain(2009), GeneralKey(b"DD".to_vec()))
         ).into(),
         // DD:ROC = 100:1
         roc_per_second() * 100
@@ -757,7 +744,7 @@ impl pallet_preimage::Config for Runtime {
 //     type MaxApprovals = MaxApprovals;
 // }
 
-/// Configure the pallet-qf in pallets/quadratic-funding.
+// Configure the pallet-qf in pallets/quadratic-funding.
 parameter_types! {
     // pow(10,12) => Unit, for easy fee control, we use pow(10,9)
     pub const VoteUnit: u128 = 1000000000;
@@ -877,9 +864,9 @@ impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
     fn convert(id: CurrencyId) -> Option<MultiLocation> {
         match id {
             CurrencyId::ROC => Some(Parent.into()),
-            CurrencyId::DORA => Some((Parent, Parachain(2000), GeneralKey("DORA".into())).into()),
-            CurrencyId::FF => Some((Parent, Parachain(1000), GeneralKey("FF".into())).into()),
-            CurrencyId::DD => Some((Parent, Parachain(3000), GeneralKey("DD".into())).into()),
+            CurrencyId::DORA => Some((Parent, Parachain(2008), GeneralKey("DORA".into())).into()),
+            // CurrencyId::FF => Some((Parent, Parachain(1000), GeneralKey("FF".into())).into()),
+            CurrencyId::DD => Some((Parent, Parachain(2009), GeneralKey("DD".into())).into()),
         }
     }
 }
@@ -887,7 +874,7 @@ impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
 impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
     fn convert(l: MultiLocation) -> Option<CurrencyId> {
         let dora: Vec<u8> = "DORA".into();
-        let ff: Vec<u8> = "FF".into();
+        // let ff: Vec<u8> = "FF".into();
         let dd: Vec<u8> = "DD".into();
         if l == MultiLocation::parent() {
             return Some(CurrencyId::ROC);
@@ -895,14 +882,14 @@ impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
 
         match l {
             MultiLocation { parents, interior } if parents == 1 => match interior {
-                X2(Parachain(2000), GeneralKey(k)) if k == dora => Some(CurrencyId::DORA),
-                X2(Parachain(1000), GeneralKey(k)) if k == ff => Some(CurrencyId::FF),
-                X2(Parachain(3000), GeneralKey(k)) if k == dd => Some(CurrencyId::DD),
+                X2(Parachain(2008), GeneralKey(k)) if k == dora => Some(CurrencyId::DORA),
+                // X2(Parachain(1000), GeneralKey(k)) if k == ff => Some(CurrencyId::FF),
+                X2(Parachain(2009), GeneralKey(k)) if k == dd => Some(CurrencyId::DD),
                 _ => None,
             },
             MultiLocation { parents, interior } if parents == 0 => match interior {
                 X1(GeneralKey(k)) if k == dora => Some(CurrencyId::DORA),
-                X1(GeneralKey(k)) if k == ff => Some(CurrencyId::FF),
+                // X1(GeneralKey(k)) if k == ff => Some(CurrencyId::FF),
                 X1(GeneralKey(k)) if k == dd => Some(CurrencyId::DD),
                 _ => None,
             },
@@ -945,7 +932,7 @@ parameter_type_with_key! {
     pub ParachainMinFee: |location: MultiLocation| -> u128 {
         #[allow(clippy::match_ref_pats)] // false positive
         match (location.parents, location.first_interior()) {
-            (1, Some(Parachain(2000))) => 4_000_000_000,
+            (1, Some(Parachain(2008))) => 4_000_000_000,
             _ => u128::MAX,
         }
     };

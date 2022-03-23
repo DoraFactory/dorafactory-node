@@ -2,7 +2,7 @@
 #![allow(clippy::unnecessary_cast)]
 #![allow(clippy::upper_case_acronyms)]
 use sp_runtime::{
-    traits::{Block as BlockT, IdentifyAccount, Verify},
+    traits::{IdentifyAccount, Verify},
     MultiSignature,
 };
 

@@ -39,7 +39,7 @@ use sp_runtime::traits::Block as BlockT;
 use std::{io::Write, net::SocketAddr};
 
 // dorafactory node
-const DORA_PARA_ID: u32 = 2045;
+// const DORA_PARA_ID: u32 = 2045;
 
 fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, String> {
     Ok(match id {
