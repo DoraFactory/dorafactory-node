@@ -8,6 +8,7 @@ name = "pallet-qf"
 readme = "README.md"
 repository = "https://github.com/substrate-developer-hub/substrate-node-template/"
 version = "4.0.0-dev"
+
 [package.metadata.docs.rs]
 targets = ["x86_64-unknown-linux-gnu"]
 [dev-dependencies]
@@ -15,21 +16,6 @@ serde = { version = "1.0.136" }
 sp-core = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.17" }
 sp-runtime = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.17" }
 sp-io = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.17" }
-
-
-[features]
-default = ["std"]
-runtime-benchmarks = ["frame-benchmarking"]
-std = [
-    "codec/std",
-    "frame-support/std",
-    "frame-system/std",
-    "pallet-dao-core/std",
-    "frame-benchmarking/std",
-	"pallet-balances/std",
-	"sp-runtime/std",
-]
-try-runtime = ["frame-support/try-runtime"]
 
 [dependencies]
 codec = { package = "parity-scale-codec", version = "2.3.1", features = ["derive"], default-features = false }
@@ -53,3 +39,17 @@ core-services = {path = "../../dorafactory-dao-core/traits", default-features = 
 orml-traits = { git = "https://github.com/open-web3-stack/open-runtime-module-library", branch = "master", default-features = false }
 
 primitives = { package = "primitives", path = "../../primitives", default-features = false }
+
+[features]
+default = ["std"]
+std = [
+    "codec/std",
+    "frame-support/std",
+    "frame-system/std",
+    "pallet-dao-core/std",
+    "frame-benchmarking/std",
+    "pallet-balances/std",
+    "sp-runtime/std",
+]
+runtime-benchmarks = ["frame-benchmarking"]
+try-runtime = ["frame-support/try-runtime"]

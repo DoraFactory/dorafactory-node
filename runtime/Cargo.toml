@@ -89,15 +89,20 @@ orml-xtokens = { git = "https://github.com/open-web3-stack/open-runtime-module-l
 orml-xcm-support = { git = "https://github.com/open-web3-stack/open-runtime-module-library", branch = "master", default-features = false }
 orml-xcm = { git = "https://github.com/open-web3-stack/open-runtime-module-library", branch = "master", default-features = false }
 orml-traits = { git = "https://github.com/open-web3-stack/open-runtime-module-library", branch = "master", default-features = false }
+orml-benchmarking = { git = "https://github.com/open-web3-stack/open-runtime-module-library", branch = "master", default-features = false, optional = true}
 
 pallet-scheduler = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.17" }
 pallet-preimage = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.17", default-features = false }
 
 primitives = { package = "primitives", path = "../primitives", default-features = false }
 
+pallet-collective = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.17", default-features = false }
+pallet-society = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.17", default-features = false }
+
 [features]
 default = ["std"]
 runtime-benchmarks = [
+#    "orml-benchmarking",
     "frame-benchmarking",
     "frame-support/runtime-benchmarks",
     "frame-system-benchmarking",
@@ -110,6 +115,12 @@ runtime-benchmarks = [
     "pallet-collator-selection/runtime-benchmarks",
     "pallet-xcm/runtime-benchmarks",
 	"cumulus-pallet-session-benchmarking/runtime-benchmarks",
+
+    "orml-tokens/runtime-benchmarks",
+    "pallet-qf/runtime-benchmarks",
+
+    "pallet-collective/runtime-benchmarks",
+    "pallet-society/runtime-benchmarks",
 ]
 std = [
     "codec/std",
