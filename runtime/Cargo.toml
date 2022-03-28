@@ -1,16 +1,17 @@
-[build-dependencies]
-substrate-wasm-builder = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.17" }
-
 [package]
+name = "dorafactory-node-runtime"
 authors = ["Substrate DevHub <https://github.com/substrate-developer-hub>"]
 edition = "2018"
 homepage = "https://substrate.dev"
 license = "Unlicense"
-name = "dorafactory-node-runtime"
 repository = "https://github.com/substrate-developer-hub/substrate-node-template/"
 version = "4.0.0-dev"
+
 [package.metadata.docs.rs]
 targets = ["x86_64-unknown-linux-gnu"]
+
+[build-dependencies]
+substrate-wasm-builder = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.17" }
 
 [dependencies]
 codec = { package = "parity-scale-codec", version = "2.3.1", default-features = false, features = ["derive"]}
