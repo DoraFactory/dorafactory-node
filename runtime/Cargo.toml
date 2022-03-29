@@ -57,8 +57,7 @@ sp-version = { git = "https://github.com/paritytech/substrate", default-features
 
 # Local Dependencies
 pallet-qf = { path = "../pallets/quadratic-funding", default-features = false , version = "4.0.0-dev" }
-pallet-moloch-v2 = { path = "../pallets/moloch-v2", default-features = false , version = "4.0.0-dev" }
-pallet-dao-core = {path = "../dorafactory-dao-core/pallets/dao-core", default-features = false , version = "4.0.0-dev"}
+dao-core = { git = "https://github.com/DoraFactory/dorafactory-dao-core", branch = "polkadot-v0.9.17", default-features = false }
 
 # Cumulus dependencies
 cumulus-pallet-aura-ext = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.17", default-features = false }
@@ -97,13 +96,12 @@ pallet-preimage = { git = "https://github.com/paritytech/substrate", branch = "p
 
 primitives = { package = "primitives", path = "../primitives", default-features = false }
 
-pallet-collective = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.17", default-features = false }
-pallet-society = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.17", default-features = false }
+#pallet-collective = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.17", default-features = false }
+#pallet-society = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.17", default-features = false }
 
 [features]
 default = ["std"]
 runtime-benchmarks = [
-#    "orml-benchmarking",
     "frame-benchmarking",
     "frame-support/runtime-benchmarks",
     "frame-system-benchmarking",
@@ -120,8 +118,8 @@ runtime-benchmarks = [
     "orml-tokens/runtime-benchmarks",
     "pallet-qf/runtime-benchmarks",
 
-    "pallet-collective/runtime-benchmarks",
-    "pallet-society/runtime-benchmarks",
+#    "pallet-collective/runtime-benchmarks",
+#    "pallet-society/runtime-benchmarks",
 ]
 std = [
     "codec/std",
@@ -136,8 +134,7 @@ std = [
     "pallet-randomness-collective-flip/std",
     "pallet-sudo/std",
     "pallet-qf/std",
-    "pallet-moloch-v2/std",
-    "pallet-dao-core/std",
+#    "dao-core/std",
     "pallet-dora-rewards/std",
     "pallet-authorship/std",
     "pallet-collator-selection/std",

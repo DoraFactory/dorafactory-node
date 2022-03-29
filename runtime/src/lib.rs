@@ -67,7 +67,7 @@ use orml_xcm_support::{
 };
 
 /// Import the moloch-v2 pallet.
-pub use pallet_moloch_v2;
+// pub use pallet_moloch_v2;
 /// local Imports
 /// Import the qudratic-funding pallet.
 pub use pallet_qf;
@@ -127,8 +127,8 @@ pub mod opaque {
 //   https://substrate.dev/docs/en/knowledgebase/runtime/upgrades#runtime-versioning
 #[sp_version::runtime_version]
 pub const VERSION: RuntimeVersion = RuntimeVersion {
-    spec_name: create_runtime_str!("dorafactory-node"),
-    impl_name: create_runtime_str!("dorafactory-node"),
+    spec_name: create_runtime_str!("DORA KSM Parachain"),
+    impl_name: create_runtime_str!("DORA KSM Parachain"),
     authoring_version: 1,
     // The version of the runtime specification. A full node will not attempt to use its native
     //   runtime in substitute for the on-chain Wasm runtime unless all of `spec_name`,
@@ -218,7 +218,7 @@ parameter_types! {
         ::with_sensible_defaults(2 * WEIGHT_PER_SECOND, NORMAL_DISPATCH_RATIO);
     pub BlockLength: frame_system::limits::BlockLength = frame_system::limits::BlockLength
         ::max_with_normal_ratio(5 * 1024 * 1024, NORMAL_DISPATCH_RATIO);
-    pub const SS58Prefix: u8 = 42;
+    pub const SS58Prefix: u8 = 128;
     pub CheckingAccount: AccountId = PolkadotXcm::check_account();
     pub const TreasuryPalletId: PalletId = PalletId(*b"dora/try");
 }
@@ -270,7 +270,7 @@ impl frame_system::Config for Runtime {
     type OnKilledAccount = ();
     /// Weight information for the extrinsics of this pallet.
     type SystemWeightInfo = ();
-    /// This is used as an identifier of the chain. 42 is the generic substrate prefix.
+    /// This is used as an identifier of the chain. 128 is the dora ksm prefix.
     type SS58Prefix = SS58Prefix;
     /// The action to take on a Runtime Upgrade
     type OnSetCode = cumulus_pallet_parachain_system::ParachainSetCode<Self>;
@@ -789,46 +789,46 @@ impl pallet_qf::Config for Runtime {
     type NameMaxLength = NameMaxLength;
     // type WeightInfo = ();
 }
-
-parameter_types! {
-    // Use moduleid to generate internal accountid
-    pub const MolochV2PalletId: PalletId = PalletId(*b"py/moloc");
-    // HARD-CODED LIMITS
-    // These numbers are quite arbitrary; they are small enough to avoid overflows when doing calculations
-    // with periods or shares, yet big enough to not limit reasonable use cases.
-    pub const MaxVotingPeriodLength: u128 = 10_u128.pow(18); // maximum length of voting period
-    pub const MaxGracePeriodLength: u128 = 10_u128.pow(18); // maximum length of grace period
-    pub const MaxDilutionBound: u128 = 10_u128.pow(18); // maximum dilution bound
-    pub const MaxShares: u128 = 10_u128.pow(18); // maximum number of shares that can be minted
-
-}
-
-/// Configure the moloch-v2 pallet in pallets/moloch-v2.
-impl pallet_moloch_v2::Config for Runtime {
-    type Event = Event;
-    type PalletId = MolochV2PalletId;
-    // The Balances pallet implements the ReservableCurrency trait.
-    // https://substrate.dev/rustdocs/v2.0.0/pallet_balances/index.html#implementations-2
-    type Currency = pallet_balances::Pallet<Runtime>;
-
-    // No action is taken when deposits are forfeited.
-    type Slashed = ();
-
-    // Origin who can control the round
-    type AdminOrigin = EnsureRoot<AccountId>;
-
-    // maximum length of voting period
-    type MaxVotingPeriodLength = MaxVotingPeriodLength;
-
-    // maximum length of grace period
-    type MaxGracePeriodLength = MaxGracePeriodLength;
-
-    // maximum dilution bound
-    type MaxDilutionBound = MaxDilutionBound;
-
-    // maximum number of shares
-    type MaxShares = MaxShares;
-}
+//
+// parameter_types! {
+//     // Use moduleid to generate internal accountid
+//     pub const MolochV2PalletId: PalletId = PalletId(*b"py/moloc");
+//     // HARD-CODED LIMITS
+//     // These numbers are quite arbitrary; they are small enough to avoid overflows when doing calculations
+//     // with periods or shares, yet big enough to not limit reasonable use cases.
+//     pub const MaxVotingPeriodLength: u128 = 10_u128.pow(18); // maximum length of voting period
+//     pub const MaxGracePeriodLength: u128 = 10_u128.pow(18); // maximum length of grace period
+//     pub const MaxDilutionBound: u128 = 10_u128.pow(18); // maximum dilution bound
+//     pub const MaxShares: u128 = 10_u128.pow(18); // maximum number of shares that can be minted
+//
+// }
+//
+// /// Configure the moloch-v2 pallet in pallets/moloch-v2.
+// impl pallet_moloch_v2::Config for Runtime {
+//     type Event = Event;
+//     type PalletId = MolochV2PalletId;
+//     // The Balances pallet implements the ReservableCurrency trait.
+//     // https://substrate.dev/rustdocs/v2.0.0/pallet_balances/index.html#implementations-2
+//     type Currency = pallet_balances::Pallet<Runtime>;
+//
+//     // No action is taken when deposits are forfeited.
+//     type Slashed = ();
+//
+//     // Origin who can control the round
+//     type AdminOrigin = EnsureRoot<AccountId>;
+//
+//     // maximum length of voting period
+//     type MaxVotingPeriodLength = MaxVotingPeriodLength;
+//
+//     // maximum length of grace period
+//     type MaxGracePeriodLength = MaxGracePeriodLength;
+//
+//     // maximum dilution bound
+//     type MaxDilutionBound = MaxDilutionBound;
+//
+//     // maximum number of shares
+//     type MaxShares = MaxShares;
+// }
 
 parameter_types! {
     pub const DaoCorePalletId: PalletId = PalletId(*b"py/dcore");
@@ -836,7 +836,7 @@ parameter_types! {
 }
 
 /// Configure the pallet-qf in pallets/quadratic-funding.
-impl pallet_dao_core::Config for Runtime {
+impl dao_core::Config for Runtime {
     type Event = Event;
     type Call = Call;
     type Currency = pallet_balances::Pallet<Runtime>;
@@ -1052,8 +1052,8 @@ construct_runtime!(
 
         // Include the custom pallet in the runtime.
         QuadraticFunding: pallet_qf::{Pallet, Call, Storage, Event<T>},
-        MolochV2Module: pallet_moloch_v2::{Pallet, Call, Storage, Event<T>},
-        DaoCoreModule: pallet_dao_core::{Pallet, Call, Storage, Event<T>},
+        // MolochV2Module: pallet_moloch_v2::{Pallet, Call, Storage, Event<T>},
+        DaoCoreModule: dao_core::{Pallet, Call, Storage, Event<T>},
         DoraRewards: pallet_dora_rewards::{Pallet, Call, Storage, Event<T>, Config<T>},
     }
 );
