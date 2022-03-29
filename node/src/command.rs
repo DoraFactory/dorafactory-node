@@ -291,6 +291,7 @@ pub fn run() -> sc_cli::Result<()> {
         }
         None => {
             let runner = cli.create_runner(&cli.run.normalize())?;
+            let collator_options = cli.run.collator_options();
 
             runner.run_node_until_exit(|config| async move {
                 // exact parachainId from chain spec file
@@ -332,7 +333,7 @@ pub fn run() -> sc_cli::Result<()> {
                     }
                 );
 
-                crate::service::start_parachain_node(config, polkadot_config, id)
+                crate::service::start_parachain_node(config, polkadot_config, collator_options, id)
                     .await
                     .map(|r| r.0)
                     .map_err(Into::into)
