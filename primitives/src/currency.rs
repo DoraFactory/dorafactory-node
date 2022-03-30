@@ -23,11 +23,8 @@ use sp_std::prelude::*;
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub enum CurrencyId {
     // Relay chain token.
-    ROC,
+    KSM,
     // Native TokenSymbol
     DORA,
-    // Parachain B token
-    // FF,
-    // Demo Parachain token
-    DD,
+    // Other Parachain token
 }
