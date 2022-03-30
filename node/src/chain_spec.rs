@@ -87,7 +87,7 @@ pub fn staging_config() -> ChainSpec {
             dorafactory_genesis(
                 // subkey inspect "$SECRET"
                 get_root(),
-                // initial collators. TODO change callator account.
+                // initial collators.
                 vec![
                     (
                         hex!["123c0de5a0486486e3df5740e92527ab79a6d57556696c91406272e940f1144a"]
@@ -141,7 +141,7 @@ pub fn development_config() -> ChainSpec {
         move || {
             dorafactory_genesis(
                 // subkey inspect "$SECRET"
-                get_root(),
+                hex!["34c63c6b3213570b0513c706f6c49a4ce253570ac213e53c919d2cd6f8913a07"].into(),
                 // initial collators.
                 vec![
                     (
@@ -170,8 +170,7 @@ pub fn development_config() -> ChainSpec {
                     ),
                 ],
                 vec![
-                    // hex!["34c63c6b3213570b0513c706f6c49a4ce253570ac213e53c919d2cd6f8913a07"].into(),
-                    get_root(),
+                    hex!["34c63c6b3213570b0513c706f6c49a4ce253570ac213e53c919d2cd6f8913a07"].into(),
                 ],
                 dev_para_id.into(),
             )
@@ -320,5 +319,6 @@ fn get_properties() -> Properties {
 }
 
 fn get_root() -> AccountId {
-    AccountId32::from_string("5DFuEcgNPjBmrJncevFzHmrNn52G5JC5aoTJPstnbRsyBRu2").unwrap()
+    // KSM Sudo Account
+    AccountId32::from_string("5Ci36kbH533VyL5iYyFQ8QkR3eEc5Dwu1V8LxX8QcniJqxyb").unwrap()
 }

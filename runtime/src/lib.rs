@@ -144,7 +144,7 @@ const NORMAL_DISPATCH_RATIO: Perbill = Perbill::from_percent(75);
 /// We allow for 0.5 of a second of compute with a 12 second average block time.
 const MAXIMUM_BLOCK_WEIGHT: Weight = WEIGHT_PER_SECOND / 2;
 
-pub fn roc_per_second() -> u128 {
+pub fn ksm_per_second() -> u128 {
     let base_weight = Balance::from(ExtrinsicBaseWeight::get());
     let base_tx_fee = DOLLARS / 1000;
     let base_tx_per_second = (WEIGHT_PER_SECOND as u128) / base_weight;
@@ -419,8 +419,7 @@ match_type! {
 
 match_type! {
     pub type SpecParachain: impl Contains<MultiLocation> = {
-        MultiLocation {parents: 1, interior: X1(Parachain(2115))} |
-        MultiLocation {parents: 1, interior: X1(Parachain(2009))}
+        MultiLocation {parents: 1, interior: X1(Parachain(2115))}
     };
 }
 
@@ -466,49 +465,28 @@ pub type LocalAssetTransactor = MultiCurrencyAdapter<
 /// We need to ensure we have at least one rule per token we want to handle or else
 /// the xcm executor won't know how to charge fees for a transfer of said token.
 pub type Trader = (
-    FixedRateOfFungible<RocPerSecond, ()>,
+    FixedRateOfFungible<KsmPerSecond, ()>,
     FixedRateOfFungible<NativePerSecond, ()>,
     FixedRateOfFungible<NativeNewPerSecond, ()>,
-    // FixedRateOfFungible<FfPerSecond, ()>,
-    FixedRateOfFungible<DdPerSecond, ()>,
 );
 
 parameter_types! {
-    pub RocPerSecond: (AssetId, u128) = (MultiLocation::parent().into(), roc_per_second());
+    pub KsmPerSecond: (AssetId, u128) = (MultiLocation::parent().into(), ksm_per_second());
     pub NativePerSecond: (AssetId, u128) = (
         MultiLocation::new(
             1,
             X2(Parachain(2115), GeneralKey(b"DORA".to_vec()))
         ).into(),
-        // DORA:ROC = 80:1
-        roc_per_second() * 80
+        // DORA:KSM = 50:1
+        ksm_per_second() * 50
     );
     pub NativeNewPerSecond: (AssetId, u128) = (
         MultiLocation::new(
             0,
             X1(GeneralKey(b"DORA".to_vec()))
         ).into(),
-        // DORA:ROC = 80:1
-        roc_per_second() * 80
-
-    );
-
-    // pub FfPerSecond: (AssetId, u128) = (
-    //     MultiLocation::new(
-    //         1,
-    //         X2(Parachain(1000), GeneralKey(b"FF".to_vec()))
-    //     ).into(),
-    //     // FF:ROC = 100:1
-    //     roc_per_second() * 100
-    // );
-
-    pub DdPerSecond: (AssetId, u128) = (
-        MultiLocation::new(
-            1,
-            X2(Parachain(2009), GeneralKey(b"DD".to_vec()))
-        ).into(),
-        // DD:ROC = 100:1
-        roc_per_second() * 100
+        // DORA:KSM = 50:1
+        ksm_per_second() * 50
     );
 }
 
@@ -708,9 +686,8 @@ pub struct CurrencyIdConvert;
 impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
     fn convert(id: CurrencyId) -> Option<MultiLocation> {
         match id {
-            CurrencyId::ROC => Some(Parent.into()),
+            CurrencyId::KSM => Some(Parent.into()),
             CurrencyId::DORA => Some((Parent, Parachain(2115), GeneralKey("DORA".into())).into()),
-            CurrencyId::DD => Some((Parent, Parachain(2009), GeneralKey("DD".into())).into()),
         }
     }
 }
@@ -718,21 +695,17 @@ impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
 impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
     fn convert(l: MultiLocation) -> Option<CurrencyId> {
         let dora: Vec<u8> = "DORA".into();
-        // let ff: Vec<u8> = "FF".into();
-        let dd: Vec<u8> = "DD".into();
         if l == MultiLocation::parent() {
-            return Some(CurrencyId::ROC);
+            return Some(CurrencyId::KSM);
         }
 
         match l {
             MultiLocation { parents, interior } if parents == 1 => match interior {
                 X2(Parachain(2115), GeneralKey(k)) if k == dora => Some(CurrencyId::DORA),
-                X2(Parachain(2009), GeneralKey(k)) if k == dd => Some(CurrencyId::DD),
                 _ => None,
             },
             MultiLocation { parents, interior } if parents == 0 => match interior {
                 X1(GeneralKey(k)) if k == dora => Some(CurrencyId::DORA),
-                X1(GeneralKey(k)) if k == dd => Some(CurrencyId::DD),
                 _ => None,
             },
             _ => None,
