@@ -1,13 +1,10 @@
 [package]
-authors = ["DoraFactory <https://github.com/DoraFactory>"]
-build = "build.rs"
-description = "A fresh FRAME-based Substrate node, ready for hacking."
-edition = "2018"
-homepage = "https://substrate.dev"
-license = "Unlicense"
 name = "dorafactory-node"
-repository = "https://github.com/DoraFactory/dorafactory-node/"
 version = "4.0.0-dev"
+authors = ["DoraFactory Developers <https://github.com/DoraFactory>"]
+repository = "https://github.com/DoraFactory/dorafactory-node/"
+edition = "2021"
+build = "build.rs"
 
 [build-dependencies]
 substrate-build-script-utils = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.18" }

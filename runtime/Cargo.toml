@@ -1,17 +1,12 @@
 [package]
 name = "dorafactory-node-runtime"
-authors = ["Substrate DevHub <https://github.com/substrate-developer-hub>"]
-edition = "2018"
-homepage = "https://substrate.dev"
-license = "Unlicense"
-repository = "https://github.com/substrate-developer-hub/substrate-node-template/"
 version = "4.0.0-dev"
+authors = ["DoraFactory Developers <https://github.com/DoraFactory>"]
+repository = "https://github.com/DoraFactory/dorafactory-node"
+edition = "2021"
 
 [package.metadata.docs.rs]
 targets = ["x86_64-unknown-linux-gnu"]
-
-[build-dependencies]
-substrate-wasm-builder = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.18" }
 
 [dependencies]
 codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false, features = ["derive"]}
@@ -40,7 +35,8 @@ pallet-transaction-payment = { git = "https://github.com/paritytech/substrate", 
 pallet-transaction-payment-rpc-runtime-api = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.18" }
 pallet-authorship = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.18" }
 pallet-session = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.18" }
-pallet-dora-rewards = {git = "https://github.com/DoraFactory/Dora-Rewards", default-features = false , branch = "polkadot-v0.9.18"}
+pallet-scheduler = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.18" }
+pallet-preimage = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.18", default-features = false }
 
 ## Substrate Primitive Dependencies
 sp-api = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.18" }
@@ -54,11 +50,6 @@ sp-session = { git = "https://github.com/paritytech/substrate", default-features
 sp-std = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.18" }
 sp-transaction-pool = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.18" }
 sp-version = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.18" }
-
-# Local Dependencies
-pallet-qf = { path = "../pallets/quadratic-funding", default-features = false , version = "4.0.0-dev" }
-pallet-moloch-v2 = { path = "../pallets/moloch-v2", default-features = false , version = "4.0.0-dev" }
-pallet-dao-core = {path = "../dorafactory-dao-core/pallets/dao-core", default-features = false , version = "4.0.0-dev"}
 
 # Cumulus dependencies
 cumulus-pallet-aura-ext = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.18", default-features = false }
@@ -90,15 +81,19 @@ orml-xtokens = { git = "https://github.com/open-web3-stack/open-runtime-module-l
 orml-xcm-support = { git = "https://github.com/open-web3-stack/open-runtime-module-library", branch = "polkadot-v0.9.18", default-features = false }
 orml-xcm = { git = "https://github.com/open-web3-stack/open-runtime-module-library", branch = "polkadot-v0.9.18", default-features = false }
 orml-traits = { git = "https://github.com/open-web3-stack/open-runtime-module-library", branch = "polkadot-v0.9.18", default-features = false }
-#orml-benchmarking = { git = "https://github.com/open-web3-stack/open-runtime-module-library", branch = "polkadot-v0.9.18", default-features = false, optional = true}
+orml-benchmarking = { git = "https://github.com/open-web3-stack/open-runtime-module-library", branch = "polkadot-v0.9.18", default-features = false, optional = true}
 
-pallet-scheduler = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.18" }
-pallet-preimage = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.18", default-features = false }
+# Dao Dependencies
+dao-core = { git = "https://github.com/DoraFactory/dorafactory-dao-core", branch = "polkadot-v0.9.18", default-features = false }
+
+# Local Dependencies
+pallet-qf = { path = "../pallets/quadratic-funding", default-features = false , version = "4.0.0-dev" }
+pallet-dora-rewards = { path = "../pallets/dora-rewards", default-features = false , version = "4.0.0-dev" }
 
 primitives = { package = "primitives", path = "../primitives", default-features = false }
 
-pallet-collective = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.18", default-features = false }
-pallet-society = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.18", default-features = false }
+[build-dependencies]
+substrate-wasm-builder = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.18" }
 
 [features]
 default = ["std"]
@@ -118,9 +113,6 @@ runtime-benchmarks = [
 
     "orml-tokens/runtime-benchmarks",
     "pallet-qf/runtime-benchmarks",
-
-    "pallet-collective/runtime-benchmarks",
-    "pallet-society/runtime-benchmarks",
 ]
 std = [
     "codec/std",
@@ -135,8 +127,6 @@ std = [
     "pallet-randomness-collective-flip/std",
     "pallet-sudo/std",
     "pallet-qf/std",
-    "pallet-moloch-v2/std",
-    "pallet-dao-core/std",
     "pallet-dora-rewards/std",
     "pallet-authorship/std",
     "pallet-collator-selection/std",

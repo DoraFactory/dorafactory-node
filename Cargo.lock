@@ -428,9 +428,9 @@ checksum = "904dfeac50f3cdaba28fc6f57fdcddb75f49ed61346676a78c4ffe55877802fd"
 
 [[package]]
 name = "base64ct"
-version = "1.4.1"
+version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "71acf5509fc522cce1b100ac0121c635129bfd4d91cdf036bcc9b9935f97ccf5"
+checksum = "dea908e7347a8c64e378c17e30ef880ad73e3b4498346b055c2c00ea342f3179"
 
 [[package]]
 name = "beef"
@@ -1013,15 +1013,6 @@ name = "core-foundation-sys"
 version = "0.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5827cebf4670468b8772dd191856768aedcb1b0278a04f989f7766351917b9dc"
-
-[[package]]
-name = "core-services"
-version = "4.0.0-dev"
-dependencies = [
- "frame-support",
- "sp-io",
- "sp-std",
-]
 
 [[package]]
 name = "cpp_demangle"
@@ -1757,6 +1748,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "dao-core"
+version = "4.0.0-dev"
+source = "git+https://github.com/DoraFactory/dorafactory-dao-core?branch=polkadot-v0.9.18#6915edfef43caa1f1792e3e0cb45aa9e1e315728"
+dependencies = [
+ "dao-traits",
+ "frame-support",
+ "frame-system",
+ "pallet-balances",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
+name = "dao-traits"
+version = "4.0.0-dev"
+source = "git+https://github.com/DoraFactory/dorafactory-dao-core?branch=polkadot-v0.9.18#6915edfef43caa1f1792e3e0cb45aa9e1e315728"
+dependencies = [
+ "frame-support",
+]
+
+[[package]]
 name = "data-encoding"
 version = "2.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1975,6 +1989,7 @@ dependencies = [
  "cumulus-primitives-core",
  "cumulus-primitives-timestamp",
  "cumulus-primitives-utility",
+ "dao-core",
  "frame-benchmarking",
  "frame-executive",
  "frame-support",
@@ -1983,6 +1998,7 @@ dependencies = [
  "frame-system-rpc-runtime-api",
  "frame-try-runtime",
  "hex-literal",
+ "orml-benchmarking",
  "orml-currencies",
  "orml-tokens",
  "orml-traits",
@@ -1994,17 +2010,13 @@ dependencies = [
  "pallet-authorship",
  "pallet-balances",
  "pallet-collator-selection",
- "pallet-collective",
- "pallet-dao-core",
  "pallet-dora-rewards",
  "pallet-grandpa",
- "pallet-moloch-v2",
  "pallet-preimage",
  "pallet-qf",
  "pallet-randomness-collective-flip",
  "pallet-scheduler",
  "pallet-session",
- "pallet-society",
  "pallet-sudo",
  "pallet-timestamp",
  "pallet-transaction-payment",
@@ -3247,9 +3259,9 @@ dependencies = [
 
 [[package]]
 name = "indexmap"
-version = "1.8.0"
+version = "1.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "282a6247722caba404c065016bbfa522806e51714c34f5dfc3e4a3a46fcb4223"
+checksum = "0f647032dfaa1f8b6dc29bd3edb7bbef4861b8b8007ebb118d6db284fd59f6ee"
 dependencies = [
  "autocfg",
  "hashbrown 0.11.2",
@@ -5161,6 +5173,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "orml-benchmarking"
+version = "0.4.1-dev"
+source = "git+https://github.com/open-web3-stack/open-runtime-module-library?branch=polkadot-v0.9.18#e0d31d4130b66b438c1b7980b9106e08b1354387"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "log",
+ "parity-scale-codec",
+ "paste",
+ "scale-info",
+ "sp-api",
+ "sp-io",
+ "sp-runtime",
+ "sp-runtime-interface",
+ "sp-std",
+ "sp-storage",
+]
+
+[[package]]
 name = "orml-currencies"
 version = "0.4.1-dev"
 source = "git+https://github.com/open-web3-stack/open-runtime-module-library?branch=polkadot-v0.9.18#e0d31d4130b66b438c1b7980b9106e08b1354387"
@@ -5502,23 +5533,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "pallet-dao-core"
-version = "4.0.0-dev"
-dependencies = [
- "core-services",
- "frame-benchmarking",
- "frame-support",
- "frame-system",
- "pallet-balances",
- "parity-scale-codec",
- "scale-info",
- "serde",
- "sp-core",
- "sp-runtime",
- "sp-std",
-]
-
-[[package]]
 name = "pallet-democracy"
 version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.18#fc3fd073d3a0acf9933c3994b660ebd7b5833f65"
@@ -5537,7 +5551,6 @@ dependencies = [
 [[package]]
 name = "pallet-dora-rewards"
 version = "4.0.0-dev"
-source = "git+https://github.com/DoraFactory/Dora-Rewards?branch=polkadot-v0.9.18#105d4b6a748f0952f8ff6f4a0cafea8351c2e8bc"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -5546,6 +5559,8 @@ dependencies = [
  "pallet-balances",
  "parity-scale-codec",
  "scale-info",
+ "sp-core",
+ "sp-io",
  "sp-runtime",
  "sp-std",
 ]
@@ -5748,24 +5763,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "pallet-moloch-v2"
-version = "4.0.0-dev"
-dependencies = [
- "frame-support",
- "frame-system",
- "pallet-balances",
- "pallet-timestamp",
- "parity-scale-codec",
- "scale-info",
- "serde",
- "sp-core",
- "sp-io",
- "sp-runtime",
- "sp-std",
- "sp-timestamp",
-]
-
-[[package]]
 name = "pallet-multisig"
 version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.18#fc3fd073d3a0acf9933c3994b660ebd7b5833f65"
@@ -5844,13 +5841,13 @@ dependencies = [
 name = "pallet-qf"
 version = "4.0.0-dev"
 dependencies = [
- "core-services",
+ "dao-core",
+ "dao-traits",
  "frame-benchmarking",
  "frame-support",
  "frame-system",
  "orml-traits",
  "pallet-balances",
- "pallet-dao-core",
  "parity-scale-codec",
  "primitives",
  "scale-info",
@@ -10629,9 +10626,9 @@ checksum = "6bdef32e8150c2a081110b42772ffe7d7c9032b606bc226c8260fd97e0976601"
 
 [[package]]
 name = "syn"
-version = "1.0.89"
+version = "1.0.90"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ea297be220d52398dcc07ce15a209fce436d361735ac1db700cab3b6cdfb9f54"
+checksum = "704df27628939572cd88d33f171cd6f896f4eaca85252c6e0a72d8d8287ee86f"
 dependencies = [
  "proc-macro2",
  "quote",

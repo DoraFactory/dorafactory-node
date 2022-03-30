@@ -1,13 +1,9 @@
 [package]
-authors = ["Substrate DevHub <https://github.com/substrate-developer-hub>"]
-description = "FRAME pallet template for defining custom runtime logic."
-edition = "2018"
-homepage = "https://substrate.dev"
-license = "MIT"
 name = "pallet-qf"
-readme = "README.md"
-repository = "https://github.com/substrate-developer-hub/substrate-node-template/"
 version = "4.0.0-dev"
+authors = ["DoraFactory Developers <https://github.com/DoraFactory>"]
+description = "qunadratic funding pallet"
+edition = "2021"
 
 [package.metadata.docs.rs]
 targets = ["x86_64-unknown-linux-gnu"]
@@ -32,8 +28,8 @@ sp-runtime = {git = "https://github.com/paritytech/substrate", default-features 
 pallet-balances = {git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.18"}
 
 # LOCAL library
-pallet-dao-core = {path = "../../dorafactory-dao-core/pallets/dao-core", default-features = false, version = "4.0.0-dev"}
-core-services = {path = "../../dorafactory-dao-core/traits", default-features = false, version = "4.0.0-dev"}
+dao-core = { git = "https://github.com/DoraFactory/dorafactory-dao-core", branch = "polkadot-v0.9.18", default-features = false }
+dao-traits = { git = "https://github.com/DoraFactory/dorafactory-dao-core", branch = "polkadot-v0.9.18", default-features = false }
 
 # ORML library
 orml-traits = { git = "https://github.com/open-web3-stack/open-runtime-module-library", branch = "polkadot-v0.9.18", default-features = false }
@@ -46,7 +42,6 @@ std = [
     "codec/std",
     "frame-support/std",
     "frame-system/std",
-    "pallet-dao-core/std",
     "frame-benchmarking/std",
     "pallet-balances/std",
     "sp-runtime/std",
