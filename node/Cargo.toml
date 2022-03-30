@@ -1,26 +1,19 @@
-[features]
-default = []
-runtime-benchmarks = ["dorafactory-node-runtime/runtime-benchmarks"]
+[package]
+name = "dorafactory-node"
+version = "4.0.0-dev"
+authors = ["DoraFactory Developers <https://github.com/DoraFactory>"]
+repository = "https://github.com/DoraFactory/dorafactory-node/"
+edition = "2021"
+build = "build.rs"
 
 [build-dependencies]
 substrate-build-script-utils = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.17" }
 
-[package]
-authors = ["DoraFactory <https://github.com/DoraFactory>"]
-build = "build.rs"
-description = "A fresh FRAME-based Substrate node, ready for hacking."
-edition = "2018"
-homepage = "https://substrate.dev"
-license = "Unlicense"
-name = "dorafactory-node"
-repository = "https://github.com/DoraFactory/dorafactory-node/"
-version = "4.0.0-dev"
 [package.metadata.docs.rs]
 targets = ["x86_64-unknown-linux-gnu"]
 
 [dependencies]
 jsonrpc-core = "18.0.0"
-#structopt = "0.3.8"
 clap = { version = "3.1", features = [ "derive" ] }
 serde = { version = "1.0.136", features = ["derive"] }
 hex-literal = "0.3.1"
@@ -99,3 +92,7 @@ cumulus-relay-chain-local = { git = "https://github.com/paritytech/cumulus", bra
 [[bin]]
 name = "dorafactory-node"
 path = "src/main.rs"
+
+[features]
+default = []
+runtime-benchmarks = ["dorafactory-node-runtime/runtime-benchmarks"]

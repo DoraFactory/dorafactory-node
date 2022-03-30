@@ -6,9 +6,6 @@
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
-/* use pallet_grandpa::{
-    fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList,
-}; */
 use sp_api::impl_runtime_apis;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
 use sp_runtime::{
@@ -61,13 +58,11 @@ use xcm_executor::XcmExecutor;
 
 // ORML Imports
 use orml_currencies::BasicCurrencyAdapter;
-use orml_traits::parameter_type_with_key;
+use orml_traits::{location::AbsoluteReserveProvider, parameter_type_with_key};
 use orml_xcm_support::{
     DepositToAlternative, IsNativeConcrete, MultiCurrencyAdapter, MultiNativeAsset,
 };
 
-/// Import the moloch-v2 pallet.
-pub use pallet_moloch_v2;
 /// local Imports
 /// Import the qudratic-funding pallet.
 pub use pallet_qf;
@@ -127,8 +122,8 @@ pub mod opaque {
 //   https://substrate.dev/docs/en/knowledgebase/runtime/upgrades#runtime-versioning
 #[sp_version::runtime_version]
 pub const VERSION: RuntimeVersion = RuntimeVersion {
-    spec_name: create_runtime_str!("dorafactory-node"),
-    impl_name: create_runtime_str!("dorafactory-node"),
+    spec_name: create_runtime_str!("DORA KSM Parachain"),
+    impl_name: create_runtime_str!("DORA KSM Parachain"),
     authoring_version: 1,
     // The version of the runtime specification. A full node will not attempt to use its native
     //   runtime in substitute for the on-chain Wasm runtime unless all of `spec_name`,
@@ -141,50 +136,6 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     transaction_version: 1,
     state_version: 0,
 };
-
-// /// This determines the average expected block time that we are targeting.
-// /// Blocks will be produced at a minimum duration defined by `SLOT_DURATION`.
-// /// `SLOT_DURATION` is picked up by `pallet_timestamp` which is in turn picked
-// /// up by `pallet_aura` to implement `fn slot_duration()`.
-// ///
-// /// Change this to adjust the block time.
-// pub const MILLISECS_PER_BLOCK: u64 = 6000;
-//
-// // NOTE: Currently it is not possible to change the slot duration after the chain has started.
-// //       Attempting to do so will brick block production.
-// pub const SLOT_DURATION: u64 = MILLISECS_PER_BLOCK;
-//
-// // Time is measured by number of blocks.
-// pub const MINUTES: BlockNumber = 60_000 / (MILLISECS_PER_BLOCK as BlockNumber);
-// pub const HOURS: BlockNumber = MINUTES * 60;
-// pub const DAYS: BlockNumber = HOURS * 24;
-//
-// // Unit = the base number of indivisible units for balances
-// pub const UNIT: Balance = 1_000_000_000_000;
-// pub const MILLIUNIT: Balance = 1_000_000_000;
-// pub const MICROUNIT: Balance = 1_000_000;
-//
-// pub const MILLICENTS: Balance = 1_000 * MICROUNIT;
-// pub const CENTS: Balance = 1_000 * MILLICENTS; // assume this is worth about a cent.
-// pub const DOLLARS: Balance = 100 * CENTS;
-//
-// /// The existential deposit. Set to 1/10 of the Connected Relay Chain.
-// pub const EXISTENTIAL_DEPOSIT: Balance = MILLIUNIT;
-//
-// /// We assume that ~5% of the block weight is consumed by `on_initialize` handlers. This is
-// /// used to limit the maximal weight of a single extrinsic.
-// const AVERAGE_ON_INITIALIZE_RATIO: Perbill = Perbill::from_percent(5);
-//
-// /// We allow `Normal` extrinsics to fill up the block up to 75%, the rest can be used by
-// /// `Operational` extrinsics.
-// const NORMAL_DISPATCH_RATIO: Perbill = Perbill::from_percent(75);
-//
-// /// We allow for 0.5 of a second of compute with a 12 second average block time.
-// const MAXIMUM_BLOCK_WEIGHT: Weight = WEIGHT_PER_SECOND / 2;
-
-// We assume that ~5% of the block weight is consumed by `on_initialize` handlers. This is
-// used to limit the maximal weight of a single extrinsic.
-// const AVERAGE_ON_INITIALIZE_RATIO: Perbill = Perbill::from_percent(5);
 
 /// We allow `Normal` extrinsics to fill up the block up to 75%, the rest can be used by
 /// `Operational` extrinsics.
@@ -218,13 +169,12 @@ parameter_types! {
         ::with_sensible_defaults(2 * WEIGHT_PER_SECOND, NORMAL_DISPATCH_RATIO);
     pub BlockLength: frame_system::limits::BlockLength = frame_system::limits::BlockLength
         ::max_with_normal_ratio(5 * 1024 * 1024, NORMAL_DISPATCH_RATIO);
-    pub const SS58Prefix: u8 = 42;
+    pub const SS58Prefix: u8 = 128;
     pub CheckingAccount: AccountId = PolkadotXcm::check_account();
     pub const TreasuryPalletId: PalletId = PalletId(*b"dora/try");
 }
 
 // Configure FRAME pallets to include in runtime.
-
 impl frame_system::Config for Runtime {
     /// The basic call filter to use in dispatchable.
     type BaseCallFilter = frame_support::traits::Everything;
@@ -232,12 +182,10 @@ impl frame_system::Config for Runtime {
     type BlockWeights = BlockWeights;
     /// The maximum length of a block (in bytes).
     type BlockLength = BlockLength;
-    /// The identifier used to distinguish between accounts.
-    type AccountId = AccountId;
+    /// The ubiquitous origin type.
+    type Origin = Origin;
     /// The aggregated dispatch type that is available for extrinsics.
     type Call = Call;
-    /// The lookup mechanism to get account ID from whatever is passed in dispatchers.
-    type Lookup = AccountIdLookup<AccountId, ()>;
     /// The index type for storing how many extrinsics an account has signed.
     type Index = Index;
     /// The index type for blocks.
@@ -246,12 +194,14 @@ impl frame_system::Config for Runtime {
     type Hash = Hash;
     /// The hashing algorithm used.
     type Hashing = BlakeTwo256;
+    /// The identifier used to distinguish between accounts.
+    type AccountId = AccountId;
+    /// The lookup mechanism to get account ID from whatever is passed in dispatchers.
+    type Lookup = AccountIdLookup<AccountId, ()>;
     /// The header type.
     type Header = generic::Header<BlockNumber, BlakeTwo256>;
     /// The ubiquitous event type.
     type Event = Event;
-    /// The ubiquitous origin type.
-    type Origin = Origin;
     /// Maximum number of block number to block hash mappings to keep (oldest pruned first).
     type BlockHashCount = BlockHashCount;
     /// The weight of database operations that the runtime can invoke.
@@ -262,15 +212,15 @@ impl frame_system::Config for Runtime {
     ///
     /// This type is being generated by `construct_runtime!`.
     type PalletInfo = PalletInfo;
+    /// The data to be stored in an account.
+    type AccountData = pallet_balances::AccountData<Balance>;
     /// What to do if a new account is created.
     type OnNewAccount = ();
     /// What to do if an account is fully reaped from the system.
     type OnKilledAccount = ();
-    /// The data to be stored in an account.
-    type AccountData = pallet_balances::AccountData<Balance>;
     /// Weight information for the extrinsics of this pallet.
     type SystemWeightInfo = ();
-    /// This is used as an identifier of the chain. 42 is the generic substrate prefix.
+    /// This is used as an identifier of the chain. 128 is the dora ksm prefix.
     type SS58Prefix = SS58Prefix;
     /// The action to take on a Runtime Upgrade
     type OnSetCode = cumulus_pallet_parachain_system::ParachainSetCode<Self>;
@@ -308,24 +258,9 @@ impl pallet_session::Config for Runtime {
 
 impl pallet_aura::Config for Runtime {
     type AuthorityId = AuraId;
+    type MaxAuthorities = MaxAuthorities;
     type DisabledValidators = ();
-    type MaxAuthorities = MaxAuthorities;
 }
-
-/* impl pallet_grandpa::Config for Runtime {
-    type Event = Event;
-    type Call = Call;
-    type KeyOwnerProofSystem = ();
-    type KeyOwnerProof =
-        <Self::KeyOwnerProofSystem as KeyOwnerProofSystem<(KeyTypeId, GrandpaId)>>::Proof;
-    type KeyOwnerIdentification = <Self::KeyOwnerProofSystem as KeyOwnerProofSystem<(
-        KeyTypeId,
-        GrandpaId,
-    )>>::IdentificationTuple;
-    type HandleEquivocation = ();
-    type WeightInfo = ();
-    type MaxAuthorities = MaxAuthorities;
-} */
 
 parameter_types! {
     pub const PotId: PalletId = PalletId(*b"PotStake");
@@ -383,17 +318,17 @@ parameter_types! {
 }
 
 impl pallet_balances::Config for Runtime {
-    type MaxLocks = MaxLocks;
-    type MaxReserves = ();
-    type ReserveIdentifier = [u8; 8];
     /// The type for recording an account's balance.
     type Balance = Balance;
+    type DustRemoval = ();
     /// The ubiquitous event type.
     type Event = Event;
-    type DustRemoval = ();
     type ExistentialDeposit = ExistentialDeposit;
     type AccountStore = System;
     type WeightInfo = pallet_balances::weights::SubstrateWeight<Runtime>;
+    type MaxLocks = MaxLocks;
+    type MaxReserves = ();
+    type ReserveIdentifier = [u8; 8];
 }
 
 parameter_types! {
@@ -404,9 +339,9 @@ parameter_types! {
 impl pallet_transaction_payment::Config for Runtime {
     type OnChargeTransaction = pallet_transaction_payment::CurrencyAdapter<Balances, ()>;
     type TransactionByteFee = TransactionByteFee;
+    type OperationalFeeMultiplier = OperationalFeeMultiplier;
     type WeightToFee = IdentityFee<Balance>;
     type FeeMultiplierUpdate = ();
-    type OperationalFeeMultiplier = OperationalFeeMultiplier;
 }
 
 parameter_types! {
@@ -418,9 +353,9 @@ impl cumulus_pallet_parachain_system::Config for Runtime {
     type Event = Event;
     type OnSystemEvent = ();
     type SelfParaId = parachain_info::Pallet<Runtime>;
+    type OutboundXcmpMessageSource = XcmpQueue;
     type DmpMessageHandler = DmpQueue;
     type ReservedDmpWeight = ReservedDmpWeight;
-    type OutboundXcmpMessageSource = XcmpQueue;
     type XcmpMessageHandler = XcmpQueue;
     type ReservedXcmpWeight = ReservedXcmpWeight;
 }
@@ -587,7 +522,7 @@ impl xcm_executor::Config for XcmConfig {
     // How to withdraw and deposit an asset.
     type AssetTransactor = LocalAssetTransactor;
     type OriginConverter = XcmOriginToTransactDispatchOrigin;
-    type IsReserve = MultiNativeAsset;
+    type IsReserve = MultiNativeAsset<AbsoluteReserveProvider>;
     type IsTeleporter = (); // Teleporting is disabled.
     type LocationInverter = LocationInverter<Ancestry>;
     type Barrier = Barrier;
@@ -677,9 +612,9 @@ impl pallet_scheduler::Config for Runtime {
     type Call = Call;
     type MaximumWeight = MaximumSchedulerWeight;
     type ScheduleOrigin = frame_system::EnsureRoot<AccountId>;
+    type OriginPrivilegeCmp = EqualPrivilegeOnly;
     type MaxScheduledPerBlock = MaxScheduledPerBlock;
     type WeightInfo = ();
-    type OriginPrivilegeCmp = EqualPrivilegeOnly;
     type PreimageProvider = Preimage;
     type NoPreimagePostponement = NoPreimagePostponement;
 }
@@ -691,58 +626,14 @@ parameter_types! {
 }
 
 impl pallet_preimage::Config for Runtime {
-    type WeightInfo = pallet_preimage::weights::SubstrateWeight<Runtime>;
     type Event = Event;
+    type WeightInfo = pallet_preimage::weights::SubstrateWeight<Runtime>;
     type Currency = Balances;
     type ManagerOrigin = EnsureRoot<AccountId>;
     type MaxSize = PreimageMaxSize;
     type BaseDeposit = PreimageBaseDeposit;
     type ByteDeposit = PreimageByteDeposit;
 }
-
-// parameter_types! {
-//     pub const ProposalBond: Permill = Permill::from_percent(5);
-//     pub const ProposalBondMinimum: Balance = 1 * DOLLARS;
-//     pub const SpendPeriod: BlockNumber = 1 * DAYS;
-//     pub const Burn: Permill = Permill::from_percent(50);
-//     pub const TipCountdown: BlockNumber = 1 * DAYS;
-//     pub const TipFindersFee: Percent = Percent::from_percent(20);
-//     pub const TipReportDepositBase: Balance = 1 * DOLLARS;
-//     pub const DataDepositPerByte: Balance = 1 * CENTS;
-//     pub const BountyDepositBase: Balance = 1 * DOLLARS;
-//     pub const BountyDepositPayoutDelay: BlockNumber = 1 * DAYS;
-//     pub const TreasuryPalletId: PalletId = PalletId(*b"py/trsry");
-//     pub const BountyUpdatePeriod: BlockNumber = 14 * DAYS;
-//     pub const MaximumReasonLength: u32 = 16384;
-//     pub const BountyCuratorDeposit: Permill = Permill::from_percent(50);
-//     pub const BountyValueMinimum: Balance = 5 * DOLLARS;
-//     pub const MaxApprovals: u32 = 100;
-//     pub const ProposalBondMaximum: Balance = 100 * DOLLARS;
-// }
-//
-// impl pallet_treasury::Config for Runtime {
-//     type PalletId = TreasuryPalletId;
-//     type ProposalBondMaximum = ProposalBondMaximum;
-//     type Currency = Balances;
-//     type ApproveOrigin = EnsureOneOf<
-//         EnsureRoot<AccountId>,
-//         pallet_collective::EnsureProportionAtLeast<_3, _5, AccountId, CouncilCollective>,
-//     >;
-//     type RejectOrigin = EnsureOneOf<
-//         EnsureRoot<AccountId>,
-//         pallet_collective::EnsureProportionMoreThan<_1, _2, AccountId, CouncilCollective>,
-//     >;
-//     type Event = Event;
-//     type OnSlash = ();
-//     type ProposalBond = ProposalBond;
-//     type ProposalBondMinimum = ProposalBondMinimum;
-//     type SpendPeriod = SpendPeriod;
-//     type Burn = Burn;
-//     type BurnDestination = ();
-//     type SpendFunds = Bounties;
-//     type WeightInfo = ();
-//     type MaxApprovals = MaxApprovals;
-// }
 
 // Configure the pallet-qf in pallets/quadratic-funding.
 parameter_types! {
@@ -753,10 +644,10 @@ parameter_types! {
     // The ratio of fee for each trans, final value should be FeeRatio/NumberOfUnit
     pub const FeeRatio: u128 = 60;
     pub const QuadraticFundingPalletId: PalletId = PalletId(*b"py/quafd");
-    pub const NameMinLength: usize = 3;
-    pub const NameMaxLength: usize = 32;
+    pub const NameMinLength: u32 = 3;
+    pub const NameMaxLength: u32 = 32;
     pub const AppId: u8 = 1;
-    pub const StringLimit: u32 = 50;
+    // pub const StringLimit: u32 = 32;
 }
 
 /// Configure the pallet-qf in pallets/quadratic-funding.
@@ -768,11 +659,6 @@ impl pallet_qf::Config for Runtime {
     type PalletId = QuadraticFundingPalletId;
     // Origin who can control the round
     type AdminOrigin = EnsureRoot<AccountId>;
-
-    type StringLimit = StringLimit;
-
-    // No action is taken when deposits are forfeited.
-    // type Slashed = ();
 
     // Use the UnitOfVote from the parameter_types block.
     type UnitOfVote = VoteUnit;
@@ -787,46 +673,7 @@ impl pallet_qf::Config for Runtime {
 
     // The maximum length of project name
     type NameMaxLength = NameMaxLength;
-}
-
-parameter_types! {
-    // Use moduleid to generate internal accountid
-    pub const MolochV2PalletId: PalletId = PalletId(*b"py/moloc");
-    // HARD-CODED LIMITS
-    // These numbers are quite arbitrary; they are small enough to avoid overflows when doing calculations
-    // with periods or shares, yet big enough to not limit reasonable use cases.
-    pub const MaxVotingPeriodLength: u128 = 10_u128.pow(18); // maximum length of voting period
-    pub const MaxGracePeriodLength: u128 = 10_u128.pow(18); // maximum length of grace period
-    pub const MaxDilutionBound: u128 = 10_u128.pow(18); // maximum dilution bound
-    pub const MaxShares: u128 = 10_u128.pow(18); // maximum number of shares that can be minted
-
-}
-
-/// Configure the moloch-v2 pallet in pallets/moloch-v2.
-impl pallet_moloch_v2::Config for Runtime {
-    type Event = Event;
-    type PalletId = MolochV2PalletId;
-    // The Balances pallet implements the ReservableCurrency trait.
-    // https://substrate.dev/rustdocs/v2.0.0/pallet_balances/index.html#implementations-2
-    type Currency = pallet_balances::Pallet<Runtime>;
-
-    // No action is taken when deposits are forfeited.
-    type Slashed = ();
-
-    // Origin who can control the round
-    type AdminOrigin = EnsureRoot<AccountId>;
-
-    // maximum length of voting period
-    type MaxVotingPeriodLength = MaxVotingPeriodLength;
-
-    // maximum length of grace period
-    type MaxGracePeriodLength = MaxGracePeriodLength;
-
-    // maximum dilution bound
-    type MaxDilutionBound = MaxDilutionBound;
-
-    // maximum number of shares
-    type MaxShares = MaxShares;
+    // type WeightInfo = ();
 }
 
 parameter_types! {
@@ -835,7 +682,7 @@ parameter_types! {
 }
 
 /// Configure the pallet-qf in pallets/quadratic-funding.
-impl pallet_dao_core::Config for Runtime {
+impl dao_core::Config for Runtime {
     type Event = Event;
     type Call = Call;
     type Currency = pallet_balances::Pallet<Runtime>;
@@ -947,10 +794,12 @@ impl orml_xtokens::Config for Runtime {
     type SelfLocation = SelfLocation;
     type MinXcmFee = ParachainMinFee;
     type XcmExecutor = XcmExecutor<XcmConfig>;
+    type MultiLocationsFilter = Everything;
     type Weigher = FixedWeightBounds<UnitWeightCost, Call, MaxInstructions>;
     type BaseXcmWeight = BaseXcmWeight;
     type LocationInverter = LocationInverter<Ancestry>;
     type MaxAssetsForTransfer = MaxAssetsForTransfer;
+    type ReserveProvider = AbsoluteReserveProvider;
 }
 
 parameter_type_with_key! {
@@ -1020,7 +869,6 @@ construct_runtime!(
         Sudo: pallet_sudo::{Pallet, Call, Config<T>, Storage, Event<T>},
         Scheduler: pallet_scheduler::{Pallet, Call, Storage, Event<T>} ,
         Preimage: pallet_preimage::{Pallet, Call, Storage, Event<T>},
-        // Grandpa: pallet_grandpa::{Pallet, Call, Storage, Config, Event},
 
         // Monetary stuff.
         Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
@@ -1049,8 +897,7 @@ construct_runtime!(
 
         // Include the custom pallet in the runtime.
         QuadraticFunding: pallet_qf::{Pallet, Call, Storage, Event<T>},
-        MolochV2Module: pallet_moloch_v2::{Pallet, Call, Storage, Event<T>},
-        DaoCoreModule: pallet_dao_core::{Pallet, Call, Storage, Event<T>},
+        DaoCoreModule: dao_core::{Pallet, Call, Storage, Event<T>},
         DoraRewards: pallet_dora_rewards::{Pallet, Call, Storage, Event<T>, Config<T>},
     }
 );
@@ -1135,36 +982,6 @@ impl_runtime_apis! {
         }
     }
 
-/*     impl fg_primitives::GrandpaApi<Block> for Runtime {
-        fn grandpa_authorities() -> GrandpaAuthorityList {
-            Grandpa::grandpa_authorities()
-        }
-
-        fn current_set_id() -> fg_primitives::SetId {
-            Grandpa::current_set_id()
-        }
-
-        fn submit_report_equivocation_unsigned_extrinsic(
-            _equivocation_proof: fg_primitives::EquivocationProof<
-                <Block as BlockT>::Hash,
-                NumberFor<Block>,
-            >,
-            _key_owner_proof: fg_primitives::OpaqueKeyOwnershipProof,
-        ) -> Option<()> {
-            None
-        }
-
-        fn generate_key_ownership_proof(
-            _set_id: fg_primitives::SetId,
-            _authority_id: GrandpaId,
-        ) -> Option<fg_primitives::OpaqueKeyOwnershipProof> {
-            // NOTE: this is the only implementation possible since we've
-            // defined our key owner proof type as a bottom type (i.e. a type
-            // with no values).
-            None
-        }
-    } */
-
     impl frame_system_rpc_runtime_api::AccountNonceApi<Block, AccountId, Index> for Runtime {
         fn account_nonce(account: AccountId) -> Index {
             System::account_nonce(account)
@@ -1207,7 +1024,7 @@ impl_runtime_apis! {
             list_benchmark!(list, extra, frame_system, SystemBench::<Runtime>);
             list_benchmark!(list, extra, pallet_balances, Balances);
             list_benchmark!(list, extra, pallet_timestamp, Timestamp);
-            list_benchmark!(list, extra, pallet_template, QuadraticFunding);
+            list_benchmark!(list, extra, pallet_qf, QuadraticFunding);
             list_benchmark!(list, extra, pallet_collator_selection, CollatorSelection);
 
             let storage_info = AllPalletsWithSystem::storage_info();
@@ -1247,7 +1064,7 @@ impl_runtime_apis! {
             add_benchmark!(params, batches, pallet_session, SessionBench::<Runtime>);
             add_benchmark!(params, batches, pallet_timestamp, Timestamp);
             add_benchmark!(params, batches, pallet_collator_selection, CollatorSelection);
-            add_benchmark!(params, batches, pallet_session, Session);
+            // add_benchmark!(params, batches, pallet_session, Session);
             add_benchmark!(params, batches, pallet_qf, QuadraticFunding);
 
             if batches.is_empty() { return Err("Benchmark not found for this pallet.".into()) }

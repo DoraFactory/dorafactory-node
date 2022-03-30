@@ -1,7 +1,7 @@
 [workspace]
 members = [
     "node",
-    "pallets/quadratic-funding",
+    "pallets/*",
     "runtime",
     "primitives",
 ]

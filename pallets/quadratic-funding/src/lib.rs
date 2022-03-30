@@ -19,6 +19,9 @@ use sp_runtime::traits::{AccountIdConversion, Hash};
 use sp_runtime::RuntimeDebug;
 use sp_std::{convert::TryInto, vec, vec::Vec};
 
+mod benchmarking;
+// pub mod weights;
+
 #[cfg(test)]
 mod mock;
 
@@ -53,6 +56,7 @@ type BalanceOf<T> = <<T as Config>::MultiCurrency as MultiCurrency<AccountIdOf<T
 #[frame_support::pallet]
 pub mod pallet {
     use super::*;
+    // pub use crate::weights::WeightInfo;
     use frame_support::{dispatch::DispatchResultWithPostInfo, pallet_prelude::*};
     use frame_system::pallet_prelude::*;
 
@@ -78,10 +82,6 @@ pub mod pallet {
         // type Slashed: OnUnbalanced<NegativeImbalanceOf<Self>>;
         // type Slashed: AccountId;
 
-        /// The maximum length of base uri stored on-chain.
-        #[pallet::constant]
-        type StringLimit: Get<u32>;
-
         /// UnitOfVote, 0.001 Unit token
         type UnitOfVote: Get<u128>;
 
@@ -91,11 +91,19 @@ pub mod pallet {
         /// The ration of fee based on the number of unit
         type FeeRatioPerVote: Get<u128>;
 
-        /// The minimum length of project name
-        type NameMinLength: Get<usize>;
+        /// The minimum length of name [project_name, round_name]
+        type NameMinLength: Get<u32>;
 
-        /// The maximum length of project name
-        type NameMaxLength: Get<usize>;
+        /// The maximum length of name [project_name, round_name]
+        // #[pallet::constant]
+        type NameMaxLength: Get<u32>;
+        // type StringLimit: Get<u32>;
+
+        // /// The maximum length of project name
+        // type NameMaxLength: Get<usize>;
+
+        // Infomation on runtime weights.
+        // type WeightInfo: WeightInfo;
     }
 
     #[pallet::pallet]
@@ -109,7 +117,7 @@ pub mod pallet {
     // Learn more about declaring storage items:
     // https://substrate.dev/docs/en/knowledgebase/runtime/storage#declaring-storage-items
     pub(super) type Rounds<T: Config> =
-        StorageMap<_, Blake2_128Concat, u32, Round<BoundedVec<u8, T::StringLimit>>>;
+        StorageMap<_, Blake2_128Concat, u32, Round<BoundedVec<u8, T::NameMaxLength>>>;
 
     #[pallet::storage]
     #[pallet::getter(fn projects)]
@@ -119,7 +127,7 @@ pub mod pallet {
         u32,
         Blake2_128Concat,
         T::Hash,
-        Project<<T as frame_system::Config>::AccountId, BoundedVec<u8, T::StringLimit>>,
+        Project<<T as frame_system::Config>::AccountId, BoundedVec<u8, T::NameMaxLength>>,
     >;
 
     #[pallet::storage]
@@ -154,6 +162,7 @@ pub mod pallet {
     pub enum Error<T> {
         /// Error names should be descriptive.
         NoneValue,
+        BadMetadata,
         /// Errors should have helpful documentation associated with them.
         StorageOverflow,
         DuplicateProject,
@@ -248,7 +257,8 @@ pub mod pallet {
             origin: OriginFor<T>,
             round_id: u32,
             currency_id: CurrencyId,
-            name: BoundedVec<u8, T::StringLimit>,
+            // name: BoundedVec<u8, T::NameMaxLength>,
+            name: Vec<u8>,
         ) -> DispatchResultWithPostInfo {
             // Only amdin can control the round
             T::AdminOrigin::ensure_origin(origin)?;
@@ -256,9 +266,14 @@ pub mod pallet {
                 !Rounds::<T>::contains_key(&round_id),
                 Error::<T>::RoundExisted
             );
+
+            let bounded_name: BoundedVec<u8, T::NameMaxLength> = name
+                .clone()
+                .try_into()
+                .map_err(|_| Error::<T>::BadMetadata)?;
             let round = Round {
                 ongoing: true,
-                name: name.clone(),
+                name: bounded_name,
                 currency_id: currency_id.clone(),
                 support_pool: 0,
                 pre_tax_support_pool: 0,
@@ -319,15 +334,16 @@ pub mod pallet {
             origin: OriginFor<T>,
             round_id: u32,
             hash: T::Hash,
-            name: BoundedVec<u8, T::StringLimit>,
+            // name: BoundedVec<u8, T::NameMaxLength>,
+            name: Vec<u8>,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
             ensure!(
-                name.len() >= T::NameMinLength::get(),
+                name.len() >= T::NameMinLength::get().try_into().unwrap(),
                 Error::<T>::ProjectNameTooShort
             );
             ensure!(
-                name.len() <= T::NameMaxLength::get(),
+                name.len() <= T::NameMaxLength::get().try_into().unwrap(),
                 Error::<T>::ProjectNameTooLong
             );
             ensure!(
@@ -338,12 +354,17 @@ pub mod pallet {
                 !Projects::<T>::contains_key(&round_id, &hash),
                 Error::<T>::DuplicateProject
             );
+
+            let bounded_name: BoundedVec<u8, T::NameMaxLength> = name
+                .clone()
+                .try_into()
+                .map_err(|_| Error::<T>::BadMetadata)?;
             let project = Project {
                 total_votes: 0,
                 grants: 0,
                 support_area: 0,
                 withdrew: 0,
-                name: name.clone(),
+                name: bounded_name,
                 owner: who.clone(),
             };
             Projects::<T>::insert(round_id, hash, project);

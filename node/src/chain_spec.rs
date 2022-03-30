@@ -65,12 +65,58 @@ pub fn template_session_keys(keys: AuraId) -> dorafactory_node_runtime::SessionK
     dorafactory_node_runtime::SessionKeys { aura: keys }
 }
 
+pub fn dora_ksm_config() -> ChainSpec {
+    // Give your base currency a unit name and decimal places
+    let mut properties = sc_chain_spec::Properties::new();
+    properties.insert("tokenSymbol".into(), "DORA".into());
+    properties.insert("tokenDecimals".into(), 12.into());
+    properties.insert("ss58Format".into(), 128.into());
+
+    ChainSpec::from_genesis(
+        // Name
+        "DORA KSM",
+        // ID
+        "dora ksm",
+        ChainType::Local,
+        move || {
+            dorafactory_genesis(
+                // subkey inspect "$SECRET"
+                hex!["34c63c6b3213570b0513c706f6c49a4ce253570ac213e53c919d2cd6f8913a07"].into(),
+                // initial collators. TODO change callator account.
+                vec![(
+                    get_account_id_from_seed::<sr25519::Public>("Alice"),
+                    get_collator_keys_from_seed("Alice"),
+                )],
+                vec![
+                    hex!["34c63c6b3213570b0513c706f6c49a4ce253570ac213e53c919d2cd6f8913a07"].into(),
+                ],
+                2008.into(),
+            )
+        },
+        // Bootnodes
+        Vec::new(),
+        // Telemetry
+        None,
+        // Protocol ID
+        Some("DORA KSM Parachain"),
+        // Fork ID
+        None,
+        // Properties
+        Some(properties),
+        // Extensions
+        Extensions {
+            relay_chain: "rococo-local".into(), // You MUST set this to the correct network!
+            para_id: 2008,
+        },
+    )
+}
+
 pub fn development_config() -> ChainSpec {
     // Give your base currency a unit name and decimal places
     let mut properties = sc_chain_spec::Properties::new();
     properties.insert("tokenSymbol".into(), "DORA".into());
     properties.insert("tokenDecimals".into(), 12.into());
-    properties.insert("ss58Format".into(), 42.into());
+    // properties.insert("ss58Format".into(), 42.into());
 
     ChainSpec::from_genesis(
         // Name
@@ -173,7 +219,7 @@ pub fn local_testnet_config() -> ChainSpec {
         // Telemetry
         None,
         // Protocol ID
-        Some("template-local"),
+        Some("dorafactory-node"),
         // Fork ID
         None,
         // Properties
@@ -202,7 +248,7 @@ fn dorafactory_genesis(
             balances: endowed_accounts
                 .iter()
                 .cloned()
-                .map(|k| (k, 1 << 60))
+                .map(|k| (k, 30_000_000_000_000_000))
                 .collect(),
         },
         parachain_info: dorafactory_node_runtime::ParachainInfoConfig { parachain_id: id },
@@ -235,7 +281,7 @@ fn dorafactory_genesis(
         },
         dora_rewards: dorafactory_node_runtime::DoraRewardsConfig {
             // set the funds
-            funded_amount: 1 << 60,
+            funded_amount: 0,
         },
     }
 }
