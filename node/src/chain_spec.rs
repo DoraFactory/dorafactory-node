@@ -70,7 +70,7 @@ pub fn dora_ksm_config() -> ChainSpec {
     let mut properties = sc_chain_spec::Properties::new();
     properties.insert("tokenSymbol".into(), "DORA".into());
     properties.insert("tokenDecimals".into(), 12.into());
-    // properties.insert("ss58Format".into(), 128.into());
+    properties.insert("ss58Format".into(), 128.into());
 
     ChainSpec::from_genesis(
         // Name
