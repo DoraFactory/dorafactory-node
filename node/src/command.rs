@@ -44,11 +44,9 @@ use std::{io::Write, net::SocketAddr};
 fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, String> {
     Ok(match id {
         "dev" => Box::new(chain_spec::development_config()),
-        "template-rococo" => Box::new(chain_spec::local_testnet_config()),
-        "ksm" => Box::new(chain_spec::dora_ksm_config()),
-        "" | "local" => Box::new(chain_spec::local_testnet_config()),
-        // dorafactory node connect to rococo
-        // "dorafactory-rococo"=> Box::new(chain_spec::dorafactory_node_rococo(ParaId::from(DORA_PARA_ID))),
+        "local" => Box::new(chain_spec::local_testnet_config()),
+        "staging" => Box::new(chain_spec::staging_config()),
+        "" | "main" => Box::new(chain_spec::mainnet_config()?),
         path => Box::new(chain_spec::ChainSpec::from_json_file(
             std::path::PathBuf::from(path),
         )?),
@@ -164,6 +162,7 @@ pub fn run() -> sc_cli::Result<()> {
     let cli = Cli::from_args();
 
     match &cli.subcommand {
+        Some(Subcommand::Key(cmd)) => cmd.run(&cli),
         Some(Subcommand::BuildSpec(cmd)) => {
             let runner = cli.create_runner(cmd)?;
             runner.sync_run(|config| cmd.run(config.chain_spec, config.network))
@@ -292,6 +291,7 @@ pub fn run() -> sc_cli::Result<()> {
         }
         None => {
             let runner = cli.create_runner(&cli.run.normalize())?;
+            let collator_options = cli.run.collator_options();
 
             runner.run_node_until_exit(|config| async move {
                 // exact parachainId from chain spec file
@@ -333,7 +333,7 @@ pub fn run() -> sc_cli::Result<()> {
                     }
                 );
 
-                crate::service::start_parachain_node(config, polkadot_config, id)
+                crate::service::start_parachain_node(config, polkadot_config, collator_options, id)
                     .await
                     .map(|r| r.0)
                     .map_err(Into::into)
