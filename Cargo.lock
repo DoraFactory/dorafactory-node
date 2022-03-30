@@ -5197,7 +5197,6 @@ dependencies = [
 [[package]]
 name = "pallet-dora-rewards"
 version = "4.0.0-dev"
-source = "git+https://github.com/DoraFactory/Dora-Rewards?branch=polkadot-v0.9.17#7e73093970ef1c98a3a5ab392732db3ab7c95986"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -5206,6 +5205,8 @@ dependencies = [
  "pallet-balances",
  "parity-scale-codec",
  "scale-info",
+ "sp-core",
+ "sp-io",
  "sp-runtime",
  "sp-std",
 ]
