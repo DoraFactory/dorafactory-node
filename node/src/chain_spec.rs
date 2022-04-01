@@ -145,28 +145,12 @@ pub fn development_config() -> ChainSpec {
                 // initial collators.
                 vec![
                     (
-                        hex!["123c0de5a0486486e3df5740e92527ab79a6d57556696c91406272e940f1144a"]
-                            .into(),
-                        hex!["123c0de5a0486486e3df5740e92527ab79a6d57556696c91406272e940f1144a"]
-                            .unchecked_into(),
+                        get_account_id_from_seed::<sr25519::Public>("Alice"),
+                        get_collator_keys_from_seed("Alice"),
                     ),
                     (
-                        hex!["804d98125209e39771eaab2bc62a5f54f6a84f429e59f41c591b593b06ba5027"]
-                            .into(),
-                        hex!["804d98125209e39771eaab2bc62a5f54f6a84f429e59f41c591b593b06ba5027"]
-                            .unchecked_into(),
-                    ),
-                    (
-                        hex!["f0a9fe6b6df079bb61eb750bd49f12483c9a0d64c8dc8f3f565a7768fef0556b"]
-                            .into(),
-                        hex!["f0a9fe6b6df079bb61eb750bd49f12483c9a0d64c8dc8f3f565a7768fef0556b"]
-                            .unchecked_into(),
-                    ),
-                    (
-                        hex!["80b643cd22663a6619e732187f9b6d969d0a3f53ae50bc75921b0f373cfba549"]
-                            .into(),
-                        hex!["80b643cd22663a6619e732187f9b6d969d0a3f53ae50bc75921b0f373cfba549"]
-                            .unchecked_into(),
+                        get_account_id_from_seed::<sr25519::Public>("Bob"),
+                        get_collator_keys_from_seed("Bob"),
                     ),
                 ],
                 vec![
