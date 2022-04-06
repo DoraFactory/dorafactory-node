@@ -649,7 +649,7 @@ impl pallet_qf::Config for Runtime {
 
     // The maximum length of project name
     type NameMaxLength = NameMaxLength;
-    // type WeightInfo = ();
+    type WeightInfo = pallet_qf::weights::DoraWeight<Runtime>;
 }
 
 parameter_types! {

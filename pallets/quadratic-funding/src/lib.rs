@@ -20,7 +20,10 @@ use sp_runtime::RuntimeDebug;
 use sp_std::{convert::TryInto, vec, vec::Vec};
 
 mod benchmarking;
-// pub mod weights;
+
+pub mod weights;
+
+pub use weights::WeightInfo;
 
 #[cfg(test)]
 mod mock;
@@ -47,7 +50,6 @@ pub struct Round<BoundedString> {
     pub pre_tax_support_pool: u128,
     pub total_support_area: u128,
     pub total_tax: u128,
-    // pub total_pool: u128,
 }
 
 type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
@@ -56,7 +58,6 @@ type BalanceOf<T> = <<T as Config>::MultiCurrency as MultiCurrency<AccountIdOf<T
 #[frame_support::pallet]
 pub mod pallet {
     use super::*;
-    // pub use crate::weights::WeightInfo;
     use frame_support::{dispatch::DispatchResultWithPostInfo, pallet_prelude::*};
     use frame_system::pallet_prelude::*;
 
@@ -102,8 +103,8 @@ pub mod pallet {
         // /// The maximum length of project name
         // type NameMaxLength: Get<usize>;
 
-        // Infomation on runtime weights.
-        // type WeightInfo: WeightInfo;
+        /// Infomation on runtime weights.
+        type WeightInfo: WeightInfo;
     }
 
     #[pallet::pallet]
@@ -188,7 +189,7 @@ pub mod pallet {
     impl<T: Config> Pallet<T> {
         /// An example dispatchable that takes a singles value as a parameter, writes the value to
         /// storage and emits an event. This function must be dispatched by a signed extrinsic.
-        #[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+        #[pallet::weight(T::WeightInfo::donate())]
         pub fn donate(
             origin: OriginFor<T>,
             round_id: u32,
@@ -221,7 +222,6 @@ pub mod pallet {
             );
             let _ = T::MultiCurrency::transfer(currency_id, &who, &Self::account_id(), amount)?;
             // TODO: add deposit to pallet account.
-            // let _ = T::MultiCurrency::reserve(currency_id, &Self::account_id(), amount);
             // update the round
             Rounds::<T>::mutate(round_id, |rnd| match rnd {
                 Some(round) => {
@@ -231,7 +231,6 @@ pub mod pallet {
                     round.pre_tax_support_pool = amount_number.checked_add(ptsp).unwrap();
                     round.support_pool = (amount_number - fee_number).checked_add(sp).unwrap();
                     round.total_tax = fee_number.checked_add(tt).unwrap();
-                    // round.total_pool = amount_number.checked_add(ptsp).unwrap();
                 }
                 _ => (),
             });
@@ -252,12 +251,11 @@ pub mod pallet {
         //     Ok(().into())
         // }
 
-        #[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
+        #[pallet::weight(T::WeightInfo::start_round())]
         pub fn start_round(
             origin: OriginFor<T>,
             round_id: u32,
             currency_id: CurrencyId,
-            // name: BoundedVec<u8, T::NameMaxLength>,
             name: Vec<u8>,
         ) -> DispatchResultWithPostInfo {
             // Only amdin can control the round
@@ -279,7 +277,6 @@ pub mod pallet {
                 pre_tax_support_pool: 0,
                 total_support_area: 0,
                 total_tax: 0,
-                // total_pool: 0,
             };
             Rounds::<T>::insert(round_id, round);
             Self::deposit_event(Event::RoundStarted(round_id));
@@ -287,7 +284,7 @@ pub mod pallet {
         }
 
         /// End an `ongoing` round and distribute the funds in sponsor pool, any invalid index or round status will cause errors
-        #[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
+        #[pallet::weight(T::WeightInfo::end_round())]
         pub fn end_round(origin: OriginFor<T>, round_id: u32) -> DispatchResultWithPostInfo {
             // Only amdin can control the round
             T::AdminOrigin::ensure_origin(origin)?;
@@ -300,12 +297,6 @@ pub mod pallet {
             let area = round.total_support_area;
             let pool = round.support_pool;
             let currency_id = round.currency_id;
-            // let total_pool = round.total_pool;
-            // let _ = T::MultiCurrency::unreserve(
-            //     currency_id,
-            //     &Self::account_id(),
-            //     Self::u128_to_balance(total_pool),
-            // );
             for (_, mut project) in Projects::<T>::iter_prefix(round_id) {
                 if area > 0 {
                     let total = project.grants;
@@ -329,12 +320,11 @@ pub mod pallet {
         }
 
         /// Register a project in an ongoing round, so that it can be voted
-        #[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
+        #[pallet::weight(T::WeightInfo::register_project())]
         pub fn register_project(
             origin: OriginFor<T>,
             round_id: u32,
             hash: T::Hash,
-            // name: BoundedVec<u8, T::NameMaxLength>,
             name: Vec<u8>,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
@@ -373,7 +363,7 @@ pub mod pallet {
         }
 
         /// Vote to a project, this function will transfer corresponding amount of token per your input ballot
-        #[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
+        #[pallet::weight(T::WeightInfo::vote())]
         pub fn vote(
             origin: OriginFor<T>,
             currency_id: CurrencyId,
@@ -415,11 +405,6 @@ pub mod pallet {
                 &Self::account_id(),
                 Self::u128_to_balance(amount),
             )?;
-            // let _ = T::MultiCurrency::reserve(
-            //     currency_id,
-            //     &Self::account_id(),
-            //     Self::u128_to_balance(amount),
-            // );
             // update the project and corresponding round
             ProjectVotes::<T>::insert(vote_hash, &who, ballot + voted);
             Projects::<T>::mutate(round_id, hash, |poj| {
@@ -434,12 +419,10 @@ pub mod pallet {
                         // poj.total_votes, voted, support_area, cost);
                         Rounds::<T>::mutate(round_id, |rnd| match rnd {
                             Some(round) => {
-                                // let ptsp = round.pre_tax_support_pool;
                                 let tsa = round.total_support_area;
                                 let tt = round.total_tax;
                                 round.total_support_area = support_area.checked_add(tsa).unwrap();
                                 round.total_tax = fee.checked_add(tt).unwrap();
-                                // round.total_pool = amount.checked_add(ptsp).unwrap();
                             }
                             _ => (),
                         });

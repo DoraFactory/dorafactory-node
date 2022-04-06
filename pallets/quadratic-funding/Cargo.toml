@@ -16,6 +16,7 @@ sp-io = { git = "https://github.com/paritytech/substrate", default-features = fa
 [dependencies]
 codec = { package = "parity-scale-codec", version = "3.0.0", features = ["derive"], default-features = false }
 scale-info = { version = "2.0.1", default-features = false, features = ["derive"] }
+hex-literal = "0.3"
 
 # FRAME library
 frame-benchmarking = { git = "https://github.com/paritytech/substrate", default-features = false, optional = true , branch = "polkadot-v0.9.18" }
