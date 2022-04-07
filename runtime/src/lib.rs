@@ -993,6 +993,7 @@ impl_runtime_apis! {
             list_benchmark!(list, extra, pallet_balances, Balances);
             list_benchmark!(list, extra, pallet_timestamp, Timestamp);
             list_benchmark!(list, extra, pallet_qf, QuadraticFunding);
+            list_benchmark!(list, extra, pallet_dora_rewards, DoraRewards);
             list_benchmark!(list, extra, pallet_collator_selection, CollatorSelection);
 
             let storage_info = AllPalletsWithSystem::storage_info();
@@ -1034,6 +1035,7 @@ impl_runtime_apis! {
             add_benchmark!(params, batches, pallet_collator_selection, CollatorSelection);
             // add_benchmark!(params, batches, pallet_session, Session);
             add_benchmark!(params, batches, pallet_qf, QuadraticFunding);
+            add_benchmark!(params, batches, pallet_dora_rewards, DoraRewards);
 
             if batches.is_empty() { return Err("Benchmark not found for this pallet.".into()) }
             Ok(batches)

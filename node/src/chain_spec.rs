@@ -13,8 +13,11 @@ use sp_core::{
     sr25519, Pair, Public,
 };
 use sp_runtime::{
-    traits::{IdentifyAccount, Verify},
+    traits::{IdentifyAccount, Verify, AccountIdConversion},
     AccountId32,
+};
+use frame_support::{
+    PalletId,
 };
 
 // The URL for the telemetry server.
@@ -133,6 +136,8 @@ pub fn staging_config() -> ChainSpec {
 
 pub fn development_config() -> ChainSpec {
     let dev_para_id: u32 = 2115;
+    pub const PALLET_ID: PalletId = PalletId(*b"DoraRewa");
+
     ChainSpec::from_genesis(
         // Name
         "Dorafactory Network",
@@ -172,6 +177,7 @@ pub fn development_config() -> ChainSpec {
                     account("alice", 0, 0),
                     account("bob", 0, 0),
                     account("charlie", 0, 0),
+                    PalletId(*b"DoraRewa").into_account(),
                 ],
                 dev_para_id.into(),
             )

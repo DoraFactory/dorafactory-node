@@ -5,23 +5,37 @@
 use super::*;
 
 #[allow(unused)]
-use crate::Pallet as QuadraticFunding;
-use codec::alloc::string::ToString;
-use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite, whitelisted_caller};
+use crate::Pallet as DoraRewards;
+use frame_benchmarking::{vec, account, benchmarks, impl_benchmark_test_suite};
 use frame_system::RawOrigin;
-use hex_literal::hex;
-use primitives::currency::CurrencyId;
-use sp_runtime::traits::{AccountIdConversion, Hash, UniqueSaturatedFrom};
 
 const SEED: u32 = 0;
 
 benchmarks! {
+    initialize_contributors_list {
+        let alice: T::AccountId = account("alice", 0, SEED);
+        let bob: T::AccountId = account("bob", 0, SEED);
+        let list = vec![(alice, 100u32.into()), (bob, 300u32.into())];
+    }: _(RawOrigin::Root, list)
 
+    complete_initialization {
+        let alice: T::AccountId = account("alice", 0, SEED);
+        let bob: T::AccountId = account("bob", 0, SEED);
+        let list = vec![(alice, 100u32.into()), (bob, 300u32.into())];
+        let _ = DoraRewards::<T>::initialize_contributors_list(<T as frame_system::Config>::Origin::from(RawOrigin::Root), list);
+    }: _(RawOrigin::Root, 300u32.into())
 
+    claim_rewards {
+        let alice: T::AccountId = account("alice", 0, SEED);
+        let bob: T::AccountId = account("bob", 0, SEED);
+        let list = vec![(alice.clone(), 100u32.into()), (bob.clone(), 300u32.into())];
+        let _ = DoraRewards::<T>::initialize_contributors_list(<T as frame_system::Config>::Origin::from(RawOrigin::Root), list);
+        let _ = DoraRewards::<T>::complete_initialization(<T as frame_system::Config>::Origin::from(RawOrigin::Root), 300u32.into());
+    }: _(RawOrigin::Signed(alice))
 }
 
 impl_benchmark_test_suite!(
-    QuadraticFunding,
+    DoraRewards,
     crate::mock::new_test_ext(),
     crate::mock::Test,
 );

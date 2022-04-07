@@ -2,6 +2,8 @@
 
 pub use pallet::*;
 
+mod benchmarking;
+
 #[frame_support::pallet]
 pub mod pallet {
     use frame_support::{

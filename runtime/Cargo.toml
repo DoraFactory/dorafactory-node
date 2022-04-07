@@ -115,6 +115,7 @@ runtime-benchmarks = [
 
     "orml-tokens/runtime-benchmarks",
     "pallet-qf/runtime-benchmarks",
+    "pallet-dora-rewards/runtime-benchmarks",
     "pallet-society/runtime-benchmarks",
     "pallet-collective/runtime-benchmarks",
 ]
