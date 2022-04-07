@@ -680,6 +680,7 @@ impl pallet_dora_rewards::Config for Runtime {
         cumulus_pallet_parachain_system::RelaychainBlockNumberProvider<Self>;
     type FirstVestPercentage = FirstVestPercentage;
     type MaxContributorsNumber = MaxContributorsNumber;
+    type WeightInfo = pallet_dora_rewards::weights::DoraWeight<Runtime>;
 }
 
 pub struct CurrencyIdConvert;

@@ -136,7 +136,6 @@ pub fn staging_config() -> ChainSpec {
 
 pub fn development_config() -> ChainSpec {
     let dev_para_id: u32 = 2115;
-    pub const PALLET_ID: PalletId = PalletId(*b"DoraRewa");
 
     ChainSpec::from_genesis(
         // Name
