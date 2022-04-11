@@ -2,6 +2,8 @@ use cumulus_primitives_core::ParaId;
 use dorafactory_node_runtime::{
     AccountId, Signature, SudoConfig, TokensConfig, EXISTENTIAL_DEPOSIT,
 };
+use frame_benchmarking::{account, whitelisted_caller};
+use frame_support::PalletId;
 use hex_literal::hex;
 use sc_chain_spec::{ChainSpecExtension, ChainSpecGroup};
 use sc_service::{ChainType, Properties};
@@ -12,7 +14,7 @@ use sp_core::{
     sr25519, Pair, Public,
 };
 use sp_runtime::{
-    traits::{IdentifyAccount, Verify},
+    traits::{AccountIdConversion, IdentifyAccount, Verify},
     AccountId32,
 };
 
@@ -132,79 +134,12 @@ pub fn staging_config() -> ChainSpec {
 
 pub fn development_config() -> ChainSpec {
     let dev_para_id: u32 = 2115;
+
     ChainSpec::from_genesis(
         // Name
         "Dorafactory Network",
         // ID
         "dorafactory",
-        ChainType::Local,
-        move || {
-            dorafactory_genesis(
-                // subkey inspect "$SECRET"
-                hex!["34c63c6b3213570b0513c706f6c49a4ce253570ac213e53c919d2cd6f8913a07"].into(),
-                // initial collators.
-                vec![
-                    (
-                        hex!["123c0de5a0486486e3df5740e92527ab79a6d57556696c91406272e940f1144a"]
-                            .into(),
-                        hex!["123c0de5a0486486e3df5740e92527ab79a6d57556696c91406272e940f1144a"]
-                            .unchecked_into(),
-                    ),
-                    (
-                        hex!["804d98125209e39771eaab2bc62a5f54f6a84f429e59f41c591b593b06ba5027"]
-                            .into(),
-                        hex!["804d98125209e39771eaab2bc62a5f54f6a84f429e59f41c591b593b06ba5027"]
-                            .unchecked_into(),
-                    ),
-                    (
-                        hex!["f0a9fe6b6df079bb61eb750bd49f12483c9a0d64c8dc8f3f565a7768fef0556b"]
-                            .into(),
-                        hex!["f0a9fe6b6df079bb61eb750bd49f12483c9a0d64c8dc8f3f565a7768fef0556b"]
-                            .unchecked_into(),
-                    ),
-                    (
-                        hex!["80b643cd22663a6619e732187f9b6d969d0a3f53ae50bc75921b0f373cfba549"]
-                            .into(),
-                        hex!["80b643cd22663a6619e732187f9b6d969d0a3f53ae50bc75921b0f373cfba549"]
-                            .unchecked_into(),
-                    ),
-                ],
-                vec![
-                    hex!["34c63c6b3213570b0513c706f6c49a4ce253570ac213e53c919d2cd6f8913a07"].into(),
-                ],
-                dev_para_id.into(),
-            )
-        },
-        // Bootnodes
-        Vec::new(),
-        // Telemetry
-        None,
-        // Protocol ID
-        Some("DORA KSM Parachain"),
-        // Fork ID
-        None,
-        // Properties
-        Some(get_properties()),
-        // Extensions
-        Extensions {
-            relay_chain: "rococo-local".into(), // You MUST set this to the correct network!
-            para_id: dev_para_id.into(),
-        },
-    )
-}
-
-pub fn local_testnet_config() -> ChainSpec {
-    // Give your base currency a unit name and decimal places
-    let mut properties = sc_chain_spec::Properties::new();
-    properties.insert("tokenSymbol".into(), "DORA".into());
-    properties.insert("tokenDecimals".into(), 12.into());
-    properties.insert("ss58Format".into(), 42.into());
-
-    ChainSpec::from_genesis(
-        // Name
-        "Local Testnet",
-        // ID
-        "local_testnet",
         ChainType::Local,
         move || {
             dorafactory_genesis(
@@ -234,8 +169,14 @@ pub fn local_testnet_config() -> ChainSpec {
                     get_account_id_from_seed::<sr25519::Public>("Dave//stash"),
                     get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
                     get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
+                    hex!["34c63c6b3213570b0513c706f6c49a4ce253570ac213e53c919d2cd6f8913a07"].into(),
+                    whitelisted_caller(),
+                    account("alice", 0, 0),
+                    account("bob", 0, 0),
+                    account("charlie", 0, 0),
+                    PalletId(*b"DoraRewa").into_account(),
                 ],
-                2000.into(),
+                dev_para_id.into(),
             )
         },
         // Bootnodes
@@ -243,15 +184,15 @@ pub fn local_testnet_config() -> ChainSpec {
         // Telemetry
         None,
         // Protocol ID
-        Some("dorafactory-node"),
+        Some("DORA KSM Parachain"),
         // Fork ID
         None,
         // Properties
-        Some(properties),
+        Some(get_properties()),
         // Extensions
         Extensions {
             relay_chain: "rococo-local".into(), // You MUST set this to the correct network!
-            para_id: 2000,
+            para_id: dev_para_id.into(),
         },
     )
 }
