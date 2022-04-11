@@ -6,7 +6,7 @@ use super::*;
 
 #[allow(unused)]
 use crate::Pallet as DoraRewards;
-use frame_benchmarking::{vec, account, benchmarks, impl_benchmark_test_suite};
+use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite, vec};
 use frame_system::RawOrigin;
 
 const SEED: u32 = 0;
@@ -34,8 +34,4 @@ benchmarks! {
     }: _(RawOrigin::Signed(alice))
 }
 
-impl_benchmark_test_suite!(
-    DoraRewards,
-    crate::mock::new_test_ext(),
-    crate::mock::Test,
-);
+impl_benchmark_test_suite!(DoraRewards, crate::mock::new_test_ext(), crate::mock::Test,);

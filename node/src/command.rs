@@ -38,13 +38,9 @@ use sp_core::hexdisplay::HexDisplay;
 use sp_runtime::traits::Block as BlockT;
 use std::{io::Write, net::SocketAddr};
 
-// dorafactory node
-// const DORA_PARA_ID: u32 = 2045;
-
 fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, String> {
     Ok(match id {
         "dev" => Box::new(chain_spec::development_config()),
-        "local" => Box::new(chain_spec::local_testnet_config()),
         "staging" => Box::new(chain_spec::staging_config()),
         "" | "main" => Box::new(chain_spec::mainnet_config()?),
         path => Box::new(chain_spec::ChainSpec::from_json_file(
@@ -55,7 +51,7 @@ fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, St
 
 impl SubstrateCli for Cli {
     fn impl_name() -> String {
-        "Substrate Node".into()
+        "Parachain Collator Template".into()
     }
 
     fn impl_version() -> String {
@@ -75,11 +71,11 @@ impl SubstrateCli for Cli {
     }
 
     fn support_url() -> String {
-        "support.anonymous.an".into()
+        "https://github.com/paritytech/cumulus/issues/new".into()
     }
 
     fn copyright_start_year() -> i32 {
-        2017
+        2020
     }
 
     fn load_spec(&self, id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, String> {
@@ -93,7 +89,7 @@ impl SubstrateCli for Cli {
 
 impl SubstrateCli for RelayChainCli {
     fn impl_name() -> String {
-        "Parachain Collator Template".into()
+        "Dorafactory Node".into()
     }
 
     fn impl_version() -> String {
@@ -157,8 +153,8 @@ macro_rules! construct_async_run {
 	}}
 }
 
-/// Parse and run command line arguments
-pub fn run() -> sc_cli::Result<()> {
+/// Parse command line arguments into service configuration.
+pub fn run() -> Result<()> {
     let cli = Cli::from_args();
 
     match &cli.subcommand {
@@ -294,7 +290,6 @@ pub fn run() -> sc_cli::Result<()> {
             let collator_options = cli.run.collator_options();
 
             runner.run_node_until_exit(|config| async move {
-                // exact parachainId from chain spec file
                 let para_id = chain_spec::Extensions::try_get(&*config.chain_spec)
                     .map(|e| e.para_id)
                     .ok_or_else(|| "Could not find parachain ID in chain-spec.")?;
@@ -310,6 +305,7 @@ pub fn run() -> sc_cli::Result<()> {
 
                 let parachain_account =
                     AccountIdConversion::<polkadot_primitives::v0::AccountId>::into_account(&id);
+
                 let state_version =
                     RelayChainCli::native_runtime_version(&config.chain_spec).state_version();
                 let block: Block = generate_genesis_block(&config.chain_spec, state_version)
@@ -478,5 +474,9 @@ impl CliConfiguration<Self> for RelayChainCli {
         chain_spec: &Box<dyn ChainSpec>,
     ) -> Result<Option<sc_telemetry::TelemetryEndpoints>> {
         self.base.base.telemetry_endpoints(chain_spec)
+    }
+
+    fn node_name(&self) -> Result<String> {
+        self.base.base.node_name()
     }
 }
