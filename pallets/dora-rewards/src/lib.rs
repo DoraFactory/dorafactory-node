@@ -2,8 +2,15 @@
 
 pub use pallet::*;
 
+mod benchmarking;
+
+pub mod weights;
+
+pub use weights::WeightInfo;
+
 #[frame_support::pallet]
 pub mod pallet {
+    use super::*;
     use frame_support::{
         dispatch::DispatchResult,
         pallet_prelude::*,
@@ -46,6 +53,9 @@ pub mod pallet {
         // this parameter control the max contributor list length
         #[pallet::constant]
         type MaxContributorsNumber: Get<u32>;
+
+        /// Infomation on runtime weights.
+        type WeightInfo: WeightInfo;
     }
 
     //
@@ -143,10 +153,8 @@ pub mod pallet {
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
-        //
-        // provid contributors claim for their rewards
-        //
-        #[pallet::weight(0)]
+        /// provid contributors claim for their rewards
+        #[pallet::weight(T::WeightInfo::claim_rewards())]
         pub fn claim_rewards(origin: OriginFor<T>) -> DispatchResult {
             let who = ensure_signed(origin)?;
             // check current acccount is in the contributor list ?
@@ -242,11 +250,10 @@ pub mod pallet {
             Ok(().into())
         }
 
-        ///
         ///  step 1:
         ///  set a contributors rewards info
         ///  this operation should be execute by sudo user
-        #[pallet::weight(0)]
+        #[pallet::weight(T::WeightInfo::initialize_contributors_list())]
         pub fn initialize_contributors_list(
             origin: OriginFor<T>,
             //import contributor list
@@ -281,11 +288,9 @@ pub mod pallet {
             Ok(().into())
         }
 
-        //
-        //  step2:
-        // 	check the lease ending block
-        //
-        #[pallet::weight(0)]
+        ///  step2:
+        ///  check the lease ending block
+        #[pallet::weight(T::WeightInfo::complete_initialization())]
         pub fn complete_initialization(
             origin: OriginFor<T>,
             lease_ending_block: T::VestingBlockNumber,

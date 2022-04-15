@@ -7,18 +7,67 @@ use super::*;
 #[allow(unused)]
 use crate::Pallet as QuadraticFunding;
 use codec::alloc::string::ToString;
-use frame_benchmarking::{benchmarks, impl_benchmark_test_suite, whitelisted_caller};
+use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite};
 use frame_system::RawOrigin;
 use primitives::currency::CurrencyId;
+use sp_runtime::traits::{Hash, UniqueSaturatedFrom};
+
+const SEED: u32 = 0;
 
 benchmarks! {
     start_round {
-        let s in 1 .. 60u32;
-    }: _(RawOrigin::Root, s.into(), CurrencyId::DORA, "dora".to_string().into())
-    verify {
-        assert!(Rounds::<T>::contains_key(&s));
-    }
+    }: _(RawOrigin::Root, 1u32, CurrencyId::DORA, "dora".to_string().into())
 
+    donate {
+        let _ = QuadraticFunding::<T>::start_round(<T as frame_system::Config>::Origin::from(RawOrigin::Root), 1u32, CurrencyId::DORA, "dora".to_string().into());
+
+        let alice: T::AccountId = account("alice", 0, SEED);
+        let bob: T::AccountId = account("bob", 0, SEED);
+        let token_amount = BalanceOf::<T>::unique_saturated_from(100_000_000_000_000u128);
+    }: _(RawOrigin::Signed(alice), 1u32, token_amount, CurrencyId::DORA)
+
+    register_project {
+        let _ = QuadraticFunding::<T>::start_round(<T as frame_system::Config>::Origin::from(RawOrigin::Root), 1u32, CurrencyId::DORA, "dora".to_string().into());
+
+        let alice: T::AccountId = account("alice", 0, SEED);
+        let bob: T::AccountId = account("bob", 0, SEED);
+        let token_amount = BalanceOf::<T>::unique_saturated_from(100_000_000_000_000u128);
+
+        let _ = QuadraticFunding::<T>::donate(<T as frame_system::Config>::Origin::from(RawOrigin::Signed(alice)), 1u32, token_amount, CurrencyId::DORA);
+
+        let project_hash = T::Hashing::hash_of(&1);
+    }: _(RawOrigin::Signed(bob), 1u32, project_hash, "hack".to_string().into())
+
+    vote {
+        let _ = QuadraticFunding::<T>::start_round(<T as frame_system::Config>::Origin::from(RawOrigin::Root), 1u32, CurrencyId::DORA, "dora".to_string().into());
+
+        let alice: T::AccountId = account("alice", 0, SEED);
+        let bob: T::AccountId = account("bob", 0, SEED);
+        let voter: T::AccountId = account("charlie", 0, SEED);
+        let token_amount = BalanceOf::<T>::unique_saturated_from(100_000_000_000_000u128);
+
+        let _ = QuadraticFunding::<T>::donate(<T as frame_system::Config>::Origin::from(RawOrigin::Signed(alice)), 1u32, token_amount, CurrencyId::DORA);
+
+        let project_hash = T::Hashing::hash_of(&1);
+
+        let _ = QuadraticFunding::<T>::register_project(<T as frame_system::Config>::Origin::from(RawOrigin::Signed(bob)), 1u32, project_hash, "hack".to_string().into());
+    }: _(RawOrigin::Signed(voter), CurrencyId::DORA, 1u32, project_hash, 12)
+
+    end_round {
+        let _ = QuadraticFunding::<T>::start_round(<T as frame_system::Config>::Origin::from(RawOrigin::Root), 1u32, CurrencyId::DORA, "dora".to_string().into());
+
+        let alice: T::AccountId = account("alice", 0, SEED);
+        let bob: T::AccountId = account("bob", 0, SEED);
+        let voter: T::AccountId = account("charlie", 0, SEED);
+        let token_amount = BalanceOf::<T>::unique_saturated_from(100_000_000_000_000u128);
+
+        let _ = QuadraticFunding::<T>::donate(<T as frame_system::Config>::Origin::from(RawOrigin::Signed(alice)), 1u32, token_amount, CurrencyId::DORA);
+
+        let project_hash = T::Hashing::hash_of(&1);
+
+        let _ = QuadraticFunding::<T>::register_project(<T as frame_system::Config>::Origin::from(RawOrigin::Signed(bob)), 1u32, project_hash, "hack".to_string().into());
+        let _ = QuadraticFunding::<T>::vote(<T as frame_system::Config>::Origin::from(RawOrigin::Signed(voter)), CurrencyId::DORA, 1u32, project_hash, 12);
+    }: _(RawOrigin::Root, 1u32)
 }
 
 impl_benchmark_test_suite!(

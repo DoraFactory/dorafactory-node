@@ -1,12 +1,15 @@
 //! Service and ServiceFactory implementation. Specialized wrapper over substrate service.
 
+// std
+use std::{sync::Arc, time::Duration};
+
+use cumulus_client_cli::CollatorOptions;
 // Local Runtime Types
 use dorafactory_node_runtime::{
-    self, opaque::Block, AccountId, Balance, Hash, Index as Nonce, RuntimeApi,
+    opaque::Block, AccountId, Balance, Hash, Index as Nonce, RuntimeApi,
 };
 
 // Cumulus Imports
-use cumulus_client_cli::CollatorOptions;
 use cumulus_client_consensus_aura::{AuraConsensus, BuildAuraConsensusParams, SlotProportion};
 use cumulus_client_consensus_common::ParachainConsensus;
 use cumulus_client_network::BlockAnnounceValidator;
@@ -17,20 +20,21 @@ use cumulus_primitives_core::ParaId;
 use cumulus_relay_chain_inprocess_interface::build_inprocess_relay_chain;
 use cumulus_relay_chain_interface::{RelayChainError, RelayChainInterface, RelayChainResult};
 use cumulus_relay_chain_rpc_interface::RelayChainRPCInterface;
-use polkadot_service::CollatorPair;
-// Substrate imports
+
+// Substrate Imports
 use sc_client_api::ExecutorProvider;
-pub use sc_executor::NativeElseWasmExecutor;
+use sc_executor::NativeElseWasmExecutor;
 use sc_network::NetworkService;
 use sc_service::{Configuration, PartialComponents, Role, TFullBackend, TFullClient, TaskManager};
 use sc_telemetry::{Telemetry, TelemetryHandle, TelemetryWorker, TelemetryWorkerHandle};
 use sp_api::ConstructRuntimeApi;
 use sp_keystore::SyncCryptoStorePtr;
 use sp_runtime::traits::BlakeTwo256;
-use std::{sync::Arc, time::Duration};
 use substrate_prometheus_endpoint::Registry;
 
-// Our native executor instance.
+use polkadot_service::CollatorPair;
+
+/// Native executor instance.
 pub struct ExecutorDispatch;
 
 impl sc_executor::NativeExecutionDispatch for ExecutorDispatch {
@@ -44,11 +48,6 @@ impl sc_executor::NativeExecutionDispatch for ExecutorDispatch {
         dorafactory_node_runtime::native_version()
     }
 }
-
-// type FullClient =
-//     sc_service::TFullClient<Block, RuntimeApi, NativeElseWasmExecutor<ExecutorDispatch>>;
-// type FullBackend = sc_service::TFullBackend<Block>;
-// type FullSelectChain = sc_consensus::LongestChain<FullBackend, Block>;
 
 /// Starts a `ServiceBuilder` for a full service.
 ///
@@ -114,7 +113,7 @@ where
         })
         .transpose()?;
 
-    let executor = NativeElseWasmExecutor::<Executor>::new(
+    let executor = sc_executor::NativeElseWasmExecutor::<Executor>::new(
         config.wasm_method,
         config.default_heap_pages,
         config.max_runtime_instances,
@@ -123,7 +122,7 @@ where
 
     let (client, backend, keystore_container, task_manager) =
         sc_service::new_full_parts::<Block, RuntimeApi, _>(
-            &config,
+            config,
             telemetry.as_ref().map(|(_, telemetry)| telemetry.handle()),
             executor,
         )?;
@@ -146,39 +145,6 @@ where
         client.clone(),
     );
 
-    /*     let (grandpa_block_import, grandpa_link) = sc_finality_grandpa::block_import(
-        client.clone(),
-        &(client.clone() as Arc<_>),
-        select_chain.clone(),
-        telemetry.as_ref().map(|x| x.handle()),
-    )?; */
-
-    // let slot_duration = sc_consensus_aura::slot_duration(&*client)?.slot_duration();
-
-    /*  let import_queue =
-    sc_consensus_aura::import_queue::<AuraPair, _, _, _, _, _, _>(ImportQueueParams {
-        block_import: grandpa_block_import.clone(),
-        justification_import: Some(Box::new(grandpa_block_import.clone())),
-        client: client.clone(),
-        create_inherent_data_providers: move |_, ()| async move {
-            let timestamp = sp_timestamp::InherentDataProvider::from_system_time();
-
-            let slot =
-                sp_consensus_aura::inherents::InherentDataProvider::from_timestamp_and_duration(
-                    *timestamp,
-                    slot_duration,
-                );
-
-            Ok((timestamp, slot))
-        },
-        spawner: &task_manager.spawn_essential_handle(),
-        can_author_with: sp_consensus::CanAuthorWithNativeVersion::new(
-            client.executor().clone(),
-        ),
-        registry: config.prometheus_registry(),
-        check_for_equivocation: Default::default(),
-        telemetry: telemetry.as_ref().map(|x| x.handle()),
-    })?; */
     let import_queue = build_import_queue(
         client.clone(),
         config,
@@ -186,16 +152,18 @@ where
         &task_manager,
     )?;
 
-    Ok(sc_service::PartialComponents {
-        client,
+    let params = PartialComponents {
         backend,
-        task_manager,
+        client,
         import_queue,
         keystore_container,
-        select_chain: (),
+        task_manager,
         transaction_pool,
+        select_chain: (),
         other: (telemetry, telemetry_worker_handle),
-    })
+    };
+
+    Ok(params)
 }
 
 async fn build_relay_chain_interface(
@@ -408,8 +376,8 @@ where
             task_manager: &mut task_manager,
             para_id: id,
             relay_chain_interface,
-            import_queue,
             relay_chain_slot_duration,
+            import_queue,
             collator_options,
         };
 
@@ -451,7 +419,8 @@ pub fn parachain_build_import_queue(
         create_inherent_data_providers: move |_, _| async move {
             let time = sp_timestamp::InherentDataProvider::from_system_time();
 
-            let slot = sp_consensus_aura::inherents::InherentDataProvider::from_timestamp_and_slot_duration(
+            let slot =
+                sp_consensus_aura::inherents::InherentDataProvider::from_timestamp_and_slot_duration(
                     *time,
                     slot_duration,
                 );
@@ -463,7 +432,7 @@ pub fn parachain_build_import_queue(
         spawner: &task_manager.spawn_essential_handle(),
         telemetry,
     })
-    .map_err(Into::into)
+        .map_err(Into::into)
 }
 
 /// Start a parachain node.
@@ -502,55 +471,50 @@ pub async fn start_parachain_node(
                 telemetry.clone(),
             );
 
-            Ok(AuraConsensus::build::<
-                sp_consensus_aura::sr25519::AuthorityPair,
-                _,
-                _,
-                _,
-                _,
-                _,
-                _,
-            >(BuildAuraConsensusParams {
-                proposer_factory,
-                create_inherent_data_providers: move |_, (relay_parent, validation_data)| {
-                    let relay_chain_interface = relay_chain_interface.clone();
-                    async move {
-                        let parachain_inherent =
-							cumulus_primitives_parachain_inherent::ParachainInherentData::create_at(
-								relay_parent,
-								&relay_chain_interface,
-								&validation_data,
-								id,
-							).await;
-                        let time = sp_timestamp::InherentDataProvider::from_system_time();
+            Ok(AuraConsensus::build::<sp_consensus_aura::sr25519::AuthorityPair, _, _, _, _, _, _>(
+                BuildAuraConsensusParams {
+                    proposer_factory,
+                    create_inherent_data_providers: move |_, (relay_parent, validation_data)| {
+                        let relay_chain_interface = relay_chain_interface.clone();
+                        async move {
+                            let parachain_inherent =
+                                cumulus_primitives_parachain_inherent::ParachainInherentData::create_at(
+                                    relay_parent,
+                                    &relay_chain_interface,
+                                    &validation_data,
+                                    id,
+                                ).await;
+                            let time = sp_timestamp::InherentDataProvider::from_system_time();
 
-                        let slot = sp_consensus_aura::inherents::InherentDataProvider::from_timestamp_and_slot_duration(
-							*time,
-							slot_duration,
-						);
+                            let slot =
+                                sp_consensus_aura::inherents::InherentDataProvider::from_timestamp_and_slot_duration(
+                                    *time,
+                                    slot_duration,
+                                );
 
-                        let parachain_inherent = parachain_inherent.ok_or_else(|| {
-                            Box::<dyn std::error::Error + Send + Sync>::from(
-                                "Failed to create parachain inherent",
-                            )
-                        })?;
-                        Ok((time, slot, parachain_inherent))
-                    }
+                            let parachain_inherent = parachain_inherent.ok_or_else(|| {
+                                Box::<dyn std::error::Error + Send + Sync>::from(
+                                    "Failed to create parachain inherent",
+                                )
+                            })?;
+                            Ok((time, slot, parachain_inherent))
+                        }
+                    },
+                    block_import: client.clone(),
+                    para_client: client,
+                    backoff_authoring_blocks: Option::<()>::None,
+                    sync_oracle,
+                    keystore,
+                    force_authoring,
+                    slot_duration,
+                    // We got around 500ms for proposing
+                    block_proposal_slot_portion: SlotProportion::new(1f32 / 24f32),
+                    // And a maximum of 750ms if slots are skipped
+                    max_block_proposal_slot_portion: Some(SlotProportion::new(1f32 / 16f32)),
+                    telemetry,
                 },
-                block_import: client.clone(),
-                para_client: client,
-                backoff_authoring_blocks: Option::<()>::None,
-                sync_oracle,
-                keystore,
-                force_authoring,
-                slot_duration,
-                // We got around 500ms for proposing
-                block_proposal_slot_portion: SlotProportion::new(1f32 / 24f32),
-                // And a maximum of 750ms if slots are skipped
-                max_block_proposal_slot_portion: Some(SlotProportion::new(1f32 / 16f32)),
-                telemetry,
-            }))
+            ))
         },
     )
-    .await
+        .await
 }
