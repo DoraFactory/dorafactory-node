@@ -2,7 +2,7 @@ name: Docker Image
 
 on:
   push:
-    branches: [main]
+    branches: [main, polkadot-*]
     tags:
       - "v*"
       - "staging*"
