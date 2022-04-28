@@ -40,6 +40,7 @@ pallet-scheduler = { default-features = false, git = "https://github.com/parityt
 pallet-preimage = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.18", default-features = false }
 pallet-society = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.18", default-features = false }
 pallet-collective = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.18", default-features = false }
+pallet-treasury = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.18", default-features = false }
 
 ## Substrate Primitive Dependencies
 sp-api = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.18" }
@@ -77,14 +78,14 @@ xcm-executor = { git = "https://github.com/paritytech/polkadot", default-feature
 
 # orml xcmp
 # ORML Dependencies
-orml-currencies = { git = "https://github.com/open-web3-stack/open-runtime-module-library", branch = "master", default-features = false }
-orml-unknown-tokens = { git = "https://github.com/open-web3-stack/open-runtime-module-library", branch = "master", default-features = false }
-orml-tokens = { git = "https://github.com/open-web3-stack/open-runtime-module-library", branch = "master", default-features = false }
-orml-xtokens = { git = "https://github.com/open-web3-stack/open-runtime-module-library", branch = "master", default-features = false }
-orml-xcm-support = { git = "https://github.com/open-web3-stack/open-runtime-module-library", branch = "master", default-features = false }
-orml-xcm = { git = "https://github.com/open-web3-stack/open-runtime-module-library", branch = "master", default-features = false }
-orml-traits = { git = "https://github.com/open-web3-stack/open-runtime-module-library", branch = "master", default-features = false }
-orml-benchmarking = { git = "https://github.com/open-web3-stack/open-runtime-module-library", branch = "master", default-features = false, optional = true}
+orml-currencies = { git = "https://github.com/open-web3-stack/open-runtime-module-library", branch = "polkadot-v0.9.18", default-features = false }
+orml-unknown-tokens = { git = "https://github.com/open-web3-stack/open-runtime-module-library", branch = "polkadot-v0.9.18", default-features = false }
+orml-tokens = { git = "https://github.com/open-web3-stack/open-runtime-module-library", branch = "polkadot-v0.9.18", default-features = false }
+orml-xtokens = { git = "https://github.com/open-web3-stack/open-runtime-module-library", branch = "polkadot-v0.9.18", default-features = false }
+orml-xcm-support = { git = "https://github.com/open-web3-stack/open-runtime-module-library", branch = "polkadot-v0.9.18", default-features = false }
+orml-xcm = { git = "https://github.com/open-web3-stack/open-runtime-module-library", branch = "polkadot-v0.9.18", default-features = false }
+orml-traits = { git = "https://github.com/open-web3-stack/open-runtime-module-library", branch = "polkadot-v0.9.18", default-features = false }
+orml-benchmarking = { git = "https://github.com/open-web3-stack/open-runtime-module-library", branch = "polkadot-v0.9.18", default-features = false, optional = true}
 
 # Dao Dependencies
 dao-core = { git = "https://github.com/DoraFactory/dorafactory-dao-core", branch = "polkadot-v0.9.18", default-features = false }
@@ -177,5 +178,7 @@ std = [
     "pallet-scheduler/std",
     "pallet-preimage/std",
 
-    "primitives/std"
+    "primitives/std",
+
+    "pallet-treasury/std"
 ]
