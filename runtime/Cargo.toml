@@ -40,7 +40,6 @@ pallet-scheduler = { default-features = false, git = "https://github.com/parityt
 pallet-preimage = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.18", default-features = false }
 pallet-society = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.18", default-features = false }
 pallet-collective = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.18", default-features = false }
-pallet-treasury = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.18", default-features = false }
 
 ## Substrate Primitive Dependencies
 sp-api = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.18" }
@@ -179,6 +178,4 @@ std = [
     "pallet-preimage/std",
 
     "primitives/std",
-
-    "pallet-treasury/std"
 ]
