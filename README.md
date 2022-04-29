@@ -6,8 +6,7 @@ A private chain based on substrate, with Frame V2
 ### 1. clone repo
 ```bash
 git clone https://github.com/DoraFactory/dorafactory-node.git
-## checkout to dorafactory-parachain(polkadot-v0.9.17)
-cd dorafactory-node && git checkout dorafactory-parachain
+cd dorafactory-node
 ```
 ### 2. compile and run
 ```
@@ -33,29 +32,29 @@ cargo build --release
 ```
 
 ### modify the paraId
-> we build a prachain Id: `2052`
+> we build a prachain Id: `2115`
 ```
 // --snip--
-  "para_id": 2052, // <--- your already registered ID
+  "para_id": 2115, // <--- your already registered ID
   // --snip--
       "parachainInfo": {
-        "parachainId": 2052 // <--- your already registered ID
+        "parachainId": 2115 // <--- your already registered ID
       },
   // --snip--
 ```
 ### generate a raw chain spec derived from your modified plain chain spec
 ```
-./target/release/dorafactory-node build-spec --chain rococo-local-parachain-plain.json --raw --disable-default-bootnode > rococo-local-parachain-2052-raw.json
+./target/release/dorafactory-node build-spec --chain rococo-local-parachain-plain.json --raw --disable-default-bootnode > rococo-local-parachain-2115-raw.json
 ```
 
 ### obtain the wasm
 ```
-./target/release/dorafactory-node export-genesis-wasm --chain rococo-local-parachain-2052-raw.json > para-2052-wasm
+./target/release/dorafactory-node export-genesis-wasm --chain rococo-local-parachain-2115-raw.json > para-2115-wasm
 ```
 
 ### obtain the genesis state
 ```
-./target/release/dorafactory-node export-genesis-state --chain rococo-local-parachain-2052-raw.json > para-2052-genesis
+./target/release/dorafactory-node export-genesis-state --chain rococo-local-parachain-2115-raw.json > para-2115-genesis
 ```
 
 ### start the collator
@@ -64,7 +63,7 @@ cargo build --release
 --alice \
 --collator \
 --force-authoring \
---chain rococo-local-parachain-2052-raw.json \
+--chain rococo-local-parachain-2115-raw.json \
 --base-path /tmp/parachain/alice \
 --port 40333 \
 --ws-port 8844 \
