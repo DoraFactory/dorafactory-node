@@ -7,7 +7,7 @@ WORKDIR /dorafactory
 
 COPY . /dorafactory
 
-RUN cargo build --$PROFILE --bin $BIN
+# RUN cargo build --$PROFILE --bin $BIN
 
 # ===== SECOND STAGE ======
 
@@ -18,8 +18,8 @@ ARG BIN=dorafactory-node
 
 ENV BIN_PATH=/usr/local/bin/$BIN
 
-COPY --from=builder /dorafactory/target/$PROFILE/$BIN /usr/local/bin
-COPY --from=builder /dorafactory/entrypoint.sh /dorafactory
+#COPY --from=builder /dorafactory/target/$PROFILE/$BIN /usr/local/bin
+
 
 RUN apt update -y \
     && apt install -y ca-certificates libssl-dev \
@@ -29,6 +29,7 @@ RUN apt update -y \
     && chown -R dorafactory:dorafactory /data \
     && ln -s /data /dorafactory/.local/share \
     && chown -R dorafactory:dorafactory /dorafactory/.local/share
+COPY --from=builder /dorafactory/entrypoint.sh /dorafactory
 
 USER dorafactory
 WORKDIR /dorafactory
