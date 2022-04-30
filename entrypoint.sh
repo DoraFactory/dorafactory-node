@@ -1,14 +1,18 @@
- #!/bin/bash
- ./target/release/dorafactory-node \
---alice \
+#!/bin/bash
+PARA_CHAIN="${PARA_CHAIN:-dev}"
+RELAY_CHAIN="${RELAY_CHAIN:-/chain-data/rococo-dev.json}"
+BASE_PATH="${BASE_PATH:-/chain-data/parachain/alice}"
+NODE_NAME="${NODE_NAME:-Alice}"
+
+echo "Starting with config: $PARA_CHAIN, $RELAY_CHAIN, $BASE_PATH, $NODE_NAME"
+dorafactory-node \
+--name $NODE_NAME \
 --collator \
 --force-authoring \
---chain rococo-local-parachain-2052-raw.json \
---base-path /tmp/parachain/alice \
---port 40333 \
---ws-port 8844 \
+--chain $PARA_CHAIN \
+--base-path $BASE_PATH --log=info,xcm=trace,xcm-executor=trace \
+--port 3033 \
+--ws-port 9944 --unsafe-ws-external --rpc-cors all \
 -- \
 --execution wasm \
---chain rococo-local-cfde.json \
---port 30343 \
---ws-port 9977
+--chain $RELAY_CHAIN
