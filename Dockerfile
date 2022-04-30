@@ -7,7 +7,7 @@ WORKDIR /dorafactory
 
 COPY . /dorafactory
 
-# RUN cargo build --$PROFILE --bin $BIN
+RUN cargo build --$PROFILE --bin $BIN
 
 # ===== SECOND STAGE ======
 
@@ -18,7 +18,7 @@ ARG BIN=dorafactory-node
 
 ENV BIN_PATH=/usr/local/bin/$BIN
 
-#COPY --from=builder /dorafactory/target/$PROFILE/$BIN /usr/local/bin
+COPY --from=builder /dorafactory/target/$PROFILE/$BIN /usr/local/bin
 
 
 RUN apt update -y \
