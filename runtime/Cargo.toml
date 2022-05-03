@@ -14,6 +14,7 @@ scale-info = { version = "2.1", default-features = false, features = ["derive"] 
 hex-literal = { version = "0.3.1", optional = true }
 serde = { version = "1.0.136", optional = true, features = ["derive"] }
 smallvec = "1.6.1"
+static_assertions  = { version = "1.1.0" }
 
 # Substrate Dependencies
 ## Substrate FRAME Dependencies
@@ -40,6 +41,12 @@ pallet-scheduler = { default-features = false, git = "https://github.com/parityt
 pallet-preimage = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.19", default-features = false }
 pallet-society = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.19", default-features = false }
 pallet-collective = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.19", default-features = false }
+pallet-membership = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.19", default-features = false }
+pallet-democracy = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.19", default-features = false }
+pallet-treasury = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.19", default-features = false }
+pallet-tips = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.19", default-features = false }
+pallet-bounties = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.19", default-features = false }
+pallet-elections-phragmen = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.19", default-features = false }
 
 ## Substrate Primitive Dependencies
 sp-api = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.19" }
@@ -175,6 +182,13 @@ std = [
 
     "pallet-scheduler/std",
     "pallet-preimage/std",
+    "pallet-collective/std",
+    "pallet-membership/std",
+    "pallet-democracy/std",
+    "pallet-treasury/std",
+    "pallet-tips/std",
+    "pallet-bounties/std",
+    "pallet-elections-phragmen/std",
 
     "primitives/std",
 ]

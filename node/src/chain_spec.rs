@@ -1,6 +1,6 @@
 use cumulus_primitives_core::ParaId;
 use dorafactory_node_runtime::{
-    AccountId, Signature, SudoConfig, TokensConfig, EXISTENTIAL_DEPOSIT,
+    AccountId, Signature, SudoConfig, TokensConfig,ElectionsConfig,TechnicalCommitteeMembershipConfig,EXISTENTIAL_DEPOSIT,
 };
 use frame_benchmarking::{account, whitelisted_caller};
 use frame_support::PalletId;
@@ -17,6 +17,7 @@ use sp_runtime::{
     traits::{AccountIdConversion, IdentifyAccount, Verify},
     AccountId32,
 };
+use primitives::{Balance, UNIT};
 
 // The URL for the telemetry server.
 // const STAGING_TELEMETRY_URL: &str = "wss://telemetry.polkadot.io/submit/";
@@ -111,6 +112,7 @@ pub fn staging_config() -> ChainSpec {
                     ),
                 ],
                 vec![get_root()],
+                vec![],
                 mainnet_para_id.into(),
             )
         },
@@ -175,6 +177,11 @@ pub fn development_config() -> ChainSpec {
                     account("charlie", 0, 0),
                     PalletId(*b"DoraRewa").into_account(),
                 ],
+                vec![
+                    hex!["80b643cd22663a6619e732187f9b6d969d0a3f53ae50bc75921b0f373cfba549"].into(),
+                    hex!["b08026c5beb06a7852609d2cf71c011784f1c8cbcdb7c1169de8a9ad55652635"].into(),
+                    hex!["c6cc43491544a150ec3c23c8c2b1fd9c723b1512dedadc000843e770be37f66a"].into(),
+                ],
                 dev_para_id.into(),
             )
         },
@@ -196,12 +203,17 @@ pub fn development_config() -> ChainSpec {
     )
 }
 
+
 fn dorafactory_genesis(
     root_key: AccountId,
     invulnerables: Vec<(AccountId, AuraId)>,
     endowed_accounts: Vec<AccountId>,
+    tech_accounts: Vec<AccountId>,
     id: ParaId,
 ) -> dorafactory_node_runtime::GenesisConfig {
+    let num_endowed_accounts = endowed_accounts.len();
+    pub const STASH: Balance = 100 * UNIT;
+
     dorafactory_node_runtime::GenesisConfig {
         system: dorafactory_node_runtime::SystemConfig {
             code: dorafactory_node_runtime::WASM_BINARY
@@ -222,7 +234,7 @@ fn dorafactory_genesis(
             ..Default::default()
         },
         session: dorafactory_node_runtime::SessionConfig {
-            keys: invulnerables
+            keys: invulnerables.clone()
                 .into_iter()
                 .map(|(acc, aura)| {
                     (
@@ -243,6 +255,27 @@ fn dorafactory_genesis(
         sudo: SudoConfig {
             key: Some(root_key),
         },
+        council: Default::default(),
+        elections: ElectionsConfig {
+            members: endowed_accounts
+                .iter()
+                .take((num_endowed_accounts + 1) / 2)
+                .cloned()
+                .map(|member| (member, STASH))
+                .collect(),
+        },
+        // general_council: Default::default(),
+        // general_council_membership: GeneralCouncilMembershipConfig {
+        //     members: tech_accounts.clone(),
+        //     phantom: Default::default(),
+        // },
+        technical_committee: Default::default(),
+        technical_committee_membership: TechnicalCommitteeMembershipConfig {
+            members: tech_accounts,
+            phantom: Default::default(),
+        },
+        democracy: Default::default(),
+        treasury: Default::default(),
         dora_rewards: dorafactory_node_runtime::DoraRewardsConfig {
             // set the funds
             funded_amount: 0,
