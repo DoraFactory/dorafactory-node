@@ -1,7 +1,7 @@
 use super::{
-    ksm_per_second, AccountId, Balance, Call, Convert, Currencies, CurrencyId, Event,
-    NativeTreasuryAccount, Origin, ParachainInfo, ParachainSystem, PolkadotXcm, Runtime,
-    TreasuryPalletId, UnknownTokens, Vec, XcmpQueue, MAXIMUM_BLOCK_WEIGHT,
+    ksm_per_second, AccountId, Balance, Call, Convert, Currencies, CurrencyId, Event, Origin,
+    ParachainInfo, ParachainSystem, PolkadotXcm, Runtime, ToTreasury, TreasuryAccount,
+    UnknownTokens, Vec, XcmpQueue, MAXIMUM_BLOCK_WEIGHT,
 };
 use frame_support::{
     match_types, parameter_types,
@@ -14,7 +14,6 @@ use orml_xcm_support::{
 };
 use pallet_xcm::XcmPassthrough;
 use polkadot_parachain::primitives::Sibling;
-use sp_runtime::traits::AccountIdConversion;
 use xcm::latest::prelude::*;
 use xcm_builder::{
     AccountId32Aliases, AllowTopLevelPaidExecutionFrom, AllowUnpaidExecutionFrom, EnsureXcmOrigin,
@@ -99,14 +98,9 @@ pub type LocalAssetTransactor = MultiCurrencyAdapter<
     LocationToAccountId,
     CurrencyId,
     CurrencyIdConvert,
-    DepositToAlternative<NativeTreasuryAccount, Currencies, CurrencyId, AccountId, Balance>,
+    DepositToAlternative<TreasuryAccount, Currencies, CurrencyId, AccountId, Balance>,
 >;
 
-parameter_types! {
-    pub TreasuryAccount: AccountId = TreasuryPalletId::get().into_account();
-}
-
-pub struct ToTreasury;
 impl TakeRevenue for ToTreasury {
     fn take_revenue(revenue: MultiAsset) {
         if let MultiAsset {
