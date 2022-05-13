@@ -337,8 +337,8 @@ impl OnUnbalanced<NegativeImbalance> for DealWithFees {
             if let Some(tips) = fees_then_tips.next() {
                 tips.merge_into(&mut fees);
             }
-            // for fees and tips, 100% to collators
-            <ToStakingPot as OnUnbalanced<_>>::on_unbalanced(fees);
+            // for fees and tips, 100% to treasury
+            <ToTreasury as OnUnbalanced<_>>::on_unbalanced(fees);
         }
     }
 }
@@ -442,11 +442,23 @@ impl pallet_collator_selection::Config for Runtime {
     type WeightInfo = ();
 }
 
-pub struct ToStakingPot;
-impl OnUnbalanced<NegativeImbalance> for ToStakingPot {
+// pub struct ToStakingPot;
+// impl OnUnbalanced<NegativeImbalance> for ToStakingPot {
+//     fn on_nonzero_unbalanced(amount: NegativeImbalance) {
+//         let staking_pot = PotId::get().into_account();
+//         Balances::resolve_creating(&staking_pot, amount);
+//     }
+// }
+
+parameter_types! {
+    pub TreasuryAccount: AccountId = TreasuryPalletId::get().into_account();
+}
+
+pub struct ToTreasury;
+impl OnUnbalanced<NegativeImbalance> for ToTreasury {
     fn on_nonzero_unbalanced(amount: NegativeImbalance) {
-        let staking_pot = PotId::get().into_account();
-        Balances::resolve_creating(&staking_pot, amount);
+        let staking_treasury = TreasuryAccount::get();
+        Balances::resolve_creating(&staking_treasury, amount);
     }
 }
 
@@ -769,7 +781,6 @@ parameter_type_with_key! {
 
 parameter_types! {
     pub ORMLMaxLocks: u32 = 2;
-    pub NativeTreasuryAccount: AccountId = TreasuryPalletId::get().into_account();
 }
 
 impl orml_tokens::Config for Runtime {

@@ -157,12 +157,6 @@ pub fn development_config() -> ChainSpec {
                         get_account_id_from_seed::<sr25519::Public>("Bob"),
                         get_collator_keys_from_seed("Bob"),
                     ),
-                    (
-                        hex!["dc62130bda50fd7d6b526640441c0c623856ad80edd3011b8ce9c160e5a6e144"]
-                            .into(),
-                        hex!["dc62130bda50fd7d6b526640441c0c623856ad80edd3011b8ce9c160e5a6e144"]
-                            .unchecked_into(),
-                    ),
                 ],
                 vec![
                     get_account_id_from_seed::<sr25519::Public>("Bob"),
@@ -230,7 +224,7 @@ fn dorafactory_genesis(
             balances: endowed_accounts
                 .iter()
                 .cloned()
-                .map(|k| (k, 30_000_000_000_000_000))
+                .map(|k| (k, 50_000_000_000_000_000))
                 .collect(),
         },
         parachain_info: dorafactory_node_runtime::ParachainInfoConfig { parachain_id: id },
