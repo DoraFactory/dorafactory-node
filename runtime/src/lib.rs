@@ -532,7 +532,7 @@ pub type EnsureRootOrTwoThirdsTechnicalCommittee = EnsureOneOf<
 >;
 
 parameter_types! {
-	pub const CouncilMotionDuration: BlockNumber = 1 * HOURS;
+	pub const CouncilMotionDuration: BlockNumber = 3 * MINUTES;
 	pub const CouncilMaxProposals: u32 = 100;
 	pub const CouncilMaxMembers: u32 = 100;
 }
@@ -558,7 +558,7 @@ parameter_types! {
 	pub const VotingBondBase: Balance = 1 * UNIT;
 	// additional data per vote is 32 bytes (account id).
 	pub const VotingBondFactor: Balance = 1 * UNIT;
-	pub const TermDuration: BlockNumber = 1 * HOURS;
+	pub const TermDuration: BlockNumber = 5 * MINUTES;
 	pub const DesiredMembers: u32 = 13;
 	pub const DesiredRunnersUp: u32 = 7;
 	pub const ElectionsPhragmenPalletId: LockIdentifier = *b"phrelect";
@@ -588,7 +588,7 @@ impl pallet_elections_phragmen::Config for Runtime {
 }
 
 parameter_types! {
-	pub const TechnicalCommitteeMotionDuration: BlockNumber = 3 * DAYS;
+	pub const TechnicalCommitteeMotionDuration: BlockNumber = 3 * MINUTES;
 }
 
 impl pallet_collective::Config<TechnicalCommitteeInstance> for Runtime {
@@ -641,74 +641,6 @@ impl ContainsLengthBound for GeneralCouncilProvider {
 }
 
 parameter_types! {
-	pub const ProposalBond: Permill = Permill::from_percent(5);
-	pub ProposalBondMinimum: Balance = 5 * DOLLARS;
-	pub ProposalBondMaximum: Balance = 25 * DOLLARS;
-	pub const SpendPeriod: BlockNumber = 7 * DAYS;
-	pub const Burn: Permill = Permill::from_percent(0);
-
-	pub const TipCountdown: BlockNumber = DAYS;
-	pub const TipFindersFee: Percent = Percent::from_percent(5);
-	pub TipReportDepositBase: Balance = 1 * DOLLARS;
-	pub BountyDepositBase: Balance = 1 * DOLLARS;
-	pub const BountyDepositPayoutDelay: BlockNumber = 4 * DAYS;
-	pub const BountyUpdatePeriod: BlockNumber = 35 * DAYS;
-	pub const CuratorDepositMultiplier: Permill = Permill::from_percent(50);
-	pub CuratorDepositMin: Balance = DOLLARS;
-	pub CuratorDepositMax: Balance = 100 * DOLLARS;
-	pub BountyValueMinimum: Balance = 5 * DOLLARS;
-	pub DataDepositPerByte: Balance = 10 * CENTS;
-	pub const MaximumReasonLength: u32 = 8192;
-
-	pub const SevenDays: BlockNumber = 7 * DAYS;
-	pub const OneDay: BlockNumber = DAYS;
-}
-
-impl pallet_treasury::Config for Runtime {
-    type PalletId = TreasuryPalletId;
-    type Currency = Balances;
-    type ApproveOrigin = EnsureRootOrHalfGeneralCouncil;
-    type RejectOrigin = EnsureRootOrHalfGeneralCouncil;
-    type Event = Event;
-    type OnSlash = Treasury;
-    type ProposalBond = ProposalBond;
-    type ProposalBondMinimum = ProposalBondMinimum;
-    type ProposalBondMaximum = ProposalBondMaximum;
-    type SpendPeriod = SpendPeriod;
-    type Burn = Burn;
-    type BurnDestination = ();
-    type SpendFunds = Bounties;
-    type WeightInfo = ();
-    type MaxApprovals = ConstU32<30>;
-}
-
-impl pallet_bounties::Config for Runtime {
-    type Event = Event;
-    type BountyDepositBase = BountyDepositBase;
-    type BountyDepositPayoutDelay = BountyDepositPayoutDelay;
-    type BountyUpdatePeriod = BountyUpdatePeriod;
-    type BountyValueMinimum = BountyValueMinimum;
-    type CuratorDepositMultiplier = CuratorDepositMultiplier;
-    type CuratorDepositMin = CuratorDepositMin;
-    type CuratorDepositMax = CuratorDepositMax;
-    type DataDepositPerByte = DataDepositPerByte;
-    type MaximumReasonLength = MaximumReasonLength;
-    type WeightInfo = ();
-    type ChildBountyManager = ();
-}
-
-impl pallet_tips::Config for Runtime {
-    type Event = Event;
-    type DataDepositPerByte = DataDepositPerByte;
-    type MaximumReasonLength = MaximumReasonLength;
-    type Tippers = GeneralCouncilProvider;
-    type TipCountdown = TipCountdown;
-    type TipFindersFee = TipFindersFee;
-    type TipReportDepositBase = TipReportDepositBase;
-    type WeightInfo = ();
-}
-
-parameter_types! {
 	pub const LaunchPeriod: BlockNumber = 5 * MINUTES;
 	pub const VotingPeriod: BlockNumber = 5 * MINUTES;
 	pub const FastTrackVotingPeriod: BlockNumber = 2 * MINUTES;
@@ -717,7 +649,6 @@ parameter_types! {
 	pub const VoteLockingPeriod: BlockNumber = 7 * MINUTES;
 	pub const CooloffPeriod: BlockNumber = 7 * MINUTES;
 }
-
 
 impl pallet_democracy::Config for Runtime {
     type Proposal = Call;
@@ -753,11 +684,10 @@ impl pallet_democracy::Config for Runtime {
     type CooloffPeriod = CooloffPeriod;
     type PreimageByteDeposit = PreimageByteDeposit;
     type OperationalPreimageOrigin = pallet_collective::EnsureMember<AccountId, GeneralCouncilInstance>;
-    type Slash = Treasury;
+    type Slash = DealWithFees;
     type Scheduler = Scheduler;
     type PalletsOrigin = OriginCaller;
     type MaxVotes = ConstU32<100>;
-    //TODO: might need to weight for Karura
     type WeightInfo = pallet_democracy::weights::SubstrateWeight<Runtime>;
     type MaxProposals = ConstU32<100>;
 }
@@ -924,9 +854,6 @@ construct_runtime!(
 		TechnicalCommittee: pallet_collective::<Instance2> = 52,
 		TechnicalCommitteeMembership: pallet_membership::<Instance2> = 53,
 		Democracy: pallet_democracy = 54,
-        Treasury: pallet_treasury = 55,
-		Bounties: pallet_bounties = 56,
-		Tips: pallet_tips = 57,
 
         // Include the custom pallet in the runtime.
         QuadraticFunding: pallet_qf::{Pallet, Call, Storage, Event<T>} = 60,
