@@ -16,12 +16,18 @@ frame-system = { default-features = false, git = "https://github.com/paritytech/
 frame-benchmarking = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.19", optional = true }
 pallet-balances = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.19" }
 sp-runtime = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.19" }
+sp-core = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.19" }
+sp-io = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.19" }
 sp-std = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.19" }
 log = {default-features = false, version ="0.4.14"}
 
+# cumulus
+cumulus-primitives-core = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.19", default-features = false, optional = true}
+cumulus-pallet-parachain-system = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.19", default-features = false, optional = true }
+cumulus-primitives-parachain-inherent = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.19", default-features = false, optional = true }
+
 [dev-dependencies]
-sp-core = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.19" }
-sp-io = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.19" }
+cumulus-test-relay-sproof-builder = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.19" }
 
 [features]
 default = ["std"]
@@ -32,8 +38,16 @@ std = [
 	"frame-system/std",
 	"frame-benchmarking/std",
 	"pallet-balances/std",
+	"cumulus-pallet-parachain-system/std",
+    "cumulus-primitives-core/std",
+    "cumulus-primitives-parachain-inherent/std",
 	"sp-std/std",
 	"sp-runtime/std",
 ]
-runtime-benchmarks = ["frame-benchmarking"]
+runtime-benchmarks = [
+	"frame-benchmarking",
+	"cumulus-primitives-core",
+    "cumulus-pallet-parachain-system",
+    "cumulus-primitives-parachain-inherent",
+]
 try-runtime = ["frame-support/try-runtime"]

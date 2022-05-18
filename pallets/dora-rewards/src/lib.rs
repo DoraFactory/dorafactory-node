@@ -1,11 +1,62 @@
+// Copyright 2019-2022 DoraFactory Inc.
+// This file is part of DoraFactory.
+
+// DoraFactory is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// DoraFactory is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with Moonbeam.  If not, see <http://www.gnu.org/licenses/>.
+
+//! # Crowdloan Rewards Pallet
+//!
+//! This pallet issues rewards to citizens who participated in a crowdloan on the backing relay
+//! chain (eg Kusama) in order to help this parachain acquire a parachain slot.
+//!
+//! ## Monetary Policy
+//!
+//! This is simple and mock for now. We can do whatever we want.
+//! This pallet stores a constant  "reward ratio" which is the number of reward tokens to pay per
+//! contributed token. In our cases this is "3",.
+//! Vesting is also linear. No tokens are vested at genesis and they unlock linearly until a
+//! predecided block number. Vesting computations happen on demand when payouts are requested. So
+//! no block weight is ever wasted on this, and there is no "base-line" cost of updating vestings.
+//! Like I said, we can anything we want there. Even a non-linear reward curve to disincentivize
+//! whales.
+//!
+//! ## Payout Mechanism
+//!
+//! The current payout mechanism requires contributors to claim their payouts. Because they are
+//! paying the transaction fees for this themselves, they can do it as often as every block, or
+//! wait and claim the entire thing once it is fully vested. We could consider auto payouts if we
+//! want.
+//!
+//! ## Sourcing Contribution Information
+//!
+//! The pallet can learn about the crowdloan contributions in several ways.
+//!
+//! * **Through the initialize_reward_vec extrinsic*
+//!
+//! The simplest way is to call the initialize_contributors_list through sudo call.
+//! This makes sense in a scenario where the crowdloan took place entirely offchain.
+//! This extrinsic initializes the associated and unassociated stoerage with the provided data
+//!
+
 #![cfg_attr(not(feature = "std"), no_std)]
 
 pub use pallet::*;
-
 mod benchmarking;
-
+#[cfg(test)]
+pub(crate) mod mock;
+#[cfg(test)]
+mod tests;
 pub mod weights;
-
 pub use weights::WeightInfo;
 
 #[frame_support::pallet]
@@ -14,7 +65,7 @@ pub mod pallet {
     use frame_support::{
         dispatch::DispatchResult,
         pallet_prelude::*,
-        traits::{Currency, ExistenceRequirement, ReservableCurrency},
+        traits::{Currency, ExistenceRequirement},
         PalletId,
     };
     use frame_system::pallet_prelude::*;
@@ -37,30 +88,28 @@ pub mod pallet {
 
     #[pallet::config]
     pub trait Config: frame_system::Config {
+        /// The overarching event type
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
-
-        type Currency: Currency<Self::AccountId> + ReservableCurrency<Self::AccountId>;
-
-        // tracking the vesting process
+        /// The currency in which the rewards will be paid (probably the parachain native currency)
+        type Currency: Currency<Self::AccountId>;
+        /// tracking the vesting process
         type VestingBlockNumber: AtLeast32BitUnsigned + Parameter + Default + Into<BalanceOf<Self>>;
-
-        // get the blocknumber by this provider
+        /// The notion of time that will be used for vesting. Probably
+        /// either the relay chain or sovereign chain block number.
         type VestingBlockProvider: BlockNumberProvider<BlockNumber = Self::VestingBlockNumber>;
-
-        // the first reward percentage of total reward
+        /// the first reward percentage of total reward
         type FirstVestPercentage: Get<Perbill>;
-
-        // this parameter control the max contributor list length
+        /// this parameter control the max contributor list length
         #[pallet::constant]
         type MaxContributorsNumber: Get<u32>;
-
-        /// Infomation on runtime weights.
+        /// runtime weights.
         type WeightInfo: WeightInfo;
     }
 
-    //
-    // record the contributor's reward info
-    //
+    /// Record the contributor's reward info
+    /// - total_reward: the total reward balance based on the contribution(contribution * 3)
+    /// - claimed_reward: the balance claimed by the current account
+    /// - track_block_number: the block number where the reward was last claimed
     #[derive(Default, Clone, Encode, Decode, RuntimeDebug, PartialEq, scale_info::TypeInfo)]
     #[scale_info(skip_type_params(T))]
     pub struct RewardInfo<T: Config> {
@@ -81,7 +130,12 @@ pub mod pallet {
     /// Vesting block height at the initialization of the pallet
     type EndVestingBlock<T: Config> = StorageValue<_, T::VestingBlockNumber, ValueQuery>;
 
-    // record contributor's info (total reward, claimed reward, claim linear block track)
+    #[pallet::storage]
+	#[pallet::getter(fn total_contributors)]
+	/// store total number of contributors
+	type TotalContributors<T: Config> = StorageValue<_, u32, ValueQuery>;
+
+    /// Record contributor's info (total reward, claimed reward, track block number)
     #[pallet::storage]
     #[pallet::getter(fn rewards_info)]
     type ContributorsInfo<T: Config> =
@@ -90,38 +144,37 @@ pub mod pallet {
     // Errors.
     #[pallet::error]
     pub enum Error<T> {
-        // invalid account (not exist in contributor list)
+        /// Invalid contributor account (not exist in contributor list)
         NotInContributorList,
-        // No setting in Ending lease block
+        /// Not set the Ending lease block
         NotSettingEndingLeaseBlock,
-        // Ending lease block setting error
+        /// Ending lease block setting invalid (should higher than the init block)
         InvalidEndingLeaseBlock,
-        // claimed all the reward
+        /// current account claimed all the reward, no reward left
         NoLeftRewards,
-        // exceed the contributor number
+        /// too many contributors when put the contributor list into the storage
         TooManyContributors,
+        /// no contributor in the list
+        NoContributorInList,
     }
 
     #[pallet::event]
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
     pub enum Event<T: Config> {
-        // update contributor's reward info(accountId, claimed reward, left reward)
+        /// update contributor's reward info (accountId, claimed reward, left reward)
         UpdateContributorsInfo(T::AccountId, BalanceOf<T>, BalanceOf<T>),
-        // distribute Vest <source account, destination account, amount>
+        /// distribute reward (source account, destination account, amount)
         DistributeReward(T::AccountId, T::AccountId, BalanceOf<T>),
-        // set end lease block
+        /// set the ending lease block
         EndleasingBlock(T::VestingBlockNumber),
     }
 
-    //
-    // Question: how many accounts can be distributed in one block, that is very important.
-    // i think we can set four accounts in one block to test.
-    //
+    // This hook is in charge of initializing the vesting height at the first block of the parachain
     #[pallet::hooks]
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
         fn on_finalize(n: <T as frame_system::Config>::BlockNumber) {
-            // record the block number in relaychain when our parachain launch it.
-            // this time means our reward is starting...
+            // record the block number of relaychain when our parachain launch it as the InitVestingBlock number
+            // at this time, our reward computation is starting...
             if n == 1u32.into() {
                 <InitVestingBlock<T>>::put(T::VestingBlockProvider::current_block_number());
             }
@@ -130,7 +183,7 @@ pub mod pallet {
 
     #[pallet::genesis_config]
     pub struct GenesisConfig<T: Config> {
-        /// The amount of funds this pallet controls
+        /// The amount of funds in this pallet
         pub funded_amount: BalanceOf<T>,
     }
 
@@ -145,7 +198,7 @@ pub mod pallet {
 
     #[pallet::genesis_build]
     impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
-        // This sets the pre-funds of this Reward pallet
+        // This sets the pre-funds of this Reward pallet(In DORA, we set 0. this pallet's fund will transfered by the sudo account)
         fn build(&self) {
             T::Currency::deposit_creating(&Pallet::<T>::account_id(), self.funded_amount);
         }
@@ -153,31 +206,34 @@ pub mod pallet {
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
-        /// provid contributors claim for their rewards
+        /// contributors claim their rewards by this call
         #[pallet::weight(T::WeightInfo::claim_rewards())]
         pub fn claim_rewards(origin: OriginFor<T>) -> DispatchResult {
             let who = ensure_signed(origin)?;
-            // check current acccount is in the contributor list ?
-            // if exist, get his reward info
+            // ensure three things:
+            // check current acccount is in contributor list
+            // if exist, have the access to claim his reward
             let contribute_info =
                 <ContributorsInfo<T>>::get(who.clone()).ok_or(Error::<T>::NotInContributorList)?;
 
-            // ensure we have set the ending lease block
+            // ensure we have set the ending lease block, which means we can start claiming
+            // TODO:consider replace
             ensure!(
                 <EndVestingBlock<T>>::get() != 0u32.into(),
                 <Error<T>>::NotSettingEndingLeaseBlock,
             );
 
-            // if contributor's claimed reward reach his total reward, don't send DORA
+            // if contributor's claimed reward reach his total reward, no rewards will distribute to them
             ensure!(
                 contribute_info.claimed_reward < contribute_info.total_reward,
                 <Error<T>>::NoLeftRewards,
             );
-
-            // compute the total linear reward block(ending lease - start lease)
+            // all the check passed, compute the reward will distribute.
+            // compute the total linear reward block(ending lease block- init lease block)
             let total_reward_period = <EndVestingBlock<T>>::get() - <InitVestingBlock<T>>::get();
 
-            // if current block height bigger than ending lease block ? this operation need??
+            // Get the current block used for vesting purposes and check the current block number is in the lease.
+            // if in the lease, the computation baseline is current blocknumber, otherwise is EndVestingBlock
             let now =
                 if T::VestingBlockProvider::current_block_number() >= <EndVestingBlock<T>>::get() {
                     <EndVestingBlock<T>>::get()
@@ -185,23 +241,25 @@ pub mod pallet {
                     T::VestingBlockProvider::current_block_number()
                 };
 
-            // compute the fist reward with total reward by the percentage
+            // the fist reward distributed to the contributor by the percentage(this percent currently is 20%) total reward
+            // as you can see, if you contribute more, the more first reward you will claim
             let first_reward = T::FirstVestPercentage::get() * contribute_info.total_reward;
-
+            
+            // the linear reward indeed
             let left_linear_reward = contribute_info.total_reward - first_reward;
-
+            // compute the linear block period by the last tracked block number
             let curr_linear_reward_period = now
                 .clone()
                 .saturating_sub(contribute_info.track_block_number.clone());
+            // compute the linear reward by the linear block period
             let current_linear_reward = left_linear_reward
                 .saturating_mul(curr_linear_reward_period.into())
                 / total_reward_period.into();
 
-            // Get the current left reward
+            // Get the comming reward
             let coming_reward = if contribute_info.claimed_reward == 0u32.into() {
                 // if current user never claim the rewards, distribute `fisrt reward` + `current
-                // linear block reward`. Get the linear reward block number from the first block to
-                // current block
+                // linear block reward`. 
 
                 // update the claimed reward and track block number
                 let new_contribute_info = RewardInfo {
@@ -240,7 +298,7 @@ pub mod pallet {
                 }
             };
 
-            // distribute current reward to contributor
+            // distribute comming reward to contributor
             Self::distribute_to_contributors(who.clone(), coming_reward.saturated_into::<u128>())?;
             Self::deposit_event(<Event<T>>::DistributeReward(
                 Self::account_id(),
@@ -250,34 +308,46 @@ pub mod pallet {
             Ok(().into())
         }
 
-        ///  step 1:
-        ///  set a contributors rewards info
+        ///  Initialize contributor's rewards info which is a contributors vec
         ///  this operation should be execute by sudo user
         #[pallet::weight(T::WeightInfo::initialize_contributors_list())]
         pub fn initialize_contributors_list(
             origin: OriginFor<T>,
-            //import contributor list
             contributor_list: Vec<(T::AccountId, BalanceOf<T>)>,
         ) -> DispatchResult {
             ensure_root(origin)?;
-            // ensure don;t exceed contributor list length
+            // ensure the number don't exceed contributor list length
             ensure!(
                 contributor_list.len() as u32 <= T::MaxContributorsNumber::get(),
                 <Error<T>>::TooManyContributors,
             );
+
+            // no contributor in the list which will be inserted into the store
+            ensure!(
+                contributor_list.len() as u32 > 0u32,
+                <Error<T>>::NoContributorInList,
+            );
+
+            // Total number of contributors
+			let mut total_contributors = TotalContributors::<T>::get();
+
             // update the contributors list
             for (contributor_account, contribution_value) in &contributor_list {
                 // compute contributor's total rewards
                 let total_reward = (contribution_value.saturating_mul(3u32.into()))
                     .saturated_into::<BalanceOf<T>>();
                 // initialize the contrbutor's rewards info
-                log::info!("Initializing block is :{:?}", <InitVestingBlock<T>>::get());
+                // default: claimed_reward is 0, track_block_number is the InitVestingBlock
                 let reward_info = RewardInfo {
                     total_reward,
                     claimed_reward: 0u128.saturated_into::<BalanceOf<T>>(),
                     track_block_number: <InitVestingBlock<T>>::get(),
                 };
+                // insert the contributor info
                 <ContributorsInfo<T>>::insert(contributor_account.clone(), reward_info.clone());
+                // update the total contributors number
+                total_contributors += 1;
+                TotalContributors::<T>::put(total_contributors);
                 Self::deposit_event(Event::UpdateContributorsInfo(
                     contributor_account.clone(),
                     total_reward,
@@ -288,15 +358,15 @@ pub mod pallet {
             Ok(().into())
         }
 
-        ///  step2:
-        ///  check the lease ending block
+        /// Update the ending lease block
         #[pallet::weight(T::WeightInfo::complete_initialization())]
         pub fn complete_initialization(
             origin: OriginFor<T>,
             lease_ending_block: T::VestingBlockNumber,
         ) -> DispatchResult {
+            // only sudo
             ensure_root(origin)?;
-            // ending lease block should higher than the init lease block, invalid setting will cause overflow
+            // ending lease block should higher than the init lease block
             ensure!(
                 lease_ending_block > <InitVestingBlock<T>>::get(),
                 <Error<T>>::InvalidEndingLeaseBlock,
@@ -310,10 +380,7 @@ pub mod pallet {
     }
 
     impl<T: Config> Pallet<T> {
-        /// The account ID of the treasury pot.
-        ///
-        /// This actually does computation. If you need to keep using it, then make sure you cache
-        /// the value and only call this once.
+        // get the pallet's account
         pub fn account_id() -> T::AccountId {
             PALLET_ID.into_account()
         }
