@@ -28,8 +28,8 @@ use frame_support::{
     parameter_types,
     traits::{ConstU32, GenesisBuild, Nothing, OnFinalize, OnInitialize},
 };
-use frame_system::{EnsureSigned, RawOrigin};
-use sp_core::{ed25519, Pair, H256};
+use frame_system::RawOrigin;
+use sp_core::H256;
 use sp_io;  
 use sp_runtime::{
     testing::Header,

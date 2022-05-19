@@ -246,7 +246,7 @@ pub mod pallet {
             let first_reward = T::FirstVestPercentage::get() * contribute_info.total_reward;
             
             // the linear reward indeed
-            let left_linear_reward = contribute_info.total_reward - first_reward;
+            let left_linear_reward = contribute_info.total_reward.saturating_sub(first_reward);
             // compute the linear block period by the last tracked block number
             let curr_linear_reward_period = now
                 .clone()
@@ -380,12 +380,12 @@ pub mod pallet {
     }
 
     impl<T: Config> Pallet<T> {
-        // get the pallet's account
+        /// get the pallet's account
         pub fn account_id() -> T::AccountId {
             PALLET_ID.into_account()
         }
 
-        // distributed by Pallet account
+        /// distributed by Pallet account
         pub fn distribute_to_contributors(
             contributor_account: T::AccountId,
             value: u128,
