@@ -224,13 +224,13 @@ fn claim_reward_step_by_step(){
         // 960 + 960 * ((8 - 7) / 8) = 1080
         assert_eq!(DoraRewards::rewards_info(&4).unwrap().claimed_reward, 1080);
 
-        roll_to(10);
+        roll_to(12);
         assert_ok!(DoraRewards::claim_rewards(Origin::signed(4)));
         // 1080 + 960 * ((8 - 7) / 8) = 1200
         assert_eq!(DoraRewards::rewards_info(&4).unwrap().claimed_reward, 1200);
 
         // no rewards left
-        roll_to(11);
+        roll_to(13);
 		assert_noop!(
 			DoraRewards::claim_rewards(Origin::signed(4)),
 			Error::<Test>::NoLeftRewards
@@ -270,7 +270,7 @@ fn floating_point_arithmetic_works() {
             DoraRewards::initialize_contributors_list(
                 Origin::root(),
                 vec![
-                    (4, 1190u32.into()), 
+                    (4, 22u32.into()), 
                     (5, 1185u32.into()), 
                     (3, 25u32.into()),          // will receive 75 
                 ]
@@ -322,6 +322,7 @@ fn floating_point_arithmetic_works() {
 			44u128
 		);
 
+        // pay 7.5 * 4 = 30, and have 1 left
         roll_to(10);
 		assert_ok!(DoraRewards::claim_rewards(Origin::signed(3)));
 		assert_eq!(
@@ -329,18 +330,46 @@ fn floating_point_arithmetic_works() {
 			74u128
 		);
 
+        // get the left reward, pay 1
         roll_to(11);
 		assert_ok!(DoraRewards::claim_rewards(Origin::signed(3)));
 		assert_eq!(
 			DoraRewards::rewards_info(&3).unwrap().claimed_reward,
-			74u128
+			75u128
 		);
 
+        roll_to(12);
+        assert_noop!(
+            DoraRewards::claim_rewards(Origin::signed(3)),
+            Error::<Test>::NoLeftRewards
+        );
+
+        // test account 4
+        assert_eq!(
+			DoraRewards::rewards_info(&4).unwrap().claimed_reward,
+			0u128
+		);
+        assert_ok!(DoraRewards::claim_rewards(Origin::signed(4)));
+		assert_eq!(
+			DoraRewards::rewards_info(&4).unwrap().claimed_reward,
+			66u128
+		);
+
+        // test account 5
+        assert_eq!(
+			DoraRewards::rewards_info(&5).unwrap().claimed_reward,
+			0u128
+		);
         assert_ok!(DoraRewards::claim_rewards(Origin::signed(5)));
 		assert_eq!(
 			DoraRewards::rewards_info(&5).unwrap().claimed_reward,
 			3555u128
 		);
+
+        assert_noop!(
+            DoraRewards::claim_rewards(Origin::signed(5)),
+            Error::<Test>::NoLeftRewards
+        );
 	});
 }
 

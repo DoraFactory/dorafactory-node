@@ -131,9 +131,9 @@ pub mod pallet {
     type EndVestingBlock<T: Config> = StorageValue<_, T::VestingBlockNumber, ValueQuery>;
 
     #[pallet::storage]
-	#[pallet::getter(fn total_contributors)]
-	/// store total number of contributors
-	type TotalContributors<T: Config> = StorageValue<_, u32, ValueQuery>;
+    #[pallet::getter(fn total_contributors)]
+    /// store total number of contributors
+    type TotalContributors<T: Config> = StorageValue<_, u32, ValueQuery>;
 
     /// Record contributor's info (total reward, claimed reward, track block number)
     #[pallet::storage]
@@ -217,7 +217,6 @@ pub mod pallet {
                 <ContributorsInfo<T>>::get(who.clone()).ok_or(Error::<T>::NotInContributorList)?;
 
             // ensure we have set the ending lease block, which means we can start claiming
-            // TODO:consider replace
             ensure!(
                 <EndVestingBlock<T>>::get() != 0u32.into(),
                 <Error<T>>::NotSettingEndingLeaseBlock,
@@ -234,21 +233,24 @@ pub mod pallet {
 
             // Get the current block used for vesting purposes and check the current block number is in the lease.
             // if in the lease, the computation baseline is current blocknumber, otherwise is EndVestingBlock
-            let now =
+            let track_now =
                 if T::VestingBlockProvider::current_block_number() >= <EndVestingBlock<T>>::get() {
                     <EndVestingBlock<T>>::get()
                 } else {
                     T::VestingBlockProvider::current_block_number()
                 };
 
+            // Get the current block used for vesting purposes
+            let now = T::VestingBlockProvider::current_block_number();
+
             // the fist reward distributed to the contributor by the percentage(this percent currently is 20%) total reward
             // as you can see, if you contribute more, the more first reward you will claim
             let first_reward = T::FirstVestPercentage::get() * contribute_info.total_reward;
-            
+
             // the linear reward indeed
             let left_linear_reward = contribute_info.total_reward.saturating_sub(first_reward);
             // compute the linear block period by the last tracked block number
-            let curr_linear_reward_period = now
+            let curr_linear_reward_period = track_now
                 .clone()
                 .saturating_sub(contribute_info.track_block_number.clone());
             // compute the linear reward by the linear block period
@@ -259,7 +261,7 @@ pub mod pallet {
             // Get the comming reward
             let coming_reward = if contribute_info.claimed_reward == 0u32.into() {
                 // if current user never claim the rewards, distribute `fisrt reward` + `current
-                // linear block reward`. 
+                // linear block reward`.
 
                 // update the claimed reward and track block number
                 let new_contribute_info = RewardInfo {
@@ -267,12 +269,7 @@ pub mod pallet {
                     claimed_reward: first_reward + current_linear_reward,
                     track_block_number: now.clone(),
                 };
-                <ContributorsInfo<T>>::insert(who.clone(), new_contribute_info);
-                Self::deposit_event(<Event<T>>::UpdateContributorsInfo(
-                    who.clone(),
-                    contribute_info.total_reward,
-                    first_reward + current_linear_reward,
-                ));
+                Self::update_contribute_info(who.clone(), new_contribute_info);
                 first_reward + current_linear_reward
             } else {
                 // if current user have got some rewards, but the lease is not ending, get the
@@ -280,7 +277,14 @@ pub mod pallet {
                 // track block number
 
                 // if reach or higher the end lease block, the claimed reward < total reward, distribute the left reward
-                if contribute_info.track_block_number >= <EndVestingBlock<T>>::get() {
+                if now > <EndVestingBlock<T>>::get() {
+                    let new_contribute_info = RewardInfo {
+                        total_reward: contribute_info.total_reward,
+                        claimed_reward: contribute_info.claimed_reward
+                            + (contribute_info.total_reward - contribute_info.claimed_reward),
+                        track_block_number: now.clone(),
+                    };
+                    Self::update_contribute_info(who.clone(), new_contribute_info);
                     contribute_info.total_reward - contribute_info.claimed_reward
                 } else {
                     let new_contribute_info = RewardInfo {
@@ -288,12 +292,7 @@ pub mod pallet {
                         claimed_reward: contribute_info.claimed_reward + current_linear_reward,
                         track_block_number: now.clone(),
                     };
-                    <ContributorsInfo<T>>::insert(who.clone(), new_contribute_info);
-                    Self::deposit_event(<Event<T>>::UpdateContributorsInfo(
-                        who.clone(),
-                        contribute_info.total_reward,
-                        contribute_info.claimed_reward + current_linear_reward,
-                    ));
+                    Self::update_contribute_info(who.clone(), new_contribute_info);
                     current_linear_reward
                 }
             };
@@ -329,7 +328,7 @@ pub mod pallet {
             );
 
             // Total number of contributors
-			let mut total_contributors = TotalContributors::<T>::get();
+            let mut total_contributors = TotalContributors::<T>::get();
 
             // update the contributors list
             for (contributor_account, contribution_value) in &contributor_list {
@@ -345,14 +344,14 @@ pub mod pallet {
                 };
                 // insert the contributor info
                 <ContributorsInfo<T>>::insert(contributor_account.clone(), reward_info.clone());
-                // update the total contributors number
-                total_contributors += 1;
-                TotalContributors::<T>::put(total_contributors);
                 Self::deposit_event(Event::UpdateContributorsInfo(
                     contributor_account.clone(),
                     total_reward,
                     0u128.saturated_into::<BalanceOf<T>>(),
                 ));
+                // update the total contributors number
+                total_contributors += 1;
+                TotalContributors::<T>::put(total_contributors);
             }
 
             Ok(().into())
@@ -397,6 +396,17 @@ pub mod pallet {
                 ExistenceRequirement::AllowDeath,
             )?;
             Ok(().into())
+        }
+
+        /// update the contributor's info
+        pub fn update_contribute_info(contributor: T::AccountId, reward_info: RewardInfo<T>) {
+            // insert the contributor info
+            <ContributorsInfo<T>>::insert(contributor.clone(), reward_info.clone());
+            Self::deposit_event(Event::<T>::UpdateContributorsInfo(
+                contributor.clone(),
+                reward_info.total_reward,
+                reward_info.claimed_reward,
+            ));
         }
     }
 }
