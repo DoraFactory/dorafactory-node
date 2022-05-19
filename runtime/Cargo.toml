@@ -43,10 +43,8 @@ pallet-society = { git = "https://github.com/paritytech/substrate", branch = "po
 pallet-collective = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.19", default-features = false }
 pallet-membership = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.19", default-features = false }
 pallet-democracy = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.19", default-features = false }
-pallet-treasury = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.19", default-features = false }
-pallet-tips = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.19", default-features = false }
-pallet-bounties = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.19", default-features = false }
 pallet-elections-phragmen = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.19", default-features = false }
+pallet-utility = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.19", default-features = false }
 
 ## Substrate Primitive Dependencies
 sp-api = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.19" }
@@ -144,6 +142,7 @@ std = [
     "pallet-collator-selection/std",
     "pallet-session/std",
     "pallet-timestamp/std",
+    "pallet-utility/std",
     "pallet-transaction-payment-rpc-runtime-api/std",
     "pallet-transaction-payment/std",
     "sp-api/std",
@@ -185,9 +184,6 @@ std = [
     "pallet-collective/std",
     "pallet-membership/std",
     "pallet-democracy/std",
-    "pallet-treasury/std",
-    "pallet-tips/std",
-    "pallet-bounties/std",
     "pallet-elections-phragmen/std",
 
     "primitives/std",

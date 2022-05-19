@@ -19,7 +19,7 @@ use sp_runtime::{
     create_runtime_str, generic, impl_opaque_keys,
     traits::{AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT, Convert},
     transaction_validity::{TransactionSource, TransactionValidity},
-    ApplyExtrinsicResult, Percent
+    ApplyExtrinsicResult,
 };
 
 use sp_std::prelude::*;
@@ -29,7 +29,11 @@ use sp_version::RuntimeVersion;
 
 use frame_support::{
     construct_runtime, parameter_types,
-    traits::{Currency, EqualPrivilegeOnly,LockIdentifier,U128CurrencyToVote,SortedMembers,ConstBool, Everything, Imbalance, Nothing, OnUnbalanced, ConstU32, EnsureOneOf, ContainsLengthBound},
+    traits::{
+        ConstBool, ConstU32, ContainsLengthBound, Currency, EnsureOneOf, EqualPrivilegeOnly,
+        Everything, Imbalance, LockIdentifier, Nothing, OnUnbalanced, SortedMembers,
+        U128CurrencyToVote,
+    },
     weights::{
         constants::WEIGHT_PER_SECOND, ConstantMultiplier, DispatchClass, Weight,
         WeightToFeeCoefficient, WeightToFeeCoefficients, WeightToFeePolynomial,
@@ -250,6 +254,13 @@ impl frame_system::Config for Runtime {
     /// The action to take on a Runtime Upgrade
     type OnSetCode = cumulus_pallet_parachain_system::ParachainSetCode<Self>;
     type MaxConsumers = frame_support::traits::ConstU32<16>;
+}
+
+impl pallet_utility::Config for Runtime {
+    type Event = Event;
+    type Call = Call;
+    type PalletsOrigin = OriginCaller;
+    type WeightInfo = pallet_utility::weights::SubstrateWeight<Runtime>;
 }
 
 parameter_types! {
@@ -544,9 +555,9 @@ pub type EnsureRootOrTwoThirdsTechnicalCommittee = EnsureOneOf<
 >;
 
 parameter_types! {
-	pub const CouncilMotionDuration: BlockNumber = 3 * MINUTES;
-	pub const CouncilMaxProposals: u32 = 100;
-	pub const CouncilMaxMembers: u32 = 100;
+    pub const CouncilMotionDuration: BlockNumber = 3 * MINUTES;
+    pub const CouncilMaxProposals: u32 = 100;
+    pub const CouncilMaxMembers: u32 = 100;
 }
 
 type CouncilCollective = pallet_collective::Instance1;
@@ -565,15 +576,15 @@ impl pallet_collective::Config<CouncilCollective> for Runtime {
 // const_assert!(DesiredMembers::get() <= CouncilMaxMembers::get());
 
 parameter_types! {
-	pub const CandidacyBond: Balance = 10 * UNIT;
-	// 1 storage item created, key size is 32 bytes, value size is 16+16.
-	pub const VotingBondBase: Balance = 1 * UNIT;
-	// additional data per vote is 32 bytes (account id).
-	pub const VotingBondFactor: Balance = 1 * UNIT;
-	pub const TermDuration: BlockNumber = 5 * MINUTES;
-	pub const DesiredMembers: u32 = 13;
-	pub const DesiredRunnersUp: u32 = 7;
-	pub const ElectionsPhragmenPalletId: LockIdentifier = *b"phrelect";
+    pub const CandidacyBond: Balance = 100 * UNIT;
+    // 1 storage item created, key size is 32 bytes, value size is 16+16.
+    pub const VotingBondBase: Balance = 1 * UNIT;
+    // additional data per vote is 32 bytes (account id).
+    pub const VotingBondFactor: Balance = 1 * UNIT;
+    pub const TermDuration: BlockNumber = 5 * MINUTES;
+    pub const DesiredMembers: u32 = 4;
+    pub const DesiredRunnersUp: u32 = 3;
+    pub const ElectionsPhragmenPalletId: LockIdentifier = *b"phrelect";
 }
 
 // Make sure that there are no more than `MaxMembers` members elected via elections-phragmen.
@@ -600,7 +611,7 @@ impl pallet_elections_phragmen::Config for Runtime {
 }
 
 parameter_types! {
-	pub const TechnicalCommitteeMotionDuration: BlockNumber = 3 * MINUTES;
+    pub const TechnicalCommitteeMotionDuration: BlockNumber = 3 * MINUTES;
 }
 
 impl pallet_collective::Config<TechnicalCommitteeInstance> for Runtime {
@@ -627,39 +638,14 @@ impl pallet_membership::Config<TechnicalCommitteeMembershipInstance> for Runtime
     type WeightInfo = ();
 }
 
-pub struct GeneralCouncilProvider;
-impl SortedMembers<AccountId> for GeneralCouncilProvider {
-    fn contains(who: &AccountId) -> bool {
-        Council::is_member(who)
-    }
-
-    fn sorted_members() -> Vec<AccountId> {
-        Council::members()
-    }
-
-    #[cfg(feature = "runtime-benchmarks")]
-    fn add(_: &AccountId) {
-        unimplemented!()
-    }
-}
-
-impl ContainsLengthBound for GeneralCouncilProvider {
-    fn max_len() -> usize {
-        CouncilMaxMembers::get() as usize
-    }
-    fn min_len() -> usize {
-        0
-    }
-}
-
 parameter_types! {
-	pub const LaunchPeriod: BlockNumber = 5 * MINUTES;
-	pub const VotingPeriod: BlockNumber = 5 * MINUTES;
-	pub const FastTrackVotingPeriod: BlockNumber = 2 * MINUTES;
-	pub MinimumDeposit: Balance = 100 * DOLLARS;
-	pub const EnactmentPeriod: BlockNumber = 3 * MINUTES;
-	pub const VoteLockingPeriod: BlockNumber = 7 * MINUTES;
-	pub const CooloffPeriod: BlockNumber = 7 * MINUTES;
+    pub const LaunchPeriod: BlockNumber = 5 * HOURS;
+    pub const VotingPeriod: BlockNumber = 5 * HOURS;
+    pub const FastTrackVotingPeriod: BlockNumber = 3 * HOURS;
+    pub MinimumDeposit: Balance = 100 * DOLLARS;
+    pub const EnactmentPeriod: BlockNumber = 2 * HOURS;
+    pub const VoteLockingPeriod: BlockNumber = 7 * HOURS;
+    pub const CooloffPeriod: BlockNumber = 7 * HOURS;
 }
 
 impl pallet_democracy::Config for Runtime {
@@ -695,8 +681,9 @@ impl pallet_democracy::Config for Runtime {
     type VetoOrigin = pallet_collective::EnsureMember<AccountId, TechnicalCommitteeInstance>;
     type CooloffPeriod = CooloffPeriod;
     type PreimageByteDeposit = PreimageByteDeposit;
-    type OperationalPreimageOrigin = pallet_collective::EnsureMember<AccountId, GeneralCouncilInstance>;
-    type Slash = DealWithFees;
+    type OperationalPreimageOrigin =
+        pallet_collective::EnsureMember<AccountId, GeneralCouncilInstance>;
+    type Slash = ToTreasury;
     type Scheduler = Scheduler;
     type PalletsOrigin = OriginCaller;
     type MaxVotes = ConstU32<100>;
@@ -830,10 +817,11 @@ construct_runtime!(
         ParachainSystem: cumulus_pallet_parachain_system::{
             Pallet, Call, Config, Storage, Inherent, Event<T>, ValidateUnsigned,
         } = 1,
-        Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent} = 2,
-        ParachainInfo: parachain_info::{Pallet, Storage, Config} = 3,
-        Scheduler: pallet_scheduler::{Pallet, Call, Storage, Event<T>} = 4,
-        Preimage: pallet_preimage::{Pallet, Call, Storage, Event<T>} = 5,
+        Utility: pallet_utility::{Pallet, Call, Storage, Event} = 2,
+        Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent} = 3,
+        ParachainInfo: parachain_info::{Pallet, Storage, Config} = 4,
+        Scheduler: pallet_scheduler::{Pallet, Call, Storage, Event<T>} = 5,
+        Preimage: pallet_preimage::{Pallet, Call, Storage, Event<T>} = 6,
 
         // Monetary stuff.
         Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>} = 10,
@@ -859,12 +847,12 @@ construct_runtime!(
         UnknownTokens: orml_unknown_tokens::{Pallet, Storage, Event} = 43,
         Currencies: orml_currencies::{Pallet, Call, Event<T>} = 44,
 
-		// Governance stuff
-		Council: pallet_collective::<Instance1>::{Pallet, Call, Storage, Origin<T>, Event<T>, Config<T>} = 50,
-		Elections: pallet_elections_phragmen::{Pallet, Call, Storage, Event<T>, Config<T>} = 51,
-		TechnicalCommittee: pallet_collective::<Instance2> = 52,
-		TechnicalCommitteeMembership: pallet_membership::<Instance2> = 53,
-		Democracy: pallet_democracy = 54,
+        // Governance stuff
+        Council: pallet_collective::<Instance1>::{Pallet, Call, Storage, Origin<T>, Event<T>, Config<T>} = 50,
+        Elections: pallet_elections_phragmen::{Pallet, Call, Storage, Event<T>, Config<T>} = 51,
+        TechnicalCommittee: pallet_collective::<Instance2> = 52,
+        TechnicalCommitteeMembership: pallet_membership::<Instance2> = 53,
+        Democracy: pallet_democracy = 54,
 
         // Include the custom pallet in the runtime.
         QuadraticFunding: pallet_qf::{Pallet, Call, Storage, Event<T>} = 60,

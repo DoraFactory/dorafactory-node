@@ -1,10 +1,12 @@
 use cumulus_primitives_core::ParaId;
 use dorafactory_node_runtime::{
-    AccountId, Signature, SudoConfig, TokensConfig,ElectionsConfig,TechnicalCommitteeMembershipConfig,EXISTENTIAL_DEPOSIT,
+    AccountId, ElectionsConfig, Signature, SudoConfig, TechnicalCommitteeMembershipConfig,
+    TokensConfig, EXISTENTIAL_DEPOSIT,
 };
-use frame_benchmarking::{account, whitelisted_caller};
+use frame_benchmarking::account;
 use frame_support::PalletId;
 use hex_literal::hex;
+use primitives::{Balance, UNIT};
 use sc_chain_spec::{ChainSpecExtension, ChainSpecGroup};
 use sc_service::{ChainType, Properties};
 use serde::{Deserialize, Serialize};
@@ -17,7 +19,6 @@ use sp_runtime::{
     traits::{AccountIdConversion, IdentifyAccount, Verify},
     AccountId32,
 };
-use primitives::{Balance, UNIT};
 
 // The URL for the telemetry server.
 // const STAGING_TELEMETRY_URL: &str = "wss://telemetry.polkadot.io/submit/";
@@ -153,10 +154,10 @@ pub fn development_config() -> ChainSpec {
                         get_account_id_from_seed::<sr25519::Public>("Alice"),
                         get_collator_keys_from_seed("Alice"),
                     ),
-                    (
-                        get_account_id_from_seed::<sr25519::Public>("Bob"),
-                        get_collator_keys_from_seed("Bob"),
-                    ),
+                    // (
+                    //     get_account_id_from_seed::<sr25519::Public>("Bob"),
+                    //     get_collator_keys_from_seed("Bob"),
+                    // ),
                 ],
                 vec![
                     get_account_id_from_seed::<sr25519::Public>("Bob"),
@@ -164,18 +165,11 @@ pub fn development_config() -> ChainSpec {
                     get_account_id_from_seed::<sr25519::Public>("Dave"),
                     get_account_id_from_seed::<sr25519::Public>("Eve"),
                     get_account_id_from_seed::<sr25519::Public>("Ferdie"),
-                    get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
-                    get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
-                    get_account_id_from_seed::<sr25519::Public>("Charlie//stash"),
-                    get_account_id_from_seed::<sr25519::Public>("Dave//stash"),
-                    get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
-                    get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
                     hex!["34c63c6b3213570b0513c706f6c49a4ce253570ac213e53c919d2cd6f8913a07"].into(),
-                    whitelisted_caller(),
                     account("alice", 0, 0),
-                    account("bob", 0, 0),
-                    account("charlie", 0, 0),
-                    PalletId(*b"DoraRewa").into_account(),
+                    // account("bob", 0, 0),
+                    // account("charlie", 0, 0),
+                    // PalletId(*b"DoraRewa").into_account(),
                 ],
                 vec![
                     hex!["80b643cd22663a6619e732187f9b6d969d0a3f53ae50bc75921b0f373cfba549"].into(),
@@ -202,7 +196,6 @@ pub fn development_config() -> ChainSpec {
         },
     )
 }
-
 
 fn dorafactory_genesis(
     root_key: AccountId,
@@ -234,7 +227,8 @@ fn dorafactory_genesis(
             ..Default::default()
         },
         session: dorafactory_node_runtime::SessionConfig {
-            keys: invulnerables.clone()
+            keys: invulnerables
+                .clone()
                 .into_iter()
                 .map(|(acc, aura)| {
                     (
@@ -264,18 +258,12 @@ fn dorafactory_genesis(
                 .map(|member| (member, STASH))
                 .collect(),
         },
-        // general_council: Default::default(),
-        // general_council_membership: GeneralCouncilMembershipConfig {
-        //     members: tech_accounts.clone(),
-        //     phantom: Default::default(),
-        // },
         technical_committee: Default::default(),
         technical_committee_membership: TechnicalCommitteeMembershipConfig {
             members: tech_accounts,
             phantom: Default::default(),
         },
         democracy: Default::default(),
-        treasury: Default::default(),
         dora_rewards: dorafactory_node_runtime::DoraRewardsConfig {
             // set the funds
             funded_amount: 0,
