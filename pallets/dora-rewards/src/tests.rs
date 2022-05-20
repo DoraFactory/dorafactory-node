@@ -81,6 +81,41 @@ fn init_contributor_with_common_user() {
 // }
 
 
+#[test]
+fn some_initialization_tests(){
+    empty().execute_with(|| {
+        let init_block = DoraRewards::init_vesting_block();
+
+        assert_ok!(
+            // initialize the contributor list
+            DoraRewards::initialize_contributors_list(
+                Origin::root(),
+                vec![(1, 100u32.into()), (2, 200u32.into()), (3, 300u32.into())]
+            )
+        );
+        // not complete initialization, claim reward
+        assert_noop!(
+            DoraRewards::claim_rewards(Origin::signed(2)),
+            Error::<Test>::NotCompleteInitialization
+        );
+
+        assert_ok!(DoraRewards::complete_initialization(
+            Origin::root(),
+            init_block + VESTING
+        ));
+
+        // complete initialization, input conreibutors
+        assert_noop!(
+            DoraRewards::initialize_contributors_list(
+                Origin::root(),
+                vec![(4, 100u32.into())]
+            ),
+            Error::<Test>::InitializationIsCompleted
+        );
+    });
+}
+
+
 /// input too many contributors number which is bigger than the `MaxContributorsNumber`
 #[test]
 fn initialize_too_many_contributors() {

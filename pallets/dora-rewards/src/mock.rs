@@ -26,7 +26,7 @@ use frame_support::{
     dispatch::UnfilteredDispatchable,
     inherent::{InherentData, ProvideInherent},
     parameter_types,
-    traits::{ConstU32, GenesisBuild, Nothing, OnFinalize, OnInitialize},
+    traits::{ConstU32, ConstBool, GenesisBuild, Nothing, OnFinalize, OnInitialize},
 };
 use frame_system::RawOrigin;
 use sp_core::H256;
@@ -129,6 +129,7 @@ parameter_types! {
 impl Config for Test {
     type Event = Event;
     type Currency = Balances;
+    type Initialized = ConstBool<false>;
     type FirstVestPercentage = TestFirstVestPercentage;
     type MaxContributorsNumber = TestMaxContributorsNumber;
     type VestingBlockNumber = RelayChainBlockNumber;

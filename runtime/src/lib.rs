@@ -29,7 +29,7 @@ use sp_version::RuntimeVersion;
 
 use frame_support::{
     construct_runtime, parameter_types,
-    traits::{Currency, EqualPrivilegeOnly, Everything, Imbalance, Nothing, OnUnbalanced},
+    traits::{Currency, EqualPrivilegeOnly, Everything, Imbalance, Nothing, OnUnbalanced, ConstBool},
     weights::{
         constants::WEIGHT_PER_SECOND, ConstantMultiplier, DispatchClass, Weight,
         WeightToFeeCoefficient, WeightToFeeCoefficients, WeightToFeePolynomial,
@@ -563,6 +563,7 @@ parameter_types! {
 impl pallet_dora_rewards::Config for Runtime {
     type Event = Event;
     type Currency = Balances;
+    type Initialized = ConstBool<false>;
     type VestingBlockNumber = cumulus_primitives_core::relay_chain::BlockNumber;
     type VestingBlockProvider =
         cumulus_pallet_parachain_system::RelaychainBlockNumberProvider<Self>;

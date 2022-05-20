@@ -92,6 +92,8 @@ pub mod pallet {
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
         /// The currency in which the rewards will be paid (probably the parachain native currency)
         type Currency: Currency<Self::AccountId>;
+        /// Check the contributor list and ending lease is already? default is false
+        type Initialized: Get<bool>;
         /// tracking the vesting process
         type VestingBlockNumber: AtLeast32BitUnsigned + Parameter + Default + Into<BalanceOf<Self>>;
         /// The notion of time that will be used for vesting. Probably
@@ -131,6 +133,10 @@ pub mod pallet {
     type EndVestingBlock<T: Config> = StorageValue<_, T::VestingBlockNumber, ValueQuery>;
 
     #[pallet::storage]
+	#[pallet::getter(fn initialized)]
+	pub type Initialized<T: Config> = StorageValue<_, bool, ValueQuery, T::Initialized>;
+
+    #[pallet::storage]
     #[pallet::getter(fn total_contributors)]
     /// store total number of contributors
     type TotalContributors<T: Config> = StorageValue<_, u32, ValueQuery>;
@@ -144,10 +150,12 @@ pub mod pallet {
     // Errors.
     #[pallet::error]
     pub enum Error<T> {
+        /// complete the initialized 
+        InitializationIsCompleted,
         /// Invalid contributor account (not exist in contributor list)
         NotInContributorList,
         /// Not set the Ending lease block
-        NotSettingEndingLeaseBlock,
+        NotCompleteInitialization,
         /// Ending lease block setting invalid (should higher than the init block)
         InvalidEndingLeaseBlock,
         /// current account claimed all the reward, no reward left
@@ -216,10 +224,11 @@ pub mod pallet {
             let contribute_info =
                 <ContributorsInfo<T>>::get(who.clone()).ok_or(Error::<T>::NotInContributorList)?;
 
-            // ensure we have set the ending lease block, which means we can start claiming
+            // ensure we have set the ending lease block and init the contributor list, which means we can start claiming
+            let initialized = <Initialized<T>>::get();
             ensure!(
-                <EndVestingBlock<T>>::get() != 0u32.into(),
-                <Error<T>>::NotSettingEndingLeaseBlock,
+                initialized == true,
+                <Error<T>>::NotCompleteInitialization
             );
 
             // if contributor's claimed reward reach his total reward, no rewards will distribute to them
@@ -315,6 +324,11 @@ pub mod pallet {
             contributor_list: Vec<(T::AccountId, BalanceOf<T>)>,
         ) -> DispatchResult {
             ensure_root(origin)?;
+            let initialized = <Initialized<T>>::get();
+            ensure!(
+                initialized == false,
+                <Error<T>>::InitializationIsCompleted
+            );
             // ensure the number don't exceed contributor list length
             ensure!(
                 contributor_list.len() as u32 <= T::MaxContributorsNumber::get(),
@@ -365,6 +379,11 @@ pub mod pallet {
         ) -> DispatchResult {
             // only sudo
             ensure_root(origin)?;
+            let initialized = <Initialized<T>>::get();
+            ensure!(
+                initialized == false,
+                <Error<T>>::InitializationIsCompleted
+            );
             // ending lease block should higher than the init lease block
             ensure!(
                 lease_ending_block > <InitVestingBlock<T>>::get(),
@@ -372,6 +391,7 @@ pub mod pallet {
             );
 
             <EndVestingBlock<T>>::put(lease_ending_block.clone());
+            <Initialized<T>>::put(true);
             Self::deposit_event(<Event<T>>::EndleasingBlock(lease_ending_block.clone()));
 
             Ok(().into())
