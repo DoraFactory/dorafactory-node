@@ -133,8 +133,8 @@ pub mod pallet {
     type EndVestingBlock<T: Config> = StorageValue<_, T::VestingBlockNumber, ValueQuery>;
 
     #[pallet::storage]
-	#[pallet::getter(fn initialized)]
-	pub type Initialized<T: Config> = StorageValue<_, bool, ValueQuery, T::Initialized>;
+    #[pallet::getter(fn initialized)]
+    pub type Initialized<T: Config> = StorageValue<_, bool, ValueQuery, T::Initialized>;
 
     #[pallet::storage]
     #[pallet::getter(fn total_contributors)]
@@ -150,7 +150,7 @@ pub mod pallet {
     // Errors.
     #[pallet::error]
     pub enum Error<T> {
-        /// complete the initialized 
+        /// complete the initialized
         InitializationIsCompleted,
         /// Invalid contributor account (not exist in contributor list)
         NotInContributorList,
@@ -226,10 +226,7 @@ pub mod pallet {
 
             // ensure we have set the ending lease block and init the contributor list, which means we can start claiming
             let initialized = <Initialized<T>>::get();
-            ensure!(
-                initialized == true,
-                <Error<T>>::NotCompleteInitialization
-            );
+            ensure!(initialized == true, <Error<T>>::NotCompleteInitialization);
 
             // if contributor's claimed reward reach his total reward, no rewards will distribute to them
             ensure!(
@@ -240,17 +237,17 @@ pub mod pallet {
             // compute the total linear reward block(ending lease block- init lease block)
             let total_reward_period = <EndVestingBlock<T>>::get() - <InitVestingBlock<T>>::get();
 
+            // Get the current block used for vesting purposes
+            let now = T::VestingBlockProvider::current_block_number();
+
             // Get the current block used for vesting purposes and check the current block number is in the lease.
             // if in the lease, the computation baseline is current blocknumber, otherwise is EndVestingBlock
             let track_now =
-                if T::VestingBlockProvider::current_block_number() >= <EndVestingBlock<T>>::get() {
+                if now >= <EndVestingBlock<T>>::get() {
                     <EndVestingBlock<T>>::get()
                 } else {
                     T::VestingBlockProvider::current_block_number()
                 };
-
-            // Get the current block used for vesting purposes
-            let now = T::VestingBlockProvider::current_block_number();
 
             // the fist reward distributed to the contributor by the percentage(this percent currently is 20%) total reward
             // as you can see, if you contribute more, the more first reward you will claim
@@ -286,7 +283,7 @@ pub mod pallet {
                 // track block number
 
                 // if reach or higher the end lease block, the claimed reward < total reward, distribute the left reward
-                if now > <EndVestingBlock<T>>::get() {
+                if now >= <EndVestingBlock<T>>::get() {
                     let new_contribute_info = RewardInfo {
                         total_reward: contribute_info.total_reward,
                         claimed_reward: contribute_info.claimed_reward
@@ -325,10 +322,7 @@ pub mod pallet {
         ) -> DispatchResult {
             ensure_root(origin)?;
             let initialized = <Initialized<T>>::get();
-            ensure!(
-                initialized == false,
-                <Error<T>>::InitializationIsCompleted
-            );
+            ensure!(initialized == false, <Error<T>>::InitializationIsCompleted);
             // ensure the number don't exceed contributor list length
             ensure!(
                 contributor_list.len() as u32 <= T::MaxContributorsNumber::get(),
@@ -380,10 +374,7 @@ pub mod pallet {
             // only sudo
             ensure_root(origin)?;
             let initialized = <Initialized<T>>::get();
-            ensure!(
-                initialized == false,
-                <Error<T>>::InitializationIsCompleted
-            );
+            ensure!(initialized == false, <Error<T>>::InitializationIsCompleted);
             // ending lease block should higher than the init lease block
             ensure!(
                 lease_ending_block > <InitVestingBlock<T>>::get(),

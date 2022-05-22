@@ -38,13 +38,25 @@ fn init_and_complete_contributor_with_sudo_correctly() {
                 vec![(1, 100u32.into()), (2, 200u32.into()), (3, 300u32.into())]
             )
         );
+
+        // check the contributors number
+        assert_eq!(DoraRewards::total_contributors(), 3);
+
+        assert_ok!(
+            // initialize the contributor list
+            DoraRewards::initialize_contributors_list(
+                Origin::root(),
+                vec![(4, 100u32.into()), (5, 200u32.into()), (6, 300u32.into())]
+            )
+        );
+
+        // check the contributors number
+        assert_eq!(DoraRewards::total_contributors(), 6);
+
         assert_ok!(DoraRewards::complete_initialization(
             Origin::root(),
             init_block + VESTING
         ));
-
-        // check the contributors number
-        assert_eq!(DoraRewards::total_contributors(), 3);
 
         // ensure the contributor exist
         assert!(DoraRewards::rewards_info(&1).is_some());
@@ -80,9 +92,8 @@ fn init_contributor_with_common_user() {
 //     });
 // }
 
-
 #[test]
-fn some_initialization_tests(){
+fn some_initialization_tests() {
     empty().execute_with(|| {
         let init_block = DoraRewards::init_vesting_block();
 
@@ -106,15 +117,11 @@ fn some_initialization_tests(){
 
         // complete initialization, input conreibutors
         assert_noop!(
-            DoraRewards::initialize_contributors_list(
-                Origin::root(),
-                vec![(4, 100u32.into())]
-            ),
+            DoraRewards::initialize_contributors_list(Origin::root(), vec![(4, 100u32.into())]),
             Error::<Test>::InitializationIsCompleted
         );
     });
 }
-
 
 /// input too many contributors number which is bigger than the `MaxContributorsNumber`
 #[test]
@@ -129,8 +136,8 @@ fn initialize_too_many_contributors() {
                     (1, 100u32.into()),
                     (2, 200u32.into()),
                     (3, 300u32.into()),
-                    (4, 400u32.into()), 
-                    (5, 500u32.into()), 
+                    (4, 400u32.into()),
+                    (5, 500u32.into()),
                     (6, 600u32.into()),
                 ]
             ),
@@ -158,13 +165,12 @@ fn complete_contributor_with_common_user() {
     });
 }
 
-
 /// set the invalid complete ending lease block(equal or below)
 #[test]
-fn set_invalid_ending_block(){
+fn set_invalid_ending_block() {
     empty().execute_with(|| {
         // init lease block: 2
-		roll_to(2);
+        roll_to(2);
         let init_block = DoraRewards::init_vesting_block();
         assert_ok!(DoraRewards::initialize_contributors_list(
             Origin::root(),
@@ -173,19 +179,13 @@ fn set_invalid_ending_block(){
 
         // ending block number equals the init block number
         assert_noop!(
-            DoraRewards::complete_initialization(
-                Origin::root(),
-                init_block,
-            ),
+            DoraRewards::complete_initialization(Origin::root(), init_block,),
             Error::<Test>::InvalidEndingLeaseBlock,
         );
 
         // ending block number belows the init block number
         assert_noop!(
-            DoraRewards::complete_initialization(
-                Origin::root(),
-                1,
-            ),
+            DoraRewards::complete_initialization(Origin::root(), 1,),
             Error::<Test>::InvalidEndingLeaseBlock,
         );
     })
@@ -193,21 +193,21 @@ fn set_invalid_ending_block(){
 
 /// claim reward step by step
 #[test]
-fn claim_reward_step_by_step(){
+fn claim_reward_step_by_step() {
     empty().execute_with(|| {
         // The init relay block gets inserted
-		roll_to(2);
-		let init_block = DoraRewards::init_vesting_block();
+        roll_to(2);
+        let init_block = DoraRewards::init_vesting_block();
 
         assert_ok!(
             // initialize the contributor list
             DoraRewards::initialize_contributors_list(
                 Origin::root(),
                 vec![
-                    (1, 330u32.into()), 
-                    (2, 200u32.into()), 
+                    (1, 330u32.into()),
+                    (2, 200u32.into()),
                     (3, 323u32.into()),
-                    (4, 400u32.into()), 
+                    (4, 400u32.into()),
                 ]
             )
         );
@@ -266,10 +266,10 @@ fn claim_reward_step_by_step(){
 
         // no rewards left
         roll_to(13);
-		assert_noop!(
-			DoraRewards::claim_rewards(Origin::signed(4)),
-			Error::<Test>::NoLeftRewards
-		);
+        assert_noop!(
+            DoraRewards::claim_rewards(Origin::signed(4)),
+            Error::<Test>::NoLeftRewards
+        );
 
         assert_ok!(DoraRewards::claim_rewards(Origin::signed(1)));
         assert_eq!(DoraRewards::rewards_info(&1).unwrap().claimed_reward, 990);
@@ -279,99 +279,104 @@ fn claim_reward_step_by_step(){
         assert_eq!(DoraRewards::rewards_info(&3).unwrap().claimed_reward, 969);
 
         assert_noop!(
-			DoraRewards::claim_rewards(Origin::signed(1)),
-			Error::<Test>::NoLeftRewards
-		);
+            DoraRewards::claim_rewards(Origin::signed(1)),
+            Error::<Test>::NoLeftRewards
+        );
         assert_noop!(
-			DoraRewards::claim_rewards(Origin::signed(2)),
-			Error::<Test>::NoLeftRewards
-		);
+            DoraRewards::claim_rewards(Origin::signed(2)),
+            Error::<Test>::NoLeftRewards
+        );
         assert_noop!(
-			DoraRewards::claim_rewards(Origin::signed(3)),
-			Error::<Test>::NoLeftRewards
-		);
-        
+            DoraRewards::claim_rewards(Origin::signed(3)),
+            Error::<Test>::NoLeftRewards
+        );
     })
 }
 
 #[test]
 fn floating_point_arithmetic_works() {
-	empty().execute_with(|| {
-		// The init relay block gets inserted
-		roll_to(2);
-		let init_block = DoraRewards::init_vesting_block();
+    empty().execute_with(|| {
+        // The init relay block gets inserted
+        roll_to(2);
+        let init_block = DoraRewards::init_vesting_block();
 
-        assert_ok!(
-            DoraRewards::initialize_contributors_list(
-                Origin::root(),
-                vec![
-                    (4, 22u32.into()), 
-                    (5, 1185u32.into()), 
-                    (3, 25u32.into()),          // will receive 75 
-                ]
-            )
+        assert_ok!(DoraRewards::initialize_contributors_list(
+            Origin::root(),
+            vec![
+                (4, 22u32.into()),
+                (5, 1185u32.into()),
+                (3, 25u32.into()), // will receive 75
+            ]
+        ));
+
+        assert_ok!(DoraRewards::complete_initialization(
+            Origin::root(),
+            init_block + VESTING
+        ));
+        assert_eq!(DoraRewards::total_contributors(), 3);
+
+        assert_eq!(DoraRewards::rewards_info(&3).unwrap().total_reward, 75u128);
+        // claim the first reward : 20%
+        assert_ok!(DoraRewards::claim_rewards(Origin::signed(3)));
+        assert_eq!(
+            DoraRewards::rewards_info(&3).unwrap().claimed_reward,
+            15u128
         );
 
-		assert_ok!(DoraRewards::complete_initialization(
-			Origin::root(),
-			init_block + VESTING
-		));
-		assert_eq!(DoraRewards::total_contributors(), 3);
-
-		assert_eq!(
-			DoraRewards::rewards_info(&3).unwrap().total_reward,
-			75u128
-		);
-        // claim the first reward : 20% 
-        assert_ok!(DoraRewards::claim_rewards(Origin::signed(3)));
-		assert_eq!(
-			DoraRewards::rewards_info(&3).unwrap().claimed_reward,
-			15u128
-		);
-
         // 60 * (1 / 8) = 7.5  each block
-		// In this case there is no problem. Here we pay 7.5*2=15
-		// Total claimed reward: 15+15 = 30
-		roll_to(4);
-		assert_ok!(DoraRewards::claim_rewards(Origin::signed(3)));
-		assert_eq!(
-			DoraRewards::rewards_info(&3).unwrap().claimed_reward,
-			30u128
-		);
+        // In this case there is no problem. Here we pay 7.5*2=15
+        // Total claimed reward: 15+15 = 30
+        roll_to(4);
+        assert_ok!(DoraRewards::claim_rewards(Origin::signed(3)));
+        assert_eq!(
+            DoraRewards::rewards_info(&3).unwrap().claimed_reward,
+            30u128
+        );
 
-		roll_to(5);
-		// If we claim now we have to pay 7.5.    7 will be paid.
-		assert_ok!(DoraRewards::claim_rewards(Origin::signed(3)));
+        roll_to(5);
+        // If we claim now we have to pay 7.5.    7 will be paid.
+        assert_ok!(DoraRewards::claim_rewards(Origin::signed(3)));
 
-		assert_eq!(
-			DoraRewards::rewards_info(&3).unwrap().claimed_reward,
-			37u128
-		);
-		roll_to(6);
-		// Now we should pay 7.5. However the calculus will be:
-		// Account 3 should have claimed 30 + 15 at this block, but
-		// he only claimed 62. The payment is 8
-		assert_ok!(DoraRewards::claim_rewards(Origin::signed(3)));
-		assert_eq!(
-			DoraRewards::rewards_info(&3).unwrap().claimed_reward,
-			44u128
-		);
+        assert_eq!(
+            DoraRewards::rewards_info(&3).unwrap().claimed_reward,
+            37u128
+        );
+        roll_to(6);
+        // Now we should pay 7.5. However the calculus will be 7
+        assert_ok!(DoraRewards::claim_rewards(Origin::signed(3)));
+        assert_eq!(
+            DoraRewards::rewards_info(&3).unwrap().claimed_reward,
+            44u128
+        );
 
-        // pay 7.5 * 4 = 30, and have 1 left
+        // pay 7.5 * 3 = 22
+        roll_to(9);
+        assert_ok!(DoraRewards::claim_rewards(Origin::signed(3)));
+        assert_eq!(
+            DoraRewards::rewards_info(&3).unwrap().claimed_reward,
+            66u128
+        );
+
+        // pay 7.5, left 2
         roll_to(10);
-		assert_ok!(DoraRewards::claim_rewards(Origin::signed(3)));
-		assert_eq!(
-			DoraRewards::rewards_info(&3).unwrap().claimed_reward,
-			74u128
-		);
+        assert_ok!(DoraRewards::claim_rewards(Origin::signed(3)));
+        assert_eq!(
+            DoraRewards::rewards_info(&3).unwrap().claimed_reward,
+            75u128
+        );
 
-        // get the left reward, pay 1
-        roll_to(11);
-		assert_ok!(DoraRewards::claim_rewards(Origin::signed(3)));
-		assert_eq!(
-			DoraRewards::rewards_info(&3).unwrap().claimed_reward,
-			75u128
-		);
+        // get the left reward, pay 2
+        // roll_to(11);
+        // assert_ok!(DoraRewards::claim_rewards(Origin::signed(3)));
+        // assert_eq!(
+        //     DoraRewards::rewards_info(&3).unwrap().claimed_reward,
+        //     75u128
+        // );
+
+        assert_eq!(
+            DoraRewards::rewards_info(&3).unwrap().track_block_number,
+            10
+        );
 
         roll_to(12);
         assert_noop!(
@@ -379,33 +384,32 @@ fn floating_point_arithmetic_works() {
             Error::<Test>::NoLeftRewards
         );
 
-        // test account 4
         assert_eq!(
-			DoraRewards::rewards_info(&4).unwrap().claimed_reward,
-			0u128
-		);
+            DoraRewards::rewards_info(&3).unwrap().track_block_number,
+            10
+        );
+
+        // test account 4
+        assert_eq!(DoraRewards::rewards_info(&4).unwrap().claimed_reward, 0u128);
         assert_ok!(DoraRewards::claim_rewards(Origin::signed(4)));
-		assert_eq!(
-			DoraRewards::rewards_info(&4).unwrap().claimed_reward,
-			66u128
-		);
+        assert_eq!(
+            DoraRewards::rewards_info(&4).unwrap().claimed_reward,
+            66u128
+        );
 
         // test account 5
-        assert_eq!(
-			DoraRewards::rewards_info(&5).unwrap().claimed_reward,
-			0u128
-		);
+        assert_eq!(DoraRewards::rewards_info(&5).unwrap().claimed_reward, 0u128);
         assert_ok!(DoraRewards::claim_rewards(Origin::signed(5)));
-		assert_eq!(
-			DoraRewards::rewards_info(&5).unwrap().claimed_reward,
-			3555u128
-		);
+        assert_eq!(
+            DoraRewards::rewards_info(&5).unwrap().claimed_reward,
+            3555u128
+        );
 
         assert_noop!(
             DoraRewards::claim_rewards(Origin::signed(5)),
             Error::<Test>::NoLeftRewards
         );
-	});
+    });
 }
 
 // #[test]
