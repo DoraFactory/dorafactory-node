@@ -23,6 +23,7 @@ use crate::{
 use codec::Encode;
 use cumulus_client_service::genesis::generate_genesis_block;
 use cumulus_primitives_core::ParaId;
+use frame_benchmarking_cli::{BenchmarkCmd, SUBSTRATE_REFERENCE_HARDWARE};
 use dorafactory_node_runtime::{Block, RuntimeApi};
 use log::info;
 use polkadot_parachain::primitives::AccountIdConversion;
@@ -158,7 +159,6 @@ pub fn run() -> Result<()> {
     let cli = Cli::from_args();
 
     match &cli.subcommand {
-        Some(Subcommand::Key(cmd)) => cmd.run(&cli),
         Some(Subcommand::BuildSpec(cmd)) => {
             let runner = cli.create_runner(cmd)?;
             runner.sync_run(|config| cmd.run(config.chain_spec, config.network))
@@ -206,7 +206,7 @@ pub fn run() -> Result<()> {
         }
         Some(Subcommand::Revert(cmd)) => {
             construct_async_run!(|components, cli, cmd, config| {
-                Ok(cmd.run(components.client, components.backend))
+                Ok(cmd.run(components.client, components.backend, None))
             })
         }
         Some(Subcommand::ExportGenesisState(params)) => {
@@ -254,15 +254,38 @@ pub fn run() -> Result<()> {
             Ok(())
         }
         Some(Subcommand::Benchmark(cmd)) => {
-            if cfg!(feature = "runtime-benchmarks") {
-                let runner = cli.create_runner(cmd)?;
+            let runner = cli.create_runner(cmd)?;
+			// Switch on the concrete benchmark sub-command-
+			match cmd {
+				BenchmarkCmd::Pallet(cmd) =>
+					if cfg!(feature = "runtime-benchmarks") {
+						runner.sync_run(|config| cmd.run::<Block, ExecutorDispatch>(config))
+					} else {
+						Err("Benchmarking wasn't enabled when building the node. \
+					You can enable it with `--features runtime-benchmarks`."
+							.into())
+					},
+				BenchmarkCmd::Block(cmd) => runner.sync_run(|config| {
+					let partials = new_partial::<RuntimeApi, ExecutorDispatch, _>(
+						&config,
+						crate::service::parachain_build_import_queue,
+					)?;
+					cmd.run(partials.client)
+				}),
+				BenchmarkCmd::Storage(cmd) => runner.sync_run(|config| {
+					let partials = new_partial::<RuntimeApi, ExecutorDispatch, _>(
+						&config,
+						crate::service::parachain_build_import_queue,
+					)?;
+					let db = partials.backend.expose_db();
+					let storage = partials.backend.expose_storage();
 
-                runner.sync_run(|config| cmd.run::<Block, ExecutorDispatch>(config))
-            } else {
-                Err("Benchmarking wasn't enabled when building the node. \
-				You can enable it with `--features runtime-benchmarks`."
-                    .into())
-            }
+					cmd.run(config, partials.client.clone(), db, storage)
+				}),
+				BenchmarkCmd::Overhead(_) => Err("Unsupported benchmarking command".into()),
+				BenchmarkCmd::Machine(cmd) =>
+					runner.sync_run(|config| cmd.run(&config, SUBSTRATE_REFERENCE_HARDWARE.clone())),
+			}
         }
         Some(Subcommand::TryRuntime(cmd)) => {
             if cfg!(feature = "try-runtime") {
@@ -290,6 +313,15 @@ pub fn run() -> Result<()> {
             let collator_options = cli.run.collator_options();
 
             runner.run_node_until_exit(|config| async move {
+                let hwbench = if !cli.no_hardware_benchmarks {
+					config.database.path().map(|database_path| {
+						let _ = std::fs::create_dir_all(&database_path);
+						sc_sysinfo::gather_hwbench(Some(database_path))
+					})
+				} else {
+					None
+				};
+
                 let para_id = chain_spec::Extensions::try_get(&*config.chain_spec)
                     .map(|e| e.para_id)
                     .ok_or_else(|| "Could not find parachain ID in chain-spec.")?;
@@ -329,7 +361,7 @@ pub fn run() -> Result<()> {
                     }
                 );
 
-                crate::service::start_parachain_node(config, polkadot_config, collator_options, id)
+                crate::service::start_parachain_node(config, polkadot_config, collator_options, id, hwbench)
                     .await
                     .map(|r| r.0)
                     .map_err(Into::into)
