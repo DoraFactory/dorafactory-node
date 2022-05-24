@@ -80,18 +80,7 @@ fn init_contributor_with_common_user() {
     });
 }
 
-// #[test]
-// fn initialize_with_no_contributor() {
-//     empty().execute_with(|| {
-//         // init lease block
-//         let init_block = DoraRewards::init_vesting_block();
-//         assert_noop!(
-//             DoraRewards::initialize_contributors_list(Origin::root(), vec![(),()]),
-//             Error::<Test>::NoContributorInList,
-//         );
-//     });
-// }
-
+/// tests about initilizing the contributor list
 #[test]
 fn some_initialization_tests() {
     empty().execute_with(|| {
@@ -115,9 +104,16 @@ fn some_initialization_tests() {
             init_block + VESTING
         ));
 
-        // complete initialization, input conreibutors
+        // complete initialization, input contributors
         assert_noop!(
             DoraRewards::initialize_contributors_list(Origin::root(), vec![(4, 100u32.into())]),
+            Error::<Test>::InitializationIsCompleted
+        );
+
+        // set the ending block number again after complete.
+        // you can not set the ending block again!
+        assert_noop!(
+            DoraRewards::complete_initialization(Origin::root(), init_block + VESTING + 8),
             Error::<Test>::InitializationIsCompleted
         );
     });
@@ -179,7 +175,7 @@ fn set_invalid_ending_block() {
 
         // ending block number equals the init block number
         assert_noop!(
-            DoraRewards::complete_initialization(Origin::root(), init_block,),
+            DoraRewards::complete_initialization(Origin::root(), init_block),
             Error::<Test>::InvalidEndingLeaseBlock,
         );
 
@@ -188,6 +184,12 @@ fn set_invalid_ending_block() {
             DoraRewards::complete_initialization(Origin::root(), 1,),
             Error::<Test>::InvalidEndingLeaseBlock,
         );
+
+        // set correctly
+        assert_ok!(DoraRewards::complete_initialization(
+            Origin::root(),
+            init_block + VESTING
+        ));
     })
 }
 
@@ -365,14 +367,6 @@ fn floating_point_arithmetic_works() {
             75u128
         );
 
-        // get the left reward, pay 2
-        // roll_to(11);
-        // assert_ok!(DoraRewards::claim_rewards(Origin::signed(3)));
-        // assert_eq!(
-        //     DoraRewards::rewards_info(&3).unwrap().claimed_reward,
-        //     75u128
-        // );
-
         assert_eq!(
             DoraRewards::rewards_info(&3).unwrap().track_block_number,
             10
@@ -411,78 +405,3 @@ fn floating_point_arithmetic_works() {
         );
     });
 }
-
-// #[test]
-// fn reward_below_vesting_period_works() {
-// 	empty().execute_with(|| {
-// 		// The init relay block gets inserted
-// 		roll_to(2);
-// 		let init_block = DoraRewards::init_vesting_block();
-// 		assert_ok!(mock::Call::Utility(UtilityCall::batch_all {
-// 			calls: vec![
-// 				mock::Call::DoraRewards(crate::Call::initialize_reward_vec {
-// 					rewards: vec![([4u8; 32].into(), Some(1), 1247)]
-// 				}),
-// 				mock::Call::DoraRewards(crate::Call::initialize_reward_vec {
-// 					rewards: vec![([5u8; 32].into(), Some(2), 1247)]
-// 				}),
-// 				// We will work with this. This has 5/8=0.625 payable per block
-// 				mock::Call::DoraRewards(crate::Call::initialize_reward_vec {
-// 					rewards: vec![([3u8; 32].into(), Some(3), 6)]
-// 				})
-// 			]
-// 		})
-// 		.dispatch(Origin::root()));
-
-// 		assert_ok!(DoraRewards::complete_initialization(
-// 			Origin::root(),
-// 			init_block + VESTING
-// 		));
-
-// 		assert_eq!(
-// 			DoraRewards::accounts_payable(&3).unwrap().claimed_reward,
-// 			1u128
-// 		);
-
-// 		// Block relay number is 2 post init initialization
-// 		// Here we should pay floor(0.625*2)=1
-// 		// Total claimed reward: 1+1 = 2
-// 		roll_to(4);
-
-// 		assert_ok!(DoraRewards::claim(Origin::signed(3)));
-
-// 		assert_eq!(
-// 			DoraRewards::accounts_payable(&3).unwrap().claimed_reward,
-// 			2u128
-// 		);
-// 		roll_to(5);
-// 		// If we claim now we have to pay floor(0.625) = 0
-// 		assert_ok!(DoraRewards::claim(Origin::signed(3)));
-
-// 		assert_eq!(
-// 			DoraRewards::accounts_payable(&3).unwrap().claimed_reward,
-// 			2u128
-// 		);
-// 		roll_to(6);
-// 		// Now we should pay 1 again. The claimer should have claimed floor(0.625*4) + 1
-// 		// but he only claimed 2
-// 		assert_ok!(DoraRewards::claim(Origin::signed(3)));
-// 		assert_eq!(
-// 			DoraRewards::accounts_payable(&3).unwrap().claimed_reward,
-// 			3u128
-// 		);
-// 		roll_to(10);
-// 		// We pay the remaining
-// 		assert_ok!(DoraRewards::claim(Origin::signed(3)));
-// 		assert_eq!(
-// 			DoraRewards::accounts_payable(&3).unwrap().claimed_reward,
-// 			6u128
-// 		);
-// 		roll_to(11);
-// 		// Nothing more to claim
-// 		assert_noop!(
-// 			DoraRewards::claim(Origin::signed(3)),
-// 			Error::<Test>::RewardsAlreadyClaimed
-// 		);
-// 	});
-// }

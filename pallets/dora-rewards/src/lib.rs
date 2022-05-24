@@ -162,8 +162,6 @@ pub mod pallet {
         NoLeftRewards,
         /// too many contributors when put the contributor list into the storage
         TooManyContributors,
-        /// no contributor in the list
-        NoContributorInList,
     }
 
     #[pallet::event]
@@ -327,12 +325,6 @@ pub mod pallet {
             ensure!(
                 contributor_list.len() as u32 <= T::MaxContributorsNumber::get(),
                 <Error<T>>::TooManyContributors,
-            );
-
-            // no contributor in the list which will be inserted into the store
-            ensure!(
-                contributor_list.len() as u32 > 0u32,
-                <Error<T>>::NoContributorInList,
             );
 
             // Total number of contributors
