@@ -29,7 +29,9 @@ use sp_version::RuntimeVersion;
 
 use frame_support::{
     construct_runtime, parameter_types,
-    traits::{Currency, EqualPrivilegeOnly, Everything, Imbalance, Nothing, OnUnbalanced, ConstBool},
+    traits::{
+        ConstBool, Currency, EqualPrivilegeOnly, Everything, Imbalance, Nothing, OnUnbalanced,
+    },
     weights::{
         constants::WEIGHT_PER_SECOND, ConstantMultiplier, DispatchClass, Weight,
         WeightToFeeCoefficient, WeightToFeeCoefficients, WeightToFeePolynomial,
@@ -505,6 +507,13 @@ impl pallet_preimage::Config for Runtime {
     type ByteDeposit = PreimageByteDeposit;
 }
 
+impl pallet_utility::Config for Runtime {
+    type Event = Event;
+    type Call = Call;
+    type PalletsOrigin = OriginCaller;
+    type WeightInfo = pallet_utility::weights::SubstrateWeight<Runtime>;
+}
+
 // Configure the pallet-qf in pallets/quadratic-funding.
 parameter_types! {
     // pow(10,12) => Unit, for easy fee control, we use pow(10,9)
@@ -557,7 +566,7 @@ impl dao_core::Config for Runtime {
 
 parameter_types! {
     pub const FirstVestPercentage: Perbill = Perbill::from_percent(20);
-    pub const MaxContributorsNumber: u32 = 5;
+    pub const MaxContributorsNumber: u32 = 400;
 }
 
 impl pallet_dora_rewards::Config for Runtime {
@@ -634,6 +643,7 @@ construct_runtime!(
         } = 1,
         Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent} = 2,
         ParachainInfo: parachain_info::{Pallet, Storage, Config} = 3,
+        Utility: pallet_utility,
 
         // Monetary stuff.
         Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>} = 10,

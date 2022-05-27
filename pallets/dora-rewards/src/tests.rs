@@ -181,7 +181,7 @@ fn set_invalid_ending_block() {
 
         // ending block number belows the init block number
         assert_noop!(
-            DoraRewards::complete_initialization(Origin::root(), 1,),
+            DoraRewards::complete_initialization(Origin::root(), 1),
             Error::<Test>::InvalidEndingLeaseBlock,
         );
 
@@ -263,7 +263,6 @@ fn claim_reward_step_by_step() {
 
         roll_to(12);
         assert_ok!(DoraRewards::claim_rewards(Origin::signed(4)));
-        // 1080 + 960 * ((8 - 7) / 8) = 1200
         assert_eq!(DoraRewards::rewards_info(&4).unwrap().claimed_reward, 1200);
 
         // no rewards left

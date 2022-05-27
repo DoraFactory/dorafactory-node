@@ -40,6 +40,7 @@ pallet-scheduler = { default-features = false, git = "https://github.com/parityt
 pallet-preimage = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.19", default-features = false }
 pallet-society = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.19", default-features = false }
 pallet-collective = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.19", default-features = false }
+pallet-utility = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.19", default-features = false }
 
 ## Substrate Primitive Dependencies
 sp-api = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.19" }
@@ -111,12 +112,12 @@ runtime-benchmarks = [
     "pallet-collator-selection/runtime-benchmarks",
     "pallet-xcm/runtime-benchmarks",
 	"cumulus-pallet-session-benchmarking/runtime-benchmarks",
-
     "orml-tokens/runtime-benchmarks",
     "pallet-qf/runtime-benchmarks",
     "pallet-dora-rewards/runtime-benchmarks",
     "pallet-society/runtime-benchmarks",
     "pallet-collective/runtime-benchmarks",
+    "pallet-utility/runtime-benchmarks",
 ]
 std = [
     "codec/std",
@@ -139,6 +140,9 @@ std = [
     "pallet-timestamp/std",
     "pallet-transaction-payment-rpc-runtime-api/std",
     "pallet-transaction-payment/std",
+    "pallet-scheduler/std",
+    "pallet-preimage/std",
+    "pallet-utility/std",
     "sp-api/std",
     "sp-block-builder/std",
     "sp-consensus-aura/std",
@@ -164,7 +168,6 @@ std = [
 	"xcm-builder/std",
 	"xcm-executor/std",
 	"xcm/std",
-
     "orml-currencies/std",
     "orml-xtokens/std",
     "orml-unknown-tokens/std",
@@ -172,9 +175,5 @@ std = [
 	"orml-xcm-support/std",
 	"orml-xcm/std",
 	"orml-traits/std",
-
-    "pallet-scheduler/std",
-    "pallet-preimage/std",
-
     "primitives/std",
 ]

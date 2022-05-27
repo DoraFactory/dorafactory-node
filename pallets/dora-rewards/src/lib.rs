@@ -167,7 +167,7 @@ pub mod pallet {
     #[pallet::event]
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
     pub enum Event<T: Config> {
-        /// update contributor's reward info (accountId, claimed reward, left reward)
+        /// update contributor's reward info (accountId, total reward, claimed reward)
         UpdateContributorsInfo(T::AccountId, BalanceOf<T>, BalanceOf<T>),
         /// distribute reward (source account, destination account, amount)
         DistributeReward(T::AccountId, T::AccountId, BalanceOf<T>),
