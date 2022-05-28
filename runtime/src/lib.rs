@@ -641,9 +641,9 @@ construct_runtime!(
         ParachainSystem: cumulus_pallet_parachain_system::{
             Pallet, Call, Config, Storage, Inherent, Event<T>, ValidateUnsigned,
         } = 1,
-        Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent} = 2,
-        ParachainInfo: parachain_info::{Pallet, Storage, Config} = 3,
-        Utility: pallet_utility,
+        Utility: pallet_utility::{Pallet, Call, Storage, Event} = 2,
+        Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent} = 3,
+        ParachainInfo: parachain_info::{Pallet, Storage, Config} = 4,
 
         // Monetary stuff.
         Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>} = 10,
