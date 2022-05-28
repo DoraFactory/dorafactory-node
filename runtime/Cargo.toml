@@ -38,7 +38,6 @@ pallet-authorship = { git = "https://github.com/paritytech/substrate", default-f
 pallet-session = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.19" }
 pallet-scheduler = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.19" }
 pallet-preimage = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.19", default-features = false }
-pallet-society = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.19", default-features = false }
 pallet-collective = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.19", default-features = false }
 pallet-utility = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.19", default-features = false }
 
@@ -115,7 +114,6 @@ runtime-benchmarks = [
     "orml-tokens/runtime-benchmarks",
     "pallet-qf/runtime-benchmarks",
     "pallet-dora-rewards/runtime-benchmarks",
-    "pallet-society/runtime-benchmarks",
     "pallet-collective/runtime-benchmarks",
     "pallet-utility/runtime-benchmarks",
 ]
