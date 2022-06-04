@@ -1784,7 +1784,7 @@ dependencies = [
 [[package]]
 name = "dao-core"
 version = "4.0.0-dev"
-source = "git+https://github.com/DoraFactory/dorafactory-dao-core?branch=polkadot-v0.9.19#4d23087d72cbb29eaafa6ca7599b478cecd9b602"
+source = "git+https://github.com/DoraFactory/dorafactory-dao-core?branch=polkadot-v0.9.19#4a1e4aae6813847eb65accd856ecc7550a2764a0"
 dependencies = [
  "dao-traits",
  "frame-support",
@@ -1799,7 +1799,7 @@ dependencies = [
 [[package]]
 name = "dao-traits"
 version = "4.0.0-dev"
-source = "git+https://github.com/DoraFactory/dorafactory-dao-core?branch=polkadot-v0.9.19#4d23087d72cbb29eaafa6ca7599b478cecd9b602"
+source = "git+https://github.com/DoraFactory/dorafactory-dao-core?branch=polkadot-v0.9.19#4a1e4aae6813847eb65accd856ecc7550a2764a0"
 dependencies = [
  "frame-support",
 ]
@@ -5475,7 +5475,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-dora-rewards"
-version = "4.0.0-dev"
+version = "0.1.0"
 dependencies = [
  "cumulus-pallet-parachain-system",
  "cumulus-primitives-core",
@@ -5768,7 +5768,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-qf"
-version = "4.0.0-dev"
+version = "0.1.0"
 dependencies = [
  "dao-core",
  "dao-traits",

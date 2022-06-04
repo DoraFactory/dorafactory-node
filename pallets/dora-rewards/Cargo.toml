@@ -1,6 +1,6 @@
 [package]
 name = "pallet-dora-rewards"
-version = "4.0.0-dev"
+version = "0.1.0"
 authors = ["DoraFactory Developers <https://github.com/DoraFactory>"]
 description = "dora factory's reward pallet for the contributors."
 edition = "2021"
