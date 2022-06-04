@@ -6,6 +6,8 @@
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
+mod weights;
+
 pub mod xcm_config;
 
 pub mod constants;
@@ -27,11 +29,10 @@ use sp_version::RuntimeVersion;
 
 use frame_support::{
     construct_runtime, parameter_types,
-    traits::{EqualPrivilegeOnly, Everything, Nothing},
+    traits::{Currency, EqualPrivilegeOnly, Everything, Imbalance, Nothing, OnUnbalanced},
     weights::{
-        constants::{BlockExecutionWeight, ExtrinsicBaseWeight, WEIGHT_PER_SECOND},
-        DispatchClass, Weight, WeightToFeeCoefficient, WeightToFeeCoefficients,
-        WeightToFeePolynomial,
+        constants::WEIGHT_PER_SECOND, ConstantMultiplier, DispatchClass, Weight,
+        WeightToFeeCoefficient, WeightToFeeCoefficients, WeightToFeePolynomial,
     },
     PalletId,
 };
@@ -47,7 +48,9 @@ use xcm_config::{XcmConfig, XcmOriginToTransactDispatchOrigin};
 pub use sp_runtime::BuildStorage;
 
 // Polkadot Imports
-use polkadot_runtime_common::{BlockHashCount, RocksDbWeight, SlowAdjustingFeeUpdate};
+use polkadot_runtime_common::{BlockHashCount, SlowAdjustingFeeUpdate};
+
+use weights::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight};
 
 // XCM Imports
 use xcm::latest::prelude::BodyId;
@@ -102,33 +105,6 @@ pub type Executive = frame_executive::Executive<
     Runtime,
     AllPalletsWithSystem,
 >;
-
-/// Handles converting a weight scalar to a fee value, based on the scale and granularity of the
-/// node's balance type.
-///
-/// This should typically create a mapping between the following ranges:
-///   - `[0, MAXIMUM_BLOCK_WEIGHT]`
-///   - `[Balance::min, Balance::max]`
-///
-/// Yet, it can be used for any other sort of change to weight-fee. Some examples being:
-///   - Setting it to `0` will essentially disable the weight fee.
-///   - Setting it to `1` will cause the literal `#[weight = x]` values to be charged.
-pub struct WeightToFee;
-impl WeightToFeePolynomial for WeightToFee {
-    type Balance = Balance;
-    fn polynomial() -> WeightToFeeCoefficients<Self::Balance> {
-        // in Rococo, extrinsic base weight (smallest non-zero weight) is mapped to 1 MILLIUNIT:
-        // in our template, we map to 1/10 of that, or 1/10 MILLIUNIT
-        let p = MILLIUNIT / 10;
-        let q = 100 * Balance::from(ExtrinsicBaseWeight::get());
-        smallvec![WeightToFeeCoefficient {
-            degree: 1,
-            negative: false,
-            coeff_frac: Perbill::from_rational(p % q, q),
-            coeff_integer: p / q,
-        }]
-    }
-}
 
 /// Opaque types. These are used by the CLI to instantiate machinery that don't need to know
 /// the specifics of the runtime. They can then be made to be agnostic over specific formats
@@ -226,14 +202,17 @@ parameter_types! {
 }
 
 // Configure FRAME pallets to include in runtime.
-
 impl frame_system::Config for Runtime {
-    /// The identifier used to distinguish between accounts.
-    type AccountId = AccountId;
+    /// The basic call filter to use in dispatchable.
+    type BaseCallFilter = Everything;
+    /// Block & extrinsics weights: base values and limits.
+    type BlockWeights = RuntimeBlockWeights;
+    /// The maximum length of a block (in bytes).
+    type BlockLength = RuntimeBlockLength;
+    /// The ubiquitous origin type.
+    type Origin = Origin;
     /// The aggregated dispatch type that is available for extrinsics.
     type Call = Call;
-    /// The lookup mechanism to get account ID from whatever is passed in dispatchers.
-    type Lookup = AccountIdLookup<AccountId, ()>;
     /// The index type for storing how many extrinsics an account has signed.
     type Index = Index;
     /// The index type for blocks.
@@ -242,14 +221,18 @@ impl frame_system::Config for Runtime {
     type Hash = Hash;
     /// The hashing algorithm used.
     type Hashing = BlakeTwo256;
+    /// The identifier used to distinguish between accounts.
+    type AccountId = AccountId;
+    /// The lookup mechanism to get account ID from whatever is passed in dispatchers.
+    type Lookup = AccountIdLookup<AccountId, ()>;
     /// The header type.
     type Header = generic::Header<BlockNumber, BlakeTwo256>;
     /// The ubiquitous event type.
     type Event = Event;
-    /// The ubiquitous origin type.
-    type Origin = Origin;
     /// Maximum number of block number to block hash mappings to keep (oldest pruned first).
     type BlockHashCount = BlockHashCount;
+    /// The weight of database operations that the runtime can invoke.
+    type DbWeight = RocksDbWeight;
     /// Runtime version.
     type Version = Version;
     /// Converts a module to an index of this module in the runtime.
@@ -260,16 +243,8 @@ impl frame_system::Config for Runtime {
     type OnNewAccount = ();
     /// What to do if an account is fully reaped from the system.
     type OnKilledAccount = ();
-    /// The weight of database operations that the runtime can invoke.
-    type DbWeight = RocksDbWeight;
-    /// The basic call filter to use in dispatchable.
-    type BaseCallFilter = Everything;
     /// Weight information for the extrinsics of this pallet.
     type SystemWeightInfo = ();
-    /// Block & extrinsics weights: base values and limits.
-    type BlockWeights = RuntimeBlockWeights;
-    /// The maximum length of a block (in bytes).
-    type BlockLength = RuntimeBlockLength;
     /// This is used as an identifier of the chain. 42 is the generic substrate prefix.
     type SS58Prefix = SS58Prefix;
     /// The action to take on a Runtime Upgrade
@@ -307,15 +282,15 @@ parameter_types! {
 }
 
 impl pallet_balances::Config for Runtime {
-    type MaxLocks = MaxLocks;
     /// The type for recording an account's balance.
     type Balance = Balance;
+    type DustRemoval = ();
     /// The ubiquitous event type.
     type Event = Event;
-    type DustRemoval = ();
     type ExistentialDeposit = ExistentialDeposit;
     type AccountStore = System;
     type WeightInfo = pallet_balances::weights::SubstrateWeight<Runtime>;
+    type MaxLocks = MaxLocks;
     type MaxReserves = MaxReserves;
     type ReserveIdentifier = [u8; 8];
 }
@@ -326,12 +301,54 @@ parameter_types! {
     pub const OperationalFeeMultiplier: u8 = 5;
 }
 
+/// Handles converting a weight scalar to a fee value, based on the scale and granularity of the
+/// node's balance type.
+///
+/// This should typically create a mapping between the following ranges:
+///   - `[0, MAXIMUM_BLOCK_WEIGHT]`
+///   - `[Balance::min, Balance::max]`
+///
+/// Yet, it can be used for any other sort of change to weight-fee. Some examples being:
+///   - Setting it to `0` will essentially disable the weight fee.
+///   - Setting it to `1` will cause the literal `#[weight = x]` values to be charged.
+pub struct WeightToFee;
+impl WeightToFeePolynomial for WeightToFee {
+    type Balance = Balance;
+    fn polynomial() -> WeightToFeeCoefficients<Self::Balance> {
+        // in dora, 1 weight = 0.8 balance
+        let p = MILLIUNIT / 10;
+        let q = Balance::from(ExtrinsicBaseWeight::get());
+
+        smallvec![WeightToFeeCoefficient {
+            degree: 1,
+            negative: false,
+            coeff_frac: Perbill::from_rational(p % q, q),
+            coeff_integer: p / q,
+        }]
+    }
+}
+
+type NegativeImbalance = <Balances as Currency<AccountId>>::NegativeImbalance;
+
+pub struct DealWithFees;
+impl OnUnbalanced<NegativeImbalance> for DealWithFees {
+    fn on_unbalanceds<B>(mut fees_then_tips: impl Iterator<Item = NegativeImbalance>) {
+        if let Some(mut fees) = fees_then_tips.next() {
+            if let Some(tips) = fees_then_tips.next() {
+                tips.merge_into(&mut fees);
+            }
+            // for fees and tips, 100% to treasury
+            <ToTreasury as OnUnbalanced<_>>::on_unbalanced(fees);
+        }
+    }
+}
+
 impl pallet_transaction_payment::Config for Runtime {
-    type OnChargeTransaction = pallet_transaction_payment::CurrencyAdapter<Balances, ()>;
-    type TransactionByteFee = TransactionByteFee;
+    type OnChargeTransaction = pallet_transaction_payment::CurrencyAdapter<Balances, DealWithFees>;
+    type LengthToFee = ConstantMultiplier<Balance, TransactionByteFee>;
+    type OperationalFeeMultiplier = OperationalFeeMultiplier;
     type WeightToFee = WeightToFee;
     type FeeMultiplierUpdate = SlowAdjustingFeeUpdate<Self>;
-    type OperationalFeeMultiplier = OperationalFeeMultiplier;
 }
 
 parameter_types! {
@@ -343,9 +360,9 @@ impl cumulus_pallet_parachain_system::Config for Runtime {
     type Event = Event;
     type OnSystemEvent = ();
     type SelfParaId = parachain_info::Pallet<Runtime>;
+    type OutboundXcmpMessageSource = XcmpQueue;
     type DmpMessageHandler = DmpQueue;
     type ReservedDmpWeight = ReservedDmpWeight;
-    type OutboundXcmpMessageSource = XcmpQueue;
     type XcmpMessageHandler = XcmpQueue;
     type ReservedXcmpWeight = ReservedXcmpWeight;
 }
@@ -393,8 +410,8 @@ impl pallet_session::Config for Runtime {
 
 impl pallet_aura::Config for Runtime {
     type AuthorityId = AuraId;
-    type DisabledValidators = ();
     type MaxAuthorities = MaxAuthorities;
+    type DisabledValidators = ();
 }
 
 parameter_types! {
@@ -423,6 +440,26 @@ impl pallet_collator_selection::Config for Runtime {
     type ValidatorIdOf = pallet_collator_selection::IdentityCollator;
     type ValidatorRegistration = Session;
     type WeightInfo = ();
+}
+
+// pub struct ToStakingPot;
+// impl OnUnbalanced<NegativeImbalance> for ToStakingPot {
+//     fn on_nonzero_unbalanced(amount: NegativeImbalance) {
+//         let staking_pot = PotId::get().into_account();
+//         Balances::resolve_creating(&staking_pot, amount);
+//     }
+// }
+
+parameter_types! {
+    pub TreasuryAccount: AccountId = TreasuryPalletId::get().into_account();
+}
+
+pub struct ToTreasury;
+impl OnUnbalanced<NegativeImbalance> for ToTreasury {
+    fn on_nonzero_unbalanced(amount: NegativeImbalance) {
+        let staking_treasury = TreasuryAccount::get();
+        Balances::resolve_creating(&staking_treasury, amount);
+    }
 }
 
 impl pallet_sudo::Config for Runtime {
@@ -545,7 +582,6 @@ parameter_type_with_key! {
 
 parameter_types! {
     pub ORMLMaxLocks: u32 = 2;
-    pub NativeTreasuryAccount: AccountId = TreasuryPalletId::get().into_account();
 }
 
 impl orml_tokens::Config for Runtime {
@@ -616,21 +652,21 @@ construct_runtime!(
         DmpQueue: cumulus_pallet_dmp_queue::{Pallet, Call, Storage, Event<T>} = 33,
 
         // ORML XCMP
-        XTokens: orml_xtokens::{Pallet, Storage, Call, Event<T>} = 34,
-        Tokens: orml_tokens::{Pallet, Storage, Event<T>, Config<T>} = 35,
-        OrmlXcm: orml_xcm::{Pallet, Call, Event<T>} = 36,
-        UnknownTokens: orml_unknown_tokens::{Pallet, Storage, Event} = 37,
-        Currencies: orml_currencies::{Pallet, Call, Event<T>} = 38,
+        XTokens: orml_xtokens::{Pallet, Storage, Call, Event<T>} = 40,
+        Tokens: orml_tokens::{Pallet, Storage, Event<T>, Config<T>} = 41,
+        OrmlXcm: orml_xcm::{Pallet, Call, Event<T>} = 42,
+        UnknownTokens: orml_unknown_tokens::{Pallet, Storage, Event} = 43,
+        Currencies: orml_currencies::{Pallet, Call, Event<T>} = 44,
 
         // Sudo
-        Sudo: pallet_sudo::{Pallet, Call, Config<T>, Storage, Event<T>} = 39,
-        Scheduler: pallet_scheduler::{Pallet, Call, Storage, Event<T>} = 40,
-        Preimage: pallet_preimage::{Pallet, Call, Storage, Event<T>} = 41,
+        Sudo: pallet_sudo::{Pallet, Call, Config<T>, Storage, Event<T>} = 50,
+        Scheduler: pallet_scheduler::{Pallet, Call, Storage, Event<T>} = 51,
+        Preimage: pallet_preimage::{Pallet, Call, Storage, Event<T>} = 52,
 
         // Include the custom pallet in the runtime.
-        QuadraticFunding: pallet_qf::{Pallet, Call, Storage, Event<T>} = 42,
-        DaoCoreModule: dao_core::{Pallet, Call, Storage, Event<T>} = 43,
-        DoraRewards: pallet_dora_rewards::{Pallet, Call, Storage, Event<T>, Config<T>} = 44,
+        QuadraticFunding: pallet_qf::{Pallet, Call, Storage, Event<T>} = 70,
+        DaoCoreModule: dao_core::{Pallet, Call, Storage, Event<T>} = 71,
+        DoraRewards: pallet_dora_rewards::{Pallet, Call, Storage, Event<T>, Config<T>} = 72,
     }
 );
 

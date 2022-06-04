@@ -157,7 +157,6 @@ pub fn development_config() -> ChainSpec {
                     ),
                 ],
                 vec![
-                    get_account_id_from_seed::<sr25519::Public>("Alice"),
                     get_account_id_from_seed::<sr25519::Public>("Bob"),
                     get_account_id_from_seed::<sr25519::Public>("Charlie"),
                     get_account_id_from_seed::<sr25519::Public>("Dave"),
@@ -213,7 +212,7 @@ fn dorafactory_genesis(
             balances: endowed_accounts
                 .iter()
                 .cloned()
-                .map(|k| (k, 30_000_000_000_000_000))
+                .map(|k| (k, 50_000_000_000_000_000))
                 .collect(),
         },
         parachain_info: dorafactory_node_runtime::ParachainInfoConfig { parachain_id: id },

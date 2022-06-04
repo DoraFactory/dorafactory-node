@@ -1,12 +1,16 @@
 use super::{
-    ksm_per_second, AccountId, Balance, Call, Convert, Currencies, CurrencyId, Event,
-    NativeTreasuryAccount, Origin, ParachainInfo, ParachainSystem, PolkadotXcm, Runtime,
+    ksm_per_second, AccountId, Balance, Call, Convert, Currencies, CurrencyId, Event, Origin,
+    ParachainInfo, ParachainSystem, PolkadotXcm, Runtime, ToTreasury, TreasuryAccount,
     UnknownTokens, Vec, XcmpQueue, MAXIMUM_BLOCK_WEIGHT,
 };
 use frame_support::{
-    match_type, parameter_types,
+    match_types, parameter_types,
     traits::{Everything, Nothing},
     weights::Weight,
+};
+use orml_traits::{location::AbsoluteReserveProvider, parameter_type_with_key, MultiCurrency};
+use orml_xcm_support::{
+    DepositToAlternative, IsNativeConcrete, MultiCurrencyAdapter, MultiNativeAsset,
 };
 use pallet_xcm::XcmPassthrough;
 use polkadot_parachain::primitives::Sibling;
@@ -15,14 +19,9 @@ use xcm_builder::{
     AccountId32Aliases, AllowTopLevelPaidExecutionFrom, AllowUnpaidExecutionFrom, EnsureXcmOrigin,
     FixedRateOfFungible, FixedWeightBounds, LocationInverter, ParentIsPreset, RelayChainAsNative,
     SiblingParachainAsNative, SiblingParachainConvertsVia, SignedAccountId32AsNative,
-    SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit,
+    SignedToAccountId32, SovereignSignedViaLocation, TakeRevenue, TakeWeightCredit,
 };
 use xcm_executor::XcmExecutor;
-
-use orml_traits::{location::AbsoluteReserveProvider, parameter_type_with_key};
-use orml_xcm_support::{
-    DepositToAlternative, IsNativeConcrete, MultiCurrencyAdapter, MultiNativeAsset,
-};
 
 parameter_types! {
     pub const RelayLocation: MultiLocation = MultiLocation::parent();
@@ -70,17 +69,16 @@ parameter_types! {
     pub const MaxInstructions: u32 = 100;
 }
 
-match_type! {
+match_types! {
     pub type ParentOrParentsExecutivePlurality: impl Contains<MultiLocation> = {
         MultiLocation { parents: 1, interior: Here } |
         MultiLocation { parents: 1, interior: X1(Plurality { id: BodyId::Executive, .. }) }
     };
 }
 
-match_type! {
+match_types! {
     pub type SpecParachain: impl Contains<MultiLocation> = {
         MultiLocation {parents: 1, interior: X1(Parachain(2115))}
-
     };
 }
 
@@ -100,16 +98,33 @@ pub type LocalAssetTransactor = MultiCurrencyAdapter<
     LocationToAccountId,
     CurrencyId,
     CurrencyIdConvert,
-    DepositToAlternative<NativeTreasuryAccount, Currencies, CurrencyId, AccountId, Balance>,
+    DepositToAlternative<TreasuryAccount, Currencies, CurrencyId, AccountId, Balance>,
 >;
+
+impl TakeRevenue for ToTreasury {
+    fn take_revenue(revenue: MultiAsset) {
+        if let MultiAsset {
+            id: Concrete(location),
+            fun: Fungible(amount),
+        } = revenue
+        {
+            if let Some(currency_id) = CurrencyIdConvert::convert(location) {
+                // Ensure DoraTreasuryAccount have ed requirement for native asset, but don't need
+                // ed requirement for cross-chain asset because it's one of whitelist accounts.
+                // Ignore the result.
+                let _ = Currencies::deposit(currency_id, &TreasuryAccount::get(), amount);
+            }
+        }
+    }
+}
 
 /// Trader - The means of purchasing weight credit for XCM execution.
 /// We need to ensure we have at least one rule per token we want to handle or else
 /// the xcm executor won't know how to charge fees for a transfer of said token.
 pub type Trader = (
-    FixedRateOfFungible<KsmPerSecond, ()>,
-    FixedRateOfFungible<NativePerSecond, ()>,
-    FixedRateOfFungible<NativeNewPerSecond, ()>,
+    FixedRateOfFungible<KsmPerSecond, ToTreasury>,
+    FixedRateOfFungible<NativePerSecond, ToTreasury>,
+    FixedRateOfFungible<NativeNewPerSecond, ToTreasury>,
 );
 
 parameter_types! {
