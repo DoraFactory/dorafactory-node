@@ -136,7 +136,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("DORA KSM Parachain"),
     impl_name: create_runtime_str!("DORA KSM Parachain"),
     authoring_version: 1,
-    spec_version: 10,
+    spec_version: 20,
     impl_version: 0,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 1,
@@ -604,6 +604,8 @@ impl orml_tokens::Config for Runtime {
     type OnDust = ();
     // type OnDust = orml_tokens::TransferDust<Runtime, NativeTreasuryAccount>;
     type MaxLocks = ORMLMaxLocks;
+    type MaxReserves = ();
+    type ReserveIdentifier = ();
     type DustRemovalWhitelist = Nothing;
 }
 
@@ -617,7 +619,7 @@ parameter_types! {
 }
 
 impl orml_currencies::Config for Runtime {
-    type Event = Event;
+    // type Event = Event;
     type MultiCurrency = Tokens;
     type NativeCurrency = BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
     type GetNativeCurrencyId = GetNativeCurrencyId;
@@ -667,7 +669,7 @@ construct_runtime!(
         Tokens: orml_tokens::{Pallet, Storage, Event<T>, Config<T>} = 41,
         OrmlXcm: orml_xcm::{Pallet, Call, Event<T>} = 42,
         UnknownTokens: orml_unknown_tokens::{Pallet, Storage, Event} = 43,
-        Currencies: orml_currencies::{Pallet, Call, Event<T>} = 44,
+        Currencies: orml_currencies::{Pallet, Call} = 44,
 
         // Sudo
         Sudo: pallet_sudo::{Pallet, Call, Config<T>, Storage, Event<T>} = 50,

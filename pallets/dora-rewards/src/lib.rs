@@ -240,12 +240,11 @@ pub mod pallet {
 
             // Get the current block used for vesting purposes and check the current block number is in the lease.
             // if in the lease, the computation baseline is current blocknumber, otherwise is EndVestingBlock
-            let track_now =
-                if now >= <EndVestingBlock<T>>::get() {
-                    <EndVestingBlock<T>>::get()
-                } else {
-                    T::VestingBlockProvider::current_block_number()
-                };
+            let track_now = if now >= <EndVestingBlock<T>>::get() {
+                <EndVestingBlock<T>>::get()
+            } else {
+                T::VestingBlockProvider::current_block_number()
+            };
 
             // the fist reward distributed to the contributor by the percentage(this percent currently is 20%) total reward
             // as you can see, if you contribute more, the more first reward you will claim
