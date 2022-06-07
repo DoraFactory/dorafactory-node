@@ -15,7 +15,7 @@ targets = ["x86_64-unknown-linux-gnu"]
 [dependencies]
 jsonrpsee = { version = "0.13.0", features = ["server"] }
 clap = { version = "3.1", features = [ "derive" ] }
-serde = { version = "1.0.136", features = ["derive"] }
+serde = { version = "1.0.137", features = ["derive"] }
 hex-literal = "0.3.1"
 derive_more = "0.99.2"
 log = "0.4.17"
