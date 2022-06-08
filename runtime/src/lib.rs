@@ -63,8 +63,8 @@ use orml_currencies::BasicCurrencyAdapter;
 use orml_traits::parameter_type_with_key;
 
 pub use primitives::{
-    AccountId, Address, Amount, Balance, BlockNumber, CurrencyId, Hash, Index, Signature, CENTS,
-    DOLLARS, EXISTENTIAL_DEPOSIT, MICROUNIT, MILLICENTS, MILLIUNIT, UNIT,
+    AccountId, Address, Amount, Balance, BlockNumber, CurrencyId, Hash, Index, ReserveIdentifier,
+    Signature, CENTS, DOLLARS, EXISTENTIAL_DEPOSIT, MICROUNIT, MILLICENTS, MILLIUNIT, UNIT,
 };
 
 pub use constants::time::*;
@@ -294,7 +294,8 @@ impl pallet_balances::Config for Runtime {
     type WeightInfo = pallet_balances::weights::SubstrateWeight<Runtime>;
     type MaxLocks = MaxLocks;
     type MaxReserves = MaxReserves;
-    type ReserveIdentifier = [u8; 8];
+    type ReserveIdentifier = ();
+    // type ReserveIdentifier = [u8; 8];
 }
 
 parameter_types! {
@@ -310,7 +311,7 @@ parameter_types! {
 ///   - `[0, MAXIMUM_BLOCK_WEIGHT]`
 ///   - `[Balance::min, Balance::max]`
 ///
-/// Yet, it can be used for any other sort of change to weight-fee. Some examples being:
+/// Yet, it can be used for any other sort off change to weight-fee. Some examples being:
 ///   - Setting it to `0` will essentially disable the weight fee.
 ///   - Setting it to `1` will cause the literal `#[weight = x]` values to be charged.
 pub struct WeightToFee;
@@ -619,7 +620,6 @@ parameter_types! {
 }
 
 impl orml_currencies::Config for Runtime {
-    // type Event = Event;
     type MultiCurrency = Tokens;
     type NativeCurrency = BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
     type GetNativeCurrencyId = GetNativeCurrencyId;
