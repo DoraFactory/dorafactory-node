@@ -1,6 +1,6 @@
 [package]
 name = "dorafactory-node-runtime"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["DoraFactory Developers <https://github.com/DoraFactory>"]
 repository = "https://github.com/DoraFactory/dorafactory-node"
 edition = "2021"
@@ -89,8 +89,8 @@ orml-traits = { git = "https://github.com/open-web3-stack/open-runtime-module-li
 dao-core = { git = "https://github.com/DoraFactory/dorafactory-dao-core", branch = "polkadot-v0.9.22", default-features = false }
 
 # Local Dependencies
-pallet-qf = { path = "../pallets/quadratic-funding", default-features = false , version = "0.1.0" }
-pallet-dora-rewards = { path = "../pallets/dora-rewards", default-features = false , version = "0.1.0" }
+pallet-qf = { path = "../pallets/quadratic-funding", default-features = false , version = "0.2.0" }
+pallet-dora-rewards = { path = "../pallets/dora-rewards", default-features = false , version = "0.2.0" }
 
 primitives = { package = "primitives", path = "../primitives", default-features = false }
 

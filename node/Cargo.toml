@@ -1,6 +1,6 @@
 [package]
 name = "dorafactory-node"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["DoraFactory Developers <https://github.com/DoraFactory>"]
 repository = "https://github.com/DoraFactory/dorafactory-node/"
 edition = "2021"
@@ -21,7 +21,7 @@ derive_more = "0.99.2"
 log = "0.4.17"
 codec = { package = "parity-scale-codec", version = "3.0.0" }
 
-dorafactory-node-runtime = { path = "../runtime" , version = "0.1.0"}
+dorafactory-node-runtime = { path = "../runtime" , version = "0.2.0"}
 
 # Substrate Dependencies
 ## FRAME dependencies

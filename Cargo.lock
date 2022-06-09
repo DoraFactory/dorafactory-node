@@ -1943,7 +1943,7 @@ dependencies = [
 
 [[package]]
 name = "dorafactory-node"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "clap",
  "cumulus-client-cli",
@@ -2012,7 +2012,7 @@ dependencies = [
 
 [[package]]
 name = "dorafactory-node-runtime"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "cumulus-pallet-aura-ext",
  "cumulus-pallet-dmp-queue",
@@ -5306,7 +5306,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-dora-rewards"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "cumulus-pallet-parachain-system",
  "cumulus-primitives-core",
@@ -5596,7 +5596,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-qf"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "dao-core",
  "dao-traits",
@@ -7407,7 +7407,7 @@ dependencies = [
 
 [[package]]
 name = "primitives"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "frame-support",
  "parity-scale-codec",

@@ -1,6 +1,6 @@
 [package]
 name = "pallet-qf"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["DoraFactory Developers <https://github.com/DoraFactory>"]
 description = "qunadratic funding pallet"
 edition = "2021"
