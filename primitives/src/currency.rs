@@ -26,5 +26,7 @@ pub enum CurrencyId {
     KSM,
     // Native TokenSymbol
     DORA,
+    // Moonriver TokenSymbol
+    MOVR,
     // Other Parachain token
 }
