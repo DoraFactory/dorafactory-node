@@ -52,7 +52,7 @@ fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, St
 
 impl SubstrateCli for Cli {
     fn impl_name() -> String {
-        "Parachain Collator Template".into()
+        "DoraFactory Node".into()
     }
 
     fn impl_version() -> String {
@@ -60,10 +60,10 @@ impl SubstrateCli for Cli {
     }
 
     fn description() -> String {
-        "Parachain Collator Template\n\nThe command-line arguments provided first will be \
+        "DoraFactory Node\n\nThe command-line arguments provided first will be \
 		passed to the parachain node, while the arguments provided after -- will be passed \
 		to the relay chain node.\n\n\
-		parachain-collator <parachain-args> -- <relay-chain-args>"
+		dorafactory-node <parachain-args> -- <relay-chain-args>"
             .into()
     }
 
@@ -72,11 +72,11 @@ impl SubstrateCli for Cli {
     }
 
     fn support_url() -> String {
-        "https://github.com/paritytech/cumulus/issues/new".into()
+        "https://github.com/DoraFactory/dorafactory-node/issues/new".into()
     }
 
     fn copyright_start_year() -> i32 {
-        2020
+        2022
     }
 
     fn load_spec(&self, id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, String> {
@@ -90,7 +90,7 @@ impl SubstrateCli for Cli {
 
 impl SubstrateCli for RelayChainCli {
     fn impl_name() -> String {
-        "Dorafactory Node".into()
+        "DoraFactory Node".into()
     }
 
     fn impl_version() -> String {
@@ -98,10 +98,10 @@ impl SubstrateCli for RelayChainCli {
     }
 
     fn description() -> String {
-        "Parachain Collator Template\n\nThe command-line arguments provided first will be \
+        "DoraFactory Node\n\nThe command-line arguments provided first will be \
 		passed to the parachain node, while the arguments provided after -- will be passed \
 		to the relay chain node.\n\n\
-		parachain-collator <parachain-args> -- <relay-chain-args>"
+		dorafactory-node <parachain-args> -- <relay-chain-args>"
             .into()
     }
 
@@ -110,7 +110,7 @@ impl SubstrateCli for RelayChainCli {
     }
 
     fn support_url() -> String {
-        "https://github.com/paritytech/cumulus/issues/new".into()
+        "https://github.com/DoraFactory/dorafactory-node/issues/new".into()
     }
 
     fn copyright_start_year() -> i32 {

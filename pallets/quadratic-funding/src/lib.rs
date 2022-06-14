@@ -339,6 +339,8 @@ pub mod pallet {
                 Rounds::<T>::contains_key(&round_id),
                 Error::<T>::RoundNotExist
             );
+            let round = Rounds::<T>::get(round_id).unwrap();
+            ensure!(true == round.ongoing, Error::<T>::RoundHasEnded);
             ensure!(
                 !Projects::<T>::contains_key(&round_id, &hash),
                 Error::<T>::DuplicateProject
