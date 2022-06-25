@@ -21,7 +21,7 @@ jobs:
         run: |
           docker build --build-arg BIN=${{ matrix.bin }} --build-arg PROFILE=$PROFILE -t dorafactory-node:local -f ./Dockerfile .
       - name: Log in to Docker Hub
-        uses: docker/login-action@v1
+        uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKER_HUB_USER }}
           password: ${{ secrets.DOCKER_HUB_PASS }}
