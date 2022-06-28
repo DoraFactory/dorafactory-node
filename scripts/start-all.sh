@@ -8,4 +8,3 @@ nohup ./polkadot --bob   -d data/node2 --chain config/rococo-local-raw.json --va
 
 # parachain
 nohup ./dorafactory-node -d ./data/dorafactory --alice --force-authoring --collator --discover-local --rpc-cors=all --ws-port 8844 --rpc-port 9933 --port 40041 --chain ./config/dorafactory-dev.json -llog=info -lruntime=debug,evm=trace --  --chain ./config/rococo-local-raw.json --discover-local --port 40042 > data/log.2115 2>&1 &
-

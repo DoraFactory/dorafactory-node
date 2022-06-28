@@ -117,4 +117,3 @@ sed 's/1e+24/10000000000000000000000/g'  > ./config/rococo-local.json
 
 echo "build relay raw chainspec"
 ./polkadot build-spec --chain ./config/rococo-local.json --disable-default-bootnode --raw > ./config/rococo-local-raw.json
-
