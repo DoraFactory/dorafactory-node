@@ -173,7 +173,7 @@ pub fn development_config() -> ChainSpec {
                     account("alice", 0, 0),
                     account("bob", 0, 0),
                     account("charlie", 0, 0),
-                    PalletId(*b"DoraRewa").into_account(),
+                    PalletId(*b"DoraRewa").into_account_truncating(),
                 ],
                 dev_para_id.into(),
             )

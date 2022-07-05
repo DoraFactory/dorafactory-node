@@ -30,7 +30,7 @@ use sp_version::RuntimeVersion;
 use frame_support::{
     construct_runtime, parameter_types,
     traits::{
-        ConstBool, Currency, EqualPrivilegeOnly, Everything, Imbalance, Nothing, OnUnbalanced,
+        ConstBool, Contains, Currency, EqualPrivilegeOnly, Everything, Imbalance, OnUnbalanced,
     },
     weights::{
         constants::WEIGHT_PER_SECOND, ConstantMultiplier, DispatchClass, Weight,
@@ -294,8 +294,7 @@ impl pallet_balances::Config for Runtime {
     type WeightInfo = pallet_balances::weights::SubstrateWeight<Runtime>;
     type MaxLocks = MaxLocks;
     type MaxReserves = MaxReserves;
-    type ReserveIdentifier = ();
-    // type ReserveIdentifier = [u8; 8];
+    type ReserveIdentifier = ReserveIdentifier;
 }
 
 parameter_types! {
@@ -448,13 +447,13 @@ impl pallet_collator_selection::Config for Runtime {
 // pub struct ToStakingPot;
 // impl OnUnbalanced<NegativeImbalance> for ToStakingPot {
 //     fn on_nonzero_unbalanced(amount: NegativeImbalance) {
-//         let staking_pot = PotId::get().into_account();
+//         let staking_pot = PotId::get().into_account_truncating();
 //         Balances::resolve_creating(&staking_pot, amount);
 //     }
 // }
 
 parameter_types! {
-    pub TreasuryAccount: AccountId = TreasuryPalletId::get().into_account();
+    pub TreasuryAccount: AccountId = TreasuryPalletId::get().into_account_truncating();
 }
 
 pub struct ToTreasury;
@@ -591,8 +590,18 @@ parameter_type_with_key! {
     };
 }
 
-parameter_types! {
-    pub ORMLMaxLocks: u32 = 2;
+pub fn get_all_module_accounts() -> Vec<AccountId> {
+    vec![
+        PotId::get().into_account_truncating(),
+        TreasuryPalletId::get().into_account_truncating(),
+    ]
+}
+
+pub struct DustRemovalWhitelist;
+impl Contains<AccountId> for DustRemovalWhitelist {
+    fn contains(a: &AccountId) -> bool {
+        get_all_module_accounts().contains(a)
+    }
 }
 
 impl orml_tokens::Config for Runtime {
@@ -604,10 +613,12 @@ impl orml_tokens::Config for Runtime {
     type ExistentialDeposits = ExistentialDeposits;
     type OnDust = ();
     // type OnDust = orml_tokens::TransferDust<Runtime, NativeTreasuryAccount>;
-    type MaxLocks = ORMLMaxLocks;
-    type MaxReserves = ();
-    type ReserveIdentifier = ();
-    type DustRemovalWhitelist = Nothing;
+    type MaxLocks = MaxLocks;
+    type MaxReserves = MaxReserves;
+    type ReserveIdentifier = ReserveIdentifier;
+    type DustRemovalWhitelist = DustRemovalWhitelist;
+    type OnNewTokenAccount = ();
+    type OnKilledTokenAccount = ();
 }
 
 impl orml_xcm::Config for Runtime {
