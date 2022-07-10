@@ -527,12 +527,15 @@ parameter_types! {
     pub const NameMinLength: u32 = 3;
     pub const NameMaxLength: u32 = 32;
     pub const AppId: u8 = 1;
+    // minimal number of units to reserve to get qualified to vote
+    pub const MinReserve: u32 = 50;
     // pub const StringLimit: u32 = 32;
 }
 
 /// Configure the pallet-qf in pallets/quadratic-funding.
 impl pallet_qf::Config for Runtime {
     type Event = Event;
+    type Currency = Balances;
     type MultiCurrency = Currencies;
     type PalletId = QuadraticFundingPalletId;
     // Origin who can control the round
@@ -547,6 +550,7 @@ impl pallet_qf::Config for Runtime {
     type NameMinLength = NameMinLength;
     // The maximum length of project name
     type NameMaxLength = NameMaxLength;
+    type MinReserve = MinReserve;
     type WeightInfo = pallet_qf::weights::DoraWeight<Runtime>;
 }
 

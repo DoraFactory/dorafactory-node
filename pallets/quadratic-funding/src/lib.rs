@@ -3,7 +3,7 @@
 use codec::MaxEncodedLen;
 use frame_support::{
     codec::{Decode, Encode},
-    traits::{EnsureOrigin, Get},
+    traits::{EnsureOrigin, Get, Currency, ReservableCurrency},
     BoundedVec, PalletId,
 };
 use orml_traits::{
@@ -42,7 +42,7 @@ pub struct Project<AccountId, BoundedString> {
 }
 
 #[derive(Encode, Decode, Clone, Eq, PartialEq, TypeInfo, MaxEncodedLen, RuntimeDebug)]
-pub struct Round<BoundedString> {
+pub struct Round<AccountId, BoundedString> {
     pub name: BoundedString,
     pub currency_id: CurrencyId,
     pub ongoing: bool,
@@ -50,9 +50,11 @@ pub struct Round<BoundedString> {
     pub pre_tax_support_pool: u128,
     pub total_support_area: u128,
     pub total_tax: u128,
+    pub admin: AccountId
 }
 
 type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
+type DoraBalance<T> = <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 type BalanceOf<T> = <<T as Config>::MultiCurrency as MultiCurrency<AccountIdOf<T>>>::Balance;
 
 #[frame_support::pallet]
@@ -66,6 +68,7 @@ pub mod pallet {
     pub trait Config: frame_system::Config {
         /// Because this pallet emits events, it depends on the runtime's definition of an event.
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+        type Currency: Currency<Self::AccountId>  + ReservableCurrency<Self::AccountId>;
 
         /// Currency to transfer assets
         // type MultiCurrency: MultiCurrency<Self::AccountId, CurrencyId = CurrencyId, Balance = Balance>;
@@ -98,8 +101,8 @@ pub mod pallet {
         /// The maximum length of name [project_name, round_name]
         // #[pallet::constant]
         type NameMaxLength: Get<u32>;
-        // type StringLimit: Get<u32>;
 
+        type MinReserve: Get<u32>;
         // /// The maximum length of project name
         // type NameMaxLength: Get<usize>;
 
@@ -117,8 +120,12 @@ pub mod pallet {
     #[pallet::getter(fn rounds)]
     // Learn more about declaring storage items:
     // https://substrate.dev/docs/en/knowledgebase/runtime/storage#declaring-storage-items
-    pub(super) type Rounds<T: Config> =
-        StorageMap<_, Blake2_128Concat, u32, Round<BoundedVec<u8, T::NameMaxLength>>>;
+    pub(super) type Rounds<T: Config> = StorageMap<
+        _,
+        Blake2_128Concat,
+        u32,
+        Round<<T as frame_system::Config>::AccountId, BoundedVec<u8, T::NameMaxLength>>
+    >;
 
     #[pallet::storage]
     #[pallet::getter(fn projects)]
@@ -220,7 +227,7 @@ pub mod pallet {
                 Error::<T>::DonationTooSmall
             );
             let _ = T::MultiCurrency::transfer(currency_id, &who, &Self::account_id(), amount)?;
-            // TODO: add deposit to pallet account.
+            // add deposit to pallet account.
             // update the round
             Rounds::<T>::mutate(round_id, |rnd| match rnd {
                 Some(round) => {
@@ -256,6 +263,7 @@ pub mod pallet {
             round_id: u32,
             currency_id: CurrencyId,
             name: Vec<u8>,
+            admin: T::AccountId,
         ) -> DispatchResultWithPostInfo {
             // Only amdin can control the round
             T::AdminOrigin::ensure_origin(origin)?;
@@ -276,6 +284,7 @@ pub mod pallet {
                 pre_tax_support_pool: 0,
                 total_support_area: 0,
                 total_tax: 0,
+                admin: admin.clone()
             };
             Rounds::<T>::insert(round_id, round);
             Self::deposit_event(Event::RoundStarted(round_id));
@@ -304,13 +313,13 @@ pub mod pallet {
                         .unwrap();
                 }
                 //debug::info!("Hash: {:?}, Total votes: {:?}, Grants: {:?}", hash, project.total_votes, project.grants);
-                // reckon the final grants
-                let _ = T::MultiCurrency::transfer(
-                    currency_id,
-                    &Self::account_id(),
-                    &project.owner,
-                    Self::u128_to_balance(project.grants),
-                )?;
+                // manual dispute the rewards
+                // let _ = T::MultiCurrency::transfer(
+                //     currency_id,
+                //     &Self::account_id(),
+                //     &project.owner,
+                //     Self::u128_to_balance(project.grants),
+                // )?;
             }
             round.ongoing = false;
             Rounds::<T>::insert(round_id, round);
@@ -396,6 +405,12 @@ pub mod pallet {
                 Some(val) => val,
                 None => 0,
             };
+            // TODO  
+            if voted == 0 {
+                let bal = TryInto::<DoraBalance<T>>::try_into(10000000_u128).ok().unwrap();
+                T::Currency::reserve(&who, bal)
+                .map_err(|_| "Voter can't afford to lock the amount requested")?;
+            }
             let cost = Self::cal_cost(voted.clone(), ballot);
             let amount = Self::cal_amount(cost, false);
             let fee = Self::cal_amount(cost, true);
