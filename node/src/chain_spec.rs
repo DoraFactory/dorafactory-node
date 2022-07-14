@@ -167,14 +167,9 @@ pub fn development_config() -> ChainSpec {
                     get_account_id_from_seed::<sr25519::Public>("Ferdie"),
                     hex!["34c63c6b3213570b0513c706f6c49a4ce253570ac213e53c919d2cd6f8913a07"].into(),
                     account("alice", 0, 0),
-                    // account("bob", 0, 0),
-                    // account("charlie", 0, 0),
-                    // PalletId(*b"DoraRewa").into_account(),
-                ],
-                vec![
-                    hex!["80b643cd22663a6619e732187f9b6d969d0a3f53ae50bc75921b0f373cfba549"].into(),
-                    hex!["b08026c5beb06a7852609d2cf71c011784f1c8cbcdb7c1169de8a9ad55652635"].into(),
-                    hex!["c6cc43491544a150ec3c23c8c2b1fd9c723b1512dedadc000843e770be37f66a"].into(),
+                    account("bob", 0, 0),
+                    account("charlie", 0, 0),
+                    PalletId(*b"DoraRewa").into_account_truncating(),
                 ],
                 dev_para_id.into(),
             )

@@ -1,21 +1,22 @@
-// Copyright 2019-2021 PureStake Inc.
-// This file is part of Moonbeam.
+// Copyright 2019-2021 DoraFactory Inc.
+// This file is part of DoraFactory-KSM-parachain.
 
-// Moonbeam is free software: you can redistribute it and/or modify
+// DoraFactory-KSM-parachain is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 
-// Moonbeam is distributed in the hope that it will be useful,
+// DoraFactory-KSM-parachain is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
 // You should have received a copy of the GNU General Public License
-// along with Moonbeam.  If not, see <http://www.gnu.org/licenses/>.
+// along with DoraFactory-KSM-parachain.  If not, see <http://www.gnu.org/licenses/>.
 
 //! Test utilities
-use crate::{self as pallet_crowdloan_rewards, Config};
+
+use crate::{self as pallet_dora_rewards, Config};
 use cumulus_primitives_core::relay_chain::BlockNumber as RelayChainBlockNumber;
 use cumulus_primitives_core::PersistedValidationData;
 use cumulus_primitives_parachain_inherent::ParachainInherentData;
@@ -25,10 +26,10 @@ use frame_support::{
     dispatch::UnfilteredDispatchable,
     inherent::{InherentData, ProvideInherent},
     parameter_types,
-    traits::{GenesisBuild, Nothing, OnFinalize, OnInitialize},
+    traits::{ConstBool, ConstU32, GenesisBuild, Nothing, OnFinalize, OnInitialize},
 };
-use frame_system::{EnsureSigned, RawOrigin};
-use sp_core::{ed25519, Pair, H256};
+use frame_system::RawOrigin;
+use sp_core::H256;
 use sp_io;
 use sp_runtime::{
     testing::Header,
@@ -62,7 +63,7 @@ parameter_types! {
 impl cumulus_pallet_parachain_system::Config for Test {
     type SelfParaId = ParachainId;
     type Event = Event;
-    type OnValidationData = ();
+    type OnSystemEvent = ();
     type OutboundXcmpMessageSource = ();
     type XcmpMessageHandler = ();
     type ReservedXcmpWeight = ();
@@ -100,6 +101,7 @@ impl frame_system::Config for Test {
     type OnSetCode = cumulus_pallet_parachain_system::ParachainSetCode<Self>;
     type SystemWeightInfo = ();
     type SS58Prefix = ();
+    type MaxConsumers = ConstU32<16>;
 }
 
 parameter_types! {
@@ -119,24 +121,28 @@ impl pallet_balances::Config for Test {
 }
 
 parameter_types! {
-    pub const FirstVestPercentage: Perbill = Perbill::from_percent(20);
+    pub const TestFirstVestPercentage: Perbill = Perbill::from_percent(20);
+    pub const TestMaxContributorsNumber: u32 = 5;
 }
 
 // dora reward pallet config
 impl Config for Test {
     type Event = Event;
     type Currency = Balances;
-    type VestingBlockNumber = cumulus_primitives_core::relay_chain::BlockNumber;
+    type Initialized = ConstBool<false>;
+    type FirstVestPercentage = TestFirstVestPercentage;
+    type MaxContributorsNumber = TestMaxContributorsNumber;
+    type VestingBlockNumber = RelayChainBlockNumber;
     type VestingBlockProvider =
         cumulus_pallet_parachain_system::RelaychainBlockNumberProvider<Self>;
-    type FirstVestPercentage = FirstVestPercentage;
+    type WeightInfo = ();
 }
 
 fn genesis(funded_amount: Balance) -> sp_io::TestExternalities {
     let mut storage = frame_system::GenesisConfig::default()
         .build_storage::<Test>()
         .unwrap();
-    pallet_crowdloan_rewards::GenesisConfig::<Test> { funded_amount }
+    pallet_dora_rewards::GenesisConfig::<Test> { funded_amount }
         .assimilate_storage(&mut storage)
         .expect("Pallet balances storage can be assimilated");
 
@@ -145,36 +151,9 @@ fn genesis(funded_amount: Balance) -> sp_io::TestExternalities {
     ext
 }
 
+// Genesis initialize 10000 DORA
 pub(crate) fn empty() -> sp_io::TestExternalities {
-    genesis(2500u32.into())
-}
-
-pub(crate) fn events() -> Vec<super::Event<Test>> {
-    System::events()
-        .into_iter()
-        .map(|r| r.event)
-        .filter_map(|e| {
-            if let Event::Crowdloan(inner) = e {
-                Some(inner)
-            } else {
-                None
-            }
-        })
-        .collect::<Vec<_>>()
-}
-
-pub(crate) fn batch_events() -> Vec<pallet_utility::Event> {
-    System::events()
-        .into_iter()
-        .map(|r| r.event)
-        .filter_map(|e| {
-            if let Event::Utility(inner) = e {
-                Some(inner)
-            } else {
-                None
-            }
-        })
-        .collect::<Vec<_>>()
+    genesis(10000u32.into())
 }
 
 pub(crate) fn roll_to(n: u64) {
@@ -212,12 +191,12 @@ pub(crate) fn roll_to(n: u64) {
             .expect("dispatch succeeded");
         ParachainSystem::on_finalize(System::block_number());
 
-        Crowdloan::on_finalize(System::block_number());
+        DoraRewards::on_finalize(System::block_number());
         Balances::on_finalize(System::block_number());
         System::on_finalize(System::block_number());
         System::set_block_number(System::block_number() + 1);
         System::on_initialize(System::block_number());
         Balances::on_initialize(System::block_number());
-        Crowdloan::on_initialize(System::block_number());
+        DoraRewards::on_initialize(System::block_number());
     }
 }

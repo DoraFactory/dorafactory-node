@@ -32,7 +32,7 @@ use frame_support::{
     traits::{
         ConstBool, ConstU32, ContainsLengthBound, Currency, EnsureOneOf, EqualPrivilegeOnly,
         Everything, Imbalance, LockIdentifier, Nothing, OnUnbalanced, SortedMembers,
-        U128CurrencyToVote,
+        U128CurrencyToVote, Contains,
     },
     weights::{
         constants::WEIGHT_PER_SECOND, ConstantMultiplier, DispatchClass, Weight,
@@ -65,8 +65,8 @@ use orml_currencies::BasicCurrencyAdapter;
 use orml_traits::parameter_type_with_key;
 
 pub use primitives::{
-    AccountId, Address, Amount, Balance, BlockNumber, CurrencyId, Hash, Index, Signature, CENTS,
-    DOLLARS, EXISTENTIAL_DEPOSIT, MICROUNIT, MILLICENTS, MILLIUNIT, UNIT,
+    AccountId, Address, Amount, Balance, BlockNumber, CurrencyId, Hash, Index, ReserveIdentifier,
+    Signature, CENTS, DOLLARS, EXISTENTIAL_DEPOSIT, MICROUNIT, MILLICENTS, MILLIUNIT, UNIT,
 };
 
 pub use constants::time::*;
@@ -138,7 +138,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("DORA KSM Parachain"),
     impl_name: create_runtime_str!("DORA KSM Parachain"),
     authoring_version: 1,
-    spec_version: 1,
+    spec_version: 20,
     impl_version: 0,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 1,
@@ -256,13 +256,6 @@ impl frame_system::Config for Runtime {
     type MaxConsumers = frame_support::traits::ConstU32<16>;
 }
 
-impl pallet_utility::Config for Runtime {
-    type Event = Event;
-    type Call = Call;
-    type PalletsOrigin = OriginCaller;
-    type WeightInfo = pallet_utility::weights::SubstrateWeight<Runtime>;
-}
-
 parameter_types! {
     pub const MinimumPeriod: u64 = SLOT_DURATION / 2;
 }
@@ -303,7 +296,7 @@ impl pallet_balances::Config for Runtime {
     type WeightInfo = pallet_balances::weights::SubstrateWeight<Runtime>;
     type MaxLocks = MaxLocks;
     type MaxReserves = MaxReserves;
-    type ReserveIdentifier = [u8; 8];
+    type ReserveIdentifier = ReserveIdentifier;
 }
 
 parameter_types! {
@@ -319,7 +312,7 @@ parameter_types! {
 ///   - `[0, MAXIMUM_BLOCK_WEIGHT]`
 ///   - `[Balance::min, Balance::max]`
 ///
-/// Yet, it can be used for any other sort of change to weight-fee. Some examples being:
+/// Yet, it can be used for any other sort off change to weight-fee. Some examples being:
 ///   - Setting it to `0` will essentially disable the weight fee.
 ///   - Setting it to `1` will cause the literal `#[weight = x]` values to be charged.
 pub struct WeightToFee;
@@ -456,13 +449,13 @@ impl pallet_collator_selection::Config for Runtime {
 // pub struct ToStakingPot;
 // impl OnUnbalanced<NegativeImbalance> for ToStakingPot {
 //     fn on_nonzero_unbalanced(amount: NegativeImbalance) {
-//         let staking_pot = PotId::get().into_account();
+//         let staking_pot = PotId::get().into_account_truncating();
 //         Balances::resolve_creating(&staking_pot, amount);
 //     }
 // }
 
 parameter_types! {
-    pub TreasuryAccount: AccountId = TreasuryPalletId::get().into_account();
+    pub TreasuryAccount: AccountId = TreasuryPalletId::get().into_account_truncating();
 }
 
 pub struct ToTreasury;
@@ -691,6 +684,13 @@ impl pallet_democracy::Config for Runtime {
     type MaxProposals = ConstU32<100>;
 }
 
+impl pallet_utility::Config for Runtime {
+    type Event = Event;
+    type Call = Call;
+    type PalletsOrigin = OriginCaller;
+    type WeightInfo = pallet_utility::weights::SubstrateWeight<Runtime>;
+}
+
 // Configure the pallet-qf in pallets/quadratic-funding.
 parameter_types! {
     // pow(10,12) => Unit, for easy fee control, we use pow(10,9)
@@ -743,12 +743,13 @@ impl dao_core::Config for Runtime {
 
 parameter_types! {
     pub const FirstVestPercentage: Perbill = Perbill::from_percent(20);
-    pub const MaxContributorsNumber: u32 = 5;
+    pub const MaxContributorsNumber: u32 = 400;
 }
 
 impl pallet_dora_rewards::Config for Runtime {
     type Event = Event;
     type Currency = Balances;
+    type Initialized = ConstBool<false>;
     type VestingBlockNumber = cumulus_primitives_core::relay_chain::BlockNumber;
     type VestingBlockProvider =
         cumulus_pallet_parachain_system::RelaychainBlockNumberProvider<Self>;
@@ -766,8 +767,18 @@ parameter_type_with_key! {
     };
 }
 
-parameter_types! {
-    pub ORMLMaxLocks: u32 = 2;
+pub fn get_all_module_accounts() -> Vec<AccountId> {
+    vec![
+        PotId::get().into_account_truncating(),
+        TreasuryPalletId::get().into_account_truncating(),
+    ]
+}
+
+pub struct DustRemovalWhitelist;
+impl Contains<AccountId> for DustRemovalWhitelist {
+    fn contains(a: &AccountId) -> bool {
+        get_all_module_accounts().contains(a)
+    }
 }
 
 impl orml_tokens::Config for Runtime {
@@ -779,8 +790,12 @@ impl orml_tokens::Config for Runtime {
     type ExistentialDeposits = ExistentialDeposits;
     type OnDust = ();
     // type OnDust = orml_tokens::TransferDust<Runtime, NativeTreasuryAccount>;
-    type MaxLocks = ORMLMaxLocks;
-    type DustRemovalWhitelist = Nothing;
+    type MaxLocks = MaxLocks;
+    type MaxReserves = MaxReserves;
+    type ReserveIdentifier = ReserveIdentifier;
+    type DustRemovalWhitelist = DustRemovalWhitelist;
+    type OnNewTokenAccount = ();
+    type OnKilledTokenAccount = ();
 }
 
 impl orml_xcm::Config for Runtime {
@@ -793,7 +808,6 @@ parameter_types! {
 }
 
 impl orml_currencies::Config for Runtime {
-    type Event = Event;
     type MultiCurrency = Tokens;
     type NativeCurrency = BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
     type GetNativeCurrencyId = GetNativeCurrencyId;
@@ -835,8 +849,8 @@ construct_runtime!(
         AuraExt: cumulus_pallet_aura_ext::{Pallet, Storage, Config} = 24,
 
         // XCM helpers.
-        XcmpQueue: cumulus_pallet_xcmp_queue::{Pallet, Call, Storage, Event<T>} = 30,
-        PolkadotXcm: pallet_xcm::{Pallet, Call, Event<T>, Origin, Config} = 31,
+        XcmpQueue: cumulus_pallet_xcmp_queue::{Pallet, Storage, Event<T>} = 30,
+        PolkadotXcm: pallet_xcm::{Pallet, Storage, Call, Event<T>, Origin, Config} = 31,
         CumulusXcm: cumulus_pallet_xcm::{Pallet, Event<T>, Origin} = 32,
         DmpQueue: cumulus_pallet_dmp_queue::{Pallet, Call, Storage, Event<T>} = 33,
 
@@ -845,7 +859,7 @@ construct_runtime!(
         Tokens: orml_tokens::{Pallet, Storage, Event<T>, Config<T>} = 41,
         OrmlXcm: orml_xcm::{Pallet, Call, Event<T>} = 42,
         UnknownTokens: orml_unknown_tokens::{Pallet, Storage, Event} = 43,
-        Currencies: orml_currencies::{Pallet, Call, Event<T>} = 44,
+        Currencies: orml_currencies::{Pallet, Call} = 44,
 
         // Governance stuff
         Council: pallet_collective::<Instance1>::{Pallet, Call, Storage, Origin<T>, Event<T>, Config<T>} = 50,
