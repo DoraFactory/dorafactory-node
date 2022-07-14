@@ -520,11 +520,6 @@ pub type EnsureRootOrAllGeneralCouncil = EnsureOneOf<
     pallet_collective::EnsureProportionAtLeast<AccountId, GeneralCouncilInstance, 1, 1>,
 >;
 
-pub type EnsureRootOrTwoThirdsGeneralCouncil = EnsureOneOf<
-    EnsureRoot<AccountId>,
-    pallet_collective::EnsureProportionAtLeast<AccountId, GeneralCouncilInstance, 2, 3>,
->;
-
 pub type EnsureRootOrThreeFourthsGeneralCouncil = EnsureOneOf<
     EnsureRoot<AccountId>,
     pallet_collective::EnsureProportionAtLeast<AccountId, GeneralCouncilInstance, 3, 4>,
@@ -619,11 +614,11 @@ impl pallet_collective::Config<TechnicalCommitteeInstance> for Runtime {
 
 impl pallet_membership::Config<TechnicalCommitteeMembershipInstance> for Runtime {
     type Event = Event;
-    type AddOrigin = EnsureRootOrTwoThirdsGeneralCouncil;
-    type RemoveOrigin = EnsureRootOrTwoThirdsGeneralCouncil;
-    type SwapOrigin = EnsureRootOrTwoThirdsGeneralCouncil;
-    type ResetOrigin = EnsureRootOrTwoThirdsGeneralCouncil;
-    type PrimeOrigin = EnsureRootOrTwoThirdsGeneralCouncil;
+    type AddOrigin = EnsureRootOrThreeFourthsGeneralCouncil;
+    type RemoveOrigin = EnsureRootOrThreeFourthsGeneralCouncil;
+    type SwapOrigin = EnsureRootOrThreeFourthsGeneralCouncil;
+    type ResetOrigin = EnsureRootOrThreeFourthsGeneralCouncil;
+    type PrimeOrigin = EnsureRootOrThreeFourthsGeneralCouncil;
     type MembershipInitialized = TechnicalCommittee;
     type MembershipChanged = TechnicalCommittee;
     type MaxMembers = CouncilMaxMembers;
@@ -663,7 +658,7 @@ impl pallet_democracy::Config for Runtime {
     type InstantAllowed = ConstBool<true>;
     type FastTrackVotingPeriod = FastTrackVotingPeriod;
     // To cancel a proposal which has been passed, 2/3 of the council must agree to it.
-    type CancellationOrigin = EnsureRootOrTwoThirdsGeneralCouncil;
+    type CancellationOrigin = EnsureRootOrThreeFourthsGeneralCouncil;
     type BlacklistOrigin = EnsureRoot<AccountId>;
     // To cancel a proposal before it has been passed, the technical committee must be unanimous or
     // Root must agree.
