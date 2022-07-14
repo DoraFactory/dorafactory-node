@@ -114,6 +114,7 @@ pub fn staging_config() -> ChainSpec {
                 ],
                 vec![get_root()],
                 vec![],
+                vec![],
                 mainnet_para_id.into(),
             )
         },
@@ -171,6 +172,12 @@ pub fn development_config() -> ChainSpec {
                     account("charlie", 0, 0),
                     PalletId(*b"DoraRewa").into_account_truncating(),
                 ],
+                vec![
+                    get_account_id_from_seed::<sr25519::Public>("Bob"),
+                    get_account_id_from_seed::<sr25519::Public>("Charlie"),
+                    get_account_id_from_seed::<sr25519::Public>("Dave"),
+                ],
+                vec![],
                 dev_para_id.into(),
             )
         },
@@ -196,10 +203,11 @@ fn dorafactory_genesis(
     root_key: AccountId,
     invulnerables: Vec<(AccountId, AuraId)>,
     endowed_accounts: Vec<AccountId>,
+    council_accounts: Vec<AccountId>,
     tech_accounts: Vec<AccountId>,
     id: ParaId,
 ) -> dorafactory_node_runtime::GenesisConfig {
-    let num_endowed_accounts = endowed_accounts.len();
+    let num_council_accounts = council_accounts.len();
     pub const STASH: Balance = 100 * UNIT;
 
     dorafactory_node_runtime::GenesisConfig {
@@ -246,9 +254,9 @@ fn dorafactory_genesis(
         },
         council: Default::default(),
         elections: ElectionsConfig {
-            members: endowed_accounts
+            members: council_accounts
                 .iter()
-                .take((num_endowed_accounts + 1) / 2)
+                .take((num_council_accounts + 1) / 2)
                 .cloned()
                 .map(|member| (member, STASH))
                 .collect(),

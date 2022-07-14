@@ -30,9 +30,8 @@ use sp_version::RuntimeVersion;
 use frame_support::{
     construct_runtime, parameter_types,
     traits::{
-        ConstBool, ConstU32, ContainsLengthBound, Currency, EnsureOneOf, EqualPrivilegeOnly,
-        Everything, Imbalance, LockIdentifier, Nothing, OnUnbalanced, SortedMembers,
-        U128CurrencyToVote, Contains,
+        ConstBool, ConstU32, Contains, Currency, EnsureOneOf, EqualPrivilegeOnly, Everything,
+        Imbalance, LockIdentifier, OnUnbalanced, U128CurrencyToVote,
     },
     weights::{
         constants::WEIGHT_PER_SECOND, ConstantMultiplier, DispatchClass, Weight,
