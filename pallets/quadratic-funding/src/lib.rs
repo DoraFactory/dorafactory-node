@@ -15,7 +15,7 @@ pub use pallet::*;
 /// <https://substrate.dev/docs/en/knowledgebase/runtime/frame>
 use primitives::currency::CurrencyId;
 use scale_info::TypeInfo;
-use sp_runtime::traits::{AccountIdConversion, Hash};
+use sp_runtime::traits::{Hash};
 use sp_runtime::RuntimeDebug;
 use sp_std::{convert::TryInto, vec, vec::Vec};
 
@@ -36,7 +36,7 @@ pub struct Project<AccountId, BoundedString> {
     pub total_votes: u128,
     pub grants: u128,
     pub support_area: u128,
-    pub withdrew: u128,
+    pub support_fund: u128,
     pub name: BoundedString,
     pub owner: AccountId,
 }
@@ -50,6 +50,7 @@ pub struct Round<AccountId, BoundedString> {
     pub pre_tax_support_pool: u128,
     pub total_support_area: u128,
     pub total_tax: u128,
+    pub round_reserve: u128,
     pub admin: AccountId
 }
 
@@ -102,7 +103,7 @@ pub mod pallet {
         // #[pallet::constant]
         type NameMaxLength: Get<u32>;
 
-        type MinReserve: Get<u32>;
+        type ReserveUnit: Get<u128>;
         // /// The maximum length of project name
         // type NameMaxLength: Get<usize>;
 
@@ -141,6 +142,18 @@ pub mod pallet {
     #[pallet::storage]
     pub(super) type ProjectVotes<T: Config> =
         StorageDoubleMap<_, Blake2_128Concat, T::Hash, Blake2_128Concat, T::AccountId, u128>;
+
+    
+    #[pallet::storage]
+    #[pallet::getter(fn round_participants)]
+    pub(super) type RoundParticipants<T: Config> = StorageDoubleMap<
+        _,
+        Blake2_128Concat,
+        u32,
+        Blake2_128Concat,
+        T::AccountId,
+        bool
+    >;
 
     // Pallets use events to inform users when important changes are made.
     // https://substrate.dev/docs/en/knowledgebase/runtime/events
@@ -183,6 +196,7 @@ pub mod pallet {
         RoundHasEnded,
         DuplicateRound,
         MismatchingCurencyId,
+        InsufficientReserveDora,
     }
 
     #[pallet::hooks]
@@ -226,7 +240,7 @@ pub mod pallet {
                 amount_number > min_unit_number,
                 Error::<T>::DonationTooSmall
             );
-            let _ = T::MultiCurrency::transfer(currency_id, &who, &Self::account_id(), amount)?;
+            let _ = T::MultiCurrency::transfer(currency_id, &who, &Self::account_id(round_id), amount)?;
             // add deposit to pallet account.
             // update the round
             Rounds::<T>::mutate(round_id, |rnd| match rnd {
@@ -244,19 +258,6 @@ pub mod pallet {
             Ok(().into())
         }
 
-        // #[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
-        // pub fn sudo_withdraw(
-        //     origin: OriginFor<T>,
-        //     currency_id: CurrencyId,
-        //     dest: AccountIdOf<T>,
-        //     #[pallet::compact] amount: BalanceOf<T>,
-        // ) -> DispatchResultWithPostInfo {
-        //     T::AdminOrigin::ensure_origin(origin)?;
-        //     let _ = T::MultiCurrency::transfer(currency_id, &Self::account_id(), &dest, amount)?;
-        //     Self::deposit_event(Event::WithdrawSucceed(dest, amount));
-        //     Ok(().into())
-        // }
-
         #[pallet::weight(T::WeightInfo::start_round())]
         pub fn start_round(
             origin: OriginFor<T>,
@@ -264,6 +265,7 @@ pub mod pallet {
             currency_id: CurrencyId,
             name: Vec<u8>,
             admin: T::AccountId,
+            round_reserve: u128
         ) -> DispatchResultWithPostInfo {
             // Only amdin can control the round
             T::AdminOrigin::ensure_origin(origin)?;
@@ -284,6 +286,7 @@ pub mod pallet {
                 pre_tax_support_pool: 0,
                 total_support_area: 0,
                 total_tax: 0,
+                round_reserve: round_reserve,
                 admin: admin.clone()
             };
             Rounds::<T>::insert(round_id, round);
@@ -291,6 +294,7 @@ pub mod pallet {
             Ok(().into())
         }
 
+        // TODO add funding grants, Reserve number/by round
         /// End an `ongoing` round and distribute the funds in sponsor pool, any invalid index or round status will cause errors
         #[pallet::weight(T::WeightInfo::end_round())]
         pub fn end_round(origin: OriginFor<T>, round_id: u32) -> DispatchResultWithPostInfo {
@@ -304,23 +308,30 @@ pub mod pallet {
             ensure!(true == round.ongoing, Error::<T>::RoundHasEnded);
             let area = round.total_support_area;
             let pool = round.support_pool;
-            let currency_id = round.currency_id;
-            for (_, mut project) in Projects::<T>::iter_prefix(round_id) {
+            // update the support fund
+            for (hash, _) in Projects::<T>::iter_prefix(round_id) {
                 if area > 0 {
-                    let total = project.grants;
-                    project.grants = total
-                        .checked_add(project.support_area.checked_mul(pool / area).unwrap())
-                        .unwrap();
+                    Projects::<T>::mutate(round_id, hash, |poj| {
+                        match poj {
+                            Some(project) => {
+                                project.support_fund = project.support_area.checked_mul(pool / area).unwrap();
+                            }
+                            _ => (),
+                        }
+                    });
                 }
-                //debug::info!("Hash: {:?}, Total votes: {:?}, Grants: {:?}", hash, project.total_votes, project.grants);
-                // manual dispute the rewards
-                // let _ = T::MultiCurrency::transfer(
-                //     currency_id,
-                //     &Self::account_id(),
-                //     &project.owner,
-                //     Self::u128_to_balance(project.grants),
-                // )?;
             }
+            // unreserve the DORA to voters and update states
+            for (voter, _) in RoundParticipants::<T>::iter_prefix(round_id) {
+                let reserve_num = T::ReserveUnit::get().checked_mul(round.round_reserve).unwrap();
+                let reserve_balance = TryInto::<DoraBalance<T>>::try_into(reserve_num).ok().unwrap();
+                // ReservableCurrency::unreserve does not fail (it will lock up as much as amount)
+                T::Currency::unreserve(&voter, reserve_balance);
+            }
+            // Maybe this is unnecessary as round ended, voter can not do malicious attack
+            RoundParticipants::<T>::remove_prefix(round_id, None);
+
+            // update round status
             round.ongoing = false;
             Rounds::<T>::insert(round_id, round);
             Self::deposit_event(Event::RoundEnded(round_id));
@@ -363,7 +374,7 @@ pub mod pallet {
                 total_votes: 0,
                 grants: 0,
                 support_area: 0,
-                withdrew: 0,
+                support_fund: 0,
                 name: bounded_name,
                 owner: who.clone(),
             };
@@ -405,11 +416,15 @@ pub mod pallet {
                 Some(val) => val,
                 None => 0,
             };
-            // TODO  
-            if voted == 0 {
-                let bal = TryInto::<DoraBalance<T>>::try_into(10000000_u128).ok().unwrap();
-                T::Currency::reserve(&who, bal)
-                .map_err(|_| "Voter can't afford to lock the amount requested")?;
+
+            // check whether staked
+            let staked = RoundParticipants::<T>::get(round_id, &who);
+            if round.round_reserve > 0 && staked==None {
+                let reserve_num = T::ReserveUnit::get().checked_mul(round.round_reserve).unwrap();
+                let reserve_balance = TryInto::<DoraBalance<T>>::try_into(reserve_num).ok().unwrap();
+                T::Currency::reserve(&who, reserve_balance)
+                .map_err(|_| Error::<T>::InsufficientReserveDora)?;
+                RoundParticipants::<T>::insert(round_id, &who, true);
             }
             let cost = Self::cal_cost(voted.clone(), ballot);
             let amount = Self::cal_amount(cost, false);
@@ -418,7 +433,7 @@ pub mod pallet {
             let _ = T::MultiCurrency::transfer(
                 currency_id.clone(),
                 &who,
-                &Self::account_id(),
+                &Self::account_id(round_id),
                 Self::u128_to_balance(amount),
             )?;
             // update the project and corresponding round
@@ -455,12 +470,10 @@ pub mod pallet {
 impl<T: Config> Pallet<T> {
     // Add public immutables and private mutables.
 
-    /// refer https://github.com/paritytech/substrate/blob/743accbe3256de2fc615adcaa3ab03ebdbbb4dbd/frame/treasury/src/lib.rs#L351
-    ///
-    /// This actually does computation. If you need to keep using it, then make sure you cache the
-    /// value and only call this once.
-    pub fn account_id() -> T::AccountId {
-        T::PalletId::get().into_account()
+    /// get corresponding accounts
+    pub fn account_id(round_id: u32) -> T::AccountId {
+        let round = Rounds::<T>::get(round_id).unwrap();
+        round.admin
     }
 
     pub fn cal_cost(voted: u128, ballot: u128) -> u128 {
