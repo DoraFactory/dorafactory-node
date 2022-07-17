@@ -3,10 +3,13 @@
 #![allow(clippy::upper_case_acronyms)]
 use sp_runtime::{
     traits::{IdentifyAccount, Verify},
-    MultiSignature,
+    MultiSignature, RuntimeDebug,
 };
 
 pub use sp_runtime::{MultiAddress, Perbill};
+
+use codec::{Decode, Encode, MaxEncodedLen};
+use scale_info::TypeInfo;
 
 // A few exports that help ease life for downstream crates.
 pub use frame_support::weights::{constants::WEIGHT_PER_SECOND, Weight, WeightToFeeCoefficient};
@@ -52,3 +55,27 @@ pub const DOLLARS: Balance = 100 * CENTS;
 
 /// The existential deposit. Set to 1/10 of the Connected Relay Chain.
 pub const EXISTENTIAL_DEPOSIT: Balance = MILLIUNIT;
+
+#[derive(
+    Encode,
+    Decode,
+    Eq,
+    PartialEq,
+    Copy,
+    Clone,
+    RuntimeDebug,
+    PartialOrd,
+    Ord,
+    MaxEncodedLen,
+    TypeInfo,
+)]
+#[repr(u8)]
+pub enum ReserveIdentifier {
+    CollatorSelection,
+    Honzon,
+    TransactionPayment,
+    TransactionPaymentDeposit,
+
+    // always the last, indicate number of variants
+    Count,
+}

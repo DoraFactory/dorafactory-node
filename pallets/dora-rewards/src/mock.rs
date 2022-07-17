@@ -26,11 +26,11 @@ use frame_support::{
     dispatch::UnfilteredDispatchable,
     inherent::{InherentData, ProvideInherent},
     parameter_types,
-    traits::{ConstU32, ConstBool, GenesisBuild, Nothing, OnFinalize, OnInitialize},
+    traits::{ConstBool, ConstU32, GenesisBuild, Nothing, OnFinalize, OnInitialize},
 };
 use frame_system::RawOrigin;
 use sp_core::H256;
-use sp_io;  
+use sp_io;
 use sp_runtime::{
     testing::Header,
     traits::{BlakeTwo256, IdentityLookup},

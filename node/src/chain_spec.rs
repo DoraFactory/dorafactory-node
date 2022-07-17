@@ -1,10 +1,12 @@
 use cumulus_primitives_core::ParaId;
 use dorafactory_node_runtime::{
-    AccountId, Signature, SudoConfig, TokensConfig, EXISTENTIAL_DEPOSIT,
+    AccountId, Signature, SudoConfig, TechnicalCommitteeMembershipConfig, TokensConfig,
+    EXISTENTIAL_DEPOSIT,
 };
-use frame_benchmarking::{account, whitelisted_caller};
+use frame_benchmarking::account;
 use frame_support::PalletId;
 use hex_literal::hex;
+use primitives::{Balance, UNIT};
 use sc_chain_spec::{ChainSpecExtension, ChainSpecGroup};
 use sc_service::{ChainType, Properties};
 use serde::{Deserialize, Serialize};
@@ -111,6 +113,8 @@ pub fn staging_config() -> ChainSpec {
                     ),
                 ],
                 vec![get_root()],
+                // vec![],
+                vec![],
                 mainnet_para_id.into(),
             )
         },
@@ -151,10 +155,10 @@ pub fn development_config() -> ChainSpec {
                         get_account_id_from_seed::<sr25519::Public>("Alice"),
                         get_collator_keys_from_seed("Alice"),
                     ),
-                    (
-                        get_account_id_from_seed::<sr25519::Public>("Bob"),
-                        get_collator_keys_from_seed("Bob"),
-                    ),
+                    // (
+                    //     get_account_id_from_seed::<sr25519::Public>("Bob"),
+                    //     get_collator_keys_from_seed("Bob"),
+                    // ),
                 ],
                 vec![
                     get_account_id_from_seed::<sr25519::Public>("Bob"),
@@ -162,19 +166,18 @@ pub fn development_config() -> ChainSpec {
                     get_account_id_from_seed::<sr25519::Public>("Dave"),
                     get_account_id_from_seed::<sr25519::Public>("Eve"),
                     get_account_id_from_seed::<sr25519::Public>("Ferdie"),
-                    get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
-                    get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
-                    get_account_id_from_seed::<sr25519::Public>("Charlie//stash"),
-                    get_account_id_from_seed::<sr25519::Public>("Dave//stash"),
-                    get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
-                    get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
                     hex!["34c63c6b3213570b0513c706f6c49a4ce253570ac213e53c919d2cd6f8913a07"].into(),
-                    whitelisted_caller(),
                     account("alice", 0, 0),
                     account("bob", 0, 0),
                     account("charlie", 0, 0),
-                    PalletId(*b"DoraRewa").into_account(),
+                    PalletId(*b"DoraRewa").into_account_truncating(),
                 ],
+                // vec![
+                //     get_account_id_from_seed::<sr25519::Public>("Bob"),
+                //     get_account_id_from_seed::<sr25519::Public>("Charlie"),
+                //     get_account_id_from_seed::<sr25519::Public>("Dave"),
+                // ],
+                vec![],
                 dev_para_id.into(),
             )
         },
@@ -200,8 +203,13 @@ fn dorafactory_genesis(
     root_key: AccountId,
     invulnerables: Vec<(AccountId, AuraId)>,
     endowed_accounts: Vec<AccountId>,
+    // council_accounts: Vec<AccountId>,
+    tech_accounts: Vec<AccountId>,
     id: ParaId,
 ) -> dorafactory_node_runtime::GenesisConfig {
+    // let num_council_accounts = council_accounts.len();
+    pub const STASH: Balance = 100 * UNIT;
+
     dorafactory_node_runtime::GenesisConfig {
         system: dorafactory_node_runtime::SystemConfig {
             code: dorafactory_node_runtime::WASM_BINARY
@@ -223,6 +231,7 @@ fn dorafactory_genesis(
         },
         session: dorafactory_node_runtime::SessionConfig {
             keys: invulnerables
+                .clone()
                 .into_iter()
                 .map(|(acc, aura)| {
                     (
@@ -243,6 +252,21 @@ fn dorafactory_genesis(
         sudo: SudoConfig {
             key: Some(root_key),
         },
+        council: Default::default(),
+        // elections: ElectionsConfig {
+        //     members: council_accounts
+        //         .iter()
+        //         .take((num_council_accounts + 1) / 2)
+        //         .cloned()
+        //         .map(|member| (member, STASH))
+        //         .collect(),
+        // },
+        technical_committee: Default::default(),
+        technical_committee_membership: TechnicalCommitteeMembershipConfig {
+            members: tech_accounts,
+            phantom: Default::default(),
+        },
+        democracy: Default::default(),
         dora_rewards: dorafactory_node_runtime::DoraRewardsConfig {
             // set the funds
             funded_amount: 0,

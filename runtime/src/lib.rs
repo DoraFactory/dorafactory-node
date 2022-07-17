@@ -30,7 +30,8 @@ use sp_version::RuntimeVersion;
 use frame_support::{
     construct_runtime, parameter_types,
     traits::{
-        ConstBool, Currency, EqualPrivilegeOnly, Everything, Imbalance, Nothing, OnUnbalanced,
+        ConstBool, ConstU32, Contains, Currency, EnsureOneOf, EqualPrivilegeOnly, Everything,
+        Imbalance, OnUnbalanced,
     },
     weights::{
         constants::WEIGHT_PER_SECOND, ConstantMultiplier, DispatchClass, Weight,
@@ -63,8 +64,8 @@ use orml_currencies::BasicCurrencyAdapter;
 use orml_traits::parameter_type_with_key;
 
 pub use primitives::{
-    AccountId, Address, Amount, Balance, BlockNumber, CurrencyId, Hash, Index, Signature, CENTS,
-    DOLLARS, EXISTENTIAL_DEPOSIT, MICROUNIT, MILLICENTS, MILLIUNIT, UNIT,
+    AccountId, Address, Amount, Balance, BlockNumber, CurrencyId, Hash, Index, ReserveIdentifier,
+    Signature, CENTS, DOLLARS, EXISTENTIAL_DEPOSIT, MICROUNIT, MILLICENTS, MILLIUNIT, UNIT,
 };
 
 pub use constants::time::*;
@@ -136,7 +137,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("DORA KSM Parachain"),
     impl_name: create_runtime_str!("DORA KSM Parachain"),
     authoring_version: 1,
-    spec_version: 10,
+    spec_version: 35,
     impl_version: 0,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 1,
@@ -294,7 +295,7 @@ impl pallet_balances::Config for Runtime {
     type WeightInfo = pallet_balances::weights::SubstrateWeight<Runtime>;
     type MaxLocks = MaxLocks;
     type MaxReserves = MaxReserves;
-    type ReserveIdentifier = [u8; 8];
+    type ReserveIdentifier = ReserveIdentifier;
 }
 
 parameter_types! {
@@ -310,7 +311,7 @@ parameter_types! {
 ///   - `[0, MAXIMUM_BLOCK_WEIGHT]`
 ///   - `[Balance::min, Balance::max]`
 ///
-/// Yet, it can be used for any other sort of change to weight-fee. Some examples being:
+/// Yet, it can be used for any other sort off change to weight-fee. Some examples being:
 ///   - Setting it to `0` will essentially disable the weight fee.
 ///   - Setting it to `1` will cause the literal `#[weight = x]` values to be charged.
 pub struct WeightToFee;
@@ -447,13 +448,13 @@ impl pallet_collator_selection::Config for Runtime {
 // pub struct ToStakingPot;
 // impl OnUnbalanced<NegativeImbalance> for ToStakingPot {
 //     fn on_nonzero_unbalanced(amount: NegativeImbalance) {
-//         let staking_pot = PotId::get().into_account();
+//         let staking_pot = PotId::get().into_account_truncating();
 //         Balances::resolve_creating(&staking_pot, amount);
 //     }
 // }
 
 parameter_types! {
-    pub TreasuryAccount: AccountId = TreasuryPalletId::get().into_account();
+    pub TreasuryAccount: AccountId = TreasuryPalletId::get().into_account_truncating();
 }
 
 pub struct ToTreasury;
@@ -507,6 +508,178 @@ impl pallet_preimage::Config for Runtime {
     type ByteDeposit = PreimageByteDeposit;
 }
 
+pub type GeneralCouncilInstance = pallet_collective::Instance1;
+pub type TechnicalCommitteeInstance = pallet_collective::Instance2;
+
+pub type GeneralCouncilMembershipInstance = pallet_membership::Instance1;
+pub type TechnicalCommitteeMembershipInstance = pallet_membership::Instance2;
+
+// General Council
+pub type EnsureRootOrAllGeneralCouncil = EnsureOneOf<
+    EnsureRoot<AccountId>,
+    pallet_collective::EnsureProportionAtLeast<AccountId, GeneralCouncilInstance, 1, 1>,
+>;
+
+pub type EnsureRootOrThreeFivethsGeneralCouncil = EnsureOneOf<
+    EnsureRoot<AccountId>,
+    pallet_collective::EnsureProportionAtLeast<AccountId, GeneralCouncilInstance, 3, 5>,
+>;
+
+pub type EnsureRootOrFourFivethsGeneralCouncil = EnsureOneOf<
+    EnsureRoot<AccountId>,
+    pallet_collective::EnsureProportionAtLeast<AccountId, GeneralCouncilInstance, 4, 5>,
+>;
+
+pub type EnsureRootOrHalfGeneralCouncil = EnsureOneOf<
+    EnsureRoot<AccountId>,
+    pallet_collective::EnsureProportionAtLeast<AccountId, GeneralCouncilInstance, 1, 2>,
+>;
+
+// Technical Committee Council
+pub type EnsureRootOrAllTechnicalCommittee = EnsureOneOf<
+    EnsureRoot<AccountId>,
+    pallet_collective::EnsureProportionAtLeast<AccountId, TechnicalCommitteeInstance, 1, 1>,
+>;
+
+pub type EnsureRootOrTwoThirdsTechnicalCommittee = EnsureOneOf<
+    EnsureRoot<AccountId>,
+    pallet_collective::EnsureProportionAtLeast<AccountId, TechnicalCommitteeInstance, 2, 3>,
+>;
+
+parameter_types! {
+    pub const CouncilMotionDuration: BlockNumber = 2 * DAYS;
+    pub const CouncilMaxProposals: u32 = 100;
+    pub const CouncilMaxMembers: u32 = 100;
+}
+
+type CouncilCollective = pallet_collective::Instance1;
+impl pallet_collective::Config<CouncilCollective> for Runtime {
+    type Origin = Origin;
+    type Proposal = Call;
+    type Event = Event;
+    type MotionDuration = CouncilMotionDuration;
+    type MaxProposals = CouncilMaxProposals;
+    type MaxMembers = CouncilMaxMembers;
+    type DefaultVote = pallet_collective::PrimeDefaultVote;
+    type WeightInfo = pallet_collective::weights::SubstrateWeight<Runtime>;
+}
+
+// parameter_types! {
+//     pub const CandidacyBond: Balance = 100 * UNIT;
+//     // 1 storage item created, key size is 32 bytes, value size is 16+16.
+//     pub const VotingBondBase: Balance = 1 * UNIT;
+//     // additional data per vote is 32 bytes (account id).
+//     pub const VotingBondFactor: Balance = 1 * UNIT;
+//     pub const TermDuration: BlockNumber = 5 * MINUTES;
+//     pub const DesiredMembers: u32 = 5;
+//     pub const DesiredRunnersUp: u32 = 3;
+//     pub const ElectionsPhragmenPalletId: LockIdentifier = *b"phrelect";
+// }
+//
+// // Make sure that there are no more than `MaxMembers` members elected via elections-phragmen.
+// // const_assert!(DesiredMembers::get() <= CouncilMaxMembers::get());
+//
+// impl pallet_elections_phragmen::Config for Runtime {
+//     type Event = Event;
+//     type PalletId = ElectionsPhragmenPalletId;
+//     type Currency = Balances;
+//     type ChangeMembers = Council;
+//     // NOTE: this implies that council's genesis members cannot be set directly and must come from
+//     // this module.
+//     type InitializeMembers = Council;
+//     type CurrencyToVote = U128CurrencyToVote;
+//     type CandidacyBond = CandidacyBond;
+//     type VotingBondBase = VotingBondBase;
+//     type VotingBondFactor = VotingBondFactor;
+//     type LoserCandidate = ();
+//     type KickedMember = ();
+//     type DesiredMembers = DesiredMembers;
+//     type DesiredRunnersUp = DesiredRunnersUp;
+//     type TermDuration = TermDuration;
+//     type WeightInfo = pallet_elections_phragmen::weights::SubstrateWeight<Runtime>;
+// }
+
+parameter_types! {
+    pub const TechnicalCommitteeMotionDuration: BlockNumber = 1 * DAYS;
+}
+
+impl pallet_collective::Config<TechnicalCommitteeInstance> for Runtime {
+    type Origin = Origin;
+    type Proposal = Call;
+    type Event = Event;
+    type MotionDuration = TechnicalCommitteeMotionDuration;
+    type MaxProposals = CouncilMaxProposals;
+    type MaxMembers = CouncilMaxMembers;
+    type DefaultVote = pallet_collective::PrimeDefaultVote;
+    type WeightInfo = ();
+}
+
+impl pallet_membership::Config<TechnicalCommitteeMembershipInstance> for Runtime {
+    type Event = Event;
+    type AddOrigin = EnsureRootOrThreeFivethsGeneralCouncil;
+    type RemoveOrigin = EnsureRootOrThreeFivethsGeneralCouncil;
+    type SwapOrigin = EnsureRootOrThreeFivethsGeneralCouncil;
+    type ResetOrigin = EnsureRootOrThreeFivethsGeneralCouncil;
+    type PrimeOrigin = EnsureRootOrThreeFivethsGeneralCouncil;
+    type MembershipInitialized = TechnicalCommittee;
+    type MembershipChanged = TechnicalCommittee;
+    type MaxMembers = CouncilMaxMembers;
+    type WeightInfo = ();
+}
+
+parameter_types! {
+    pub const LaunchPeriod: BlockNumber = 3 * DAYS;
+    pub const VotingPeriod: BlockNumber = 7 * DAYS;
+    pub const FastTrackVotingPeriod: BlockNumber = 2 * DAYS;
+    pub MinimumDeposit: Balance = 100 * DOLLARS;
+    pub const EnactmentPeriod: BlockNumber = 12 * HOURS;
+    pub const VoteLockingPeriod: BlockNumber = 3 * DAYS;
+    pub const CooloffPeriod: BlockNumber = 7 * DAYS;
+}
+
+impl pallet_democracy::Config for Runtime {
+    type Proposal = Call;
+    type Event = Event;
+    type Currency = Balances;
+    type EnactmentPeriod = EnactmentPeriod;
+    type LaunchPeriod = LaunchPeriod;
+    type VotingPeriod = VotingPeriod;
+    type VoteLockingPeriod = VoteLockingPeriod;
+    type MinimumDeposit = MinimumDeposit;
+    /// A straight majority of the council can decide what their next motion is.
+    type ExternalOrigin = EnsureRootOrThreeFivethsGeneralCouncil;
+    /// A majority can have the next scheduled referendum be a straight majority-carries vote.
+    type ExternalMajorityOrigin = EnsureRootOrThreeFivethsGeneralCouncil;
+    /// A unanimous council can have the next scheduled referendum be a straight default-carries
+    /// (NTB) vote.
+    type ExternalDefaultOrigin = EnsureRootOrAllGeneralCouncil;
+    /// Two thirds of the technical committee can have an ExternalMajority/ExternalDefault vote
+    /// be tabled immediately and with a shorter voting/enactment period.
+    type FastTrackOrigin = EnsureRootOrTwoThirdsTechnicalCommittee;
+    type InstantOrigin = EnsureRootOrAllTechnicalCommittee;
+    type InstantAllowed = ConstBool<true>;
+    type FastTrackVotingPeriod = FastTrackVotingPeriod;
+    // To cancel a proposal which has been passed, 2/3 of the council must agree to it.
+    type CancellationOrigin = EnsureRootOrFourFivethsGeneralCouncil;
+    type BlacklistOrigin = EnsureRoot<AccountId>;
+    // To cancel a proposal before it has been passed, the technical committee must be unanimous or
+    // Root must agree.
+    type CancelProposalOrigin = EnsureRootOrAllTechnicalCommittee;
+    // Any single technical committee member may veto a coming council proposal, however they can
+    // only do it once and it lasts only for the cooloff period.
+    type VetoOrigin = pallet_collective::EnsureMember<AccountId, TechnicalCommitteeInstance>;
+    type CooloffPeriod = CooloffPeriod;
+    type PreimageByteDeposit = PreimageByteDeposit;
+    type OperationalPreimageOrigin =
+        pallet_collective::EnsureMember<AccountId, GeneralCouncilInstance>;
+    type Slash = ToTreasury;
+    type Scheduler = Scheduler;
+    type PalletsOrigin = OriginCaller;
+    type MaxVotes = ConstU32<100>;
+    type WeightInfo = pallet_democracy::weights::SubstrateWeight<Runtime>;
+    type MaxProposals = ConstU32<100>;
+}
+
 impl pallet_utility::Config for Runtime {
     type Event = Event;
     type Call = Call;
@@ -526,12 +699,15 @@ parameter_types! {
     pub const NameMinLength: u32 = 3;
     pub const NameMaxLength: u32 = 32;
     pub const AppId: u8 = 1;
+    // minimal number of units to reserve to get qualified to vote
+    pub const ReserveUnit: u128 = 1000000000000;
     // pub const StringLimit: u32 = 32;
 }
 
 /// Configure the pallet-qf in pallets/quadratic-funding.
 impl pallet_qf::Config for Runtime {
     type Event = Event;
+    type Currency = Balances;
     type MultiCurrency = Currencies;
     type PalletId = QuadraticFundingPalletId;
     // Origin who can control the round
@@ -546,6 +722,7 @@ impl pallet_qf::Config for Runtime {
     type NameMinLength = NameMinLength;
     // The maximum length of project name
     type NameMaxLength = NameMaxLength;
+    type ReserveUnit = ReserveUnit;
     type WeightInfo = pallet_qf::weights::DoraWeight<Runtime>;
 }
 
@@ -590,8 +767,18 @@ parameter_type_with_key! {
     };
 }
 
-parameter_types! {
-    pub ORMLMaxLocks: u32 = 2;
+pub fn get_all_module_accounts() -> Vec<AccountId> {
+    vec![
+        PotId::get().into_account_truncating(),
+        TreasuryPalletId::get().into_account_truncating(),
+    ]
+}
+
+pub struct DustRemovalWhitelist;
+impl Contains<AccountId> for DustRemovalWhitelist {
+    fn contains(a: &AccountId) -> bool {
+        get_all_module_accounts().contains(a)
+    }
 }
 
 impl orml_tokens::Config for Runtime {
@@ -603,8 +790,12 @@ impl orml_tokens::Config for Runtime {
     type ExistentialDeposits = ExistentialDeposits;
     type OnDust = ();
     // type OnDust = orml_tokens::TransferDust<Runtime, NativeTreasuryAccount>;
-    type MaxLocks = ORMLMaxLocks;
-    type DustRemovalWhitelist = Nothing;
+    type MaxLocks = MaxLocks;
+    type MaxReserves = MaxReserves;
+    type ReserveIdentifier = ReserveIdentifier;
+    type DustRemovalWhitelist = DustRemovalWhitelist;
+    type OnNewTokenAccount = ();
+    type OnKilledTokenAccount = ();
 }
 
 impl orml_xcm::Config for Runtime {
@@ -617,7 +808,6 @@ parameter_types! {
 }
 
 impl orml_currencies::Config for Runtime {
-    type Event = Event;
     type MultiCurrency = Tokens;
     type NativeCurrency = BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
     type GetNativeCurrencyId = GetNativeCurrencyId;
@@ -644,6 +834,8 @@ construct_runtime!(
         Utility: pallet_utility::{Pallet, Call, Storage, Event} = 2,
         Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent} = 3,
         ParachainInfo: parachain_info::{Pallet, Storage, Config} = 4,
+        Scheduler: pallet_scheduler::{Pallet, Call, Storage, Event<T>} = 5,
+        Preimage: pallet_preimage::{Pallet, Call, Storage, Event<T>} = 6,
 
         // Monetary stuff.
         Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>} = 10,
@@ -657,8 +849,8 @@ construct_runtime!(
         AuraExt: cumulus_pallet_aura_ext::{Pallet, Storage, Config} = 24,
 
         // XCM helpers.
-        XcmpQueue: cumulus_pallet_xcmp_queue::{Pallet, Call, Storage, Event<T>} = 30,
-        PolkadotXcm: pallet_xcm::{Pallet, Call, Event<T>, Origin, Config} = 31,
+        XcmpQueue: cumulus_pallet_xcmp_queue::{Pallet, Storage, Event<T>} = 30,
+        PolkadotXcm: pallet_xcm::{Pallet, Storage, Call, Event<T>, Origin, Config} = 31,
         CumulusXcm: cumulus_pallet_xcm::{Pallet, Event<T>, Origin} = 32,
         DmpQueue: cumulus_pallet_dmp_queue::{Pallet, Call, Storage, Event<T>} = 33,
 
@@ -667,17 +859,22 @@ construct_runtime!(
         Tokens: orml_tokens::{Pallet, Storage, Event<T>, Config<T>} = 41,
         OrmlXcm: orml_xcm::{Pallet, Call, Event<T>} = 42,
         UnknownTokens: orml_unknown_tokens::{Pallet, Storage, Event} = 43,
-        Currencies: orml_currencies::{Pallet, Call, Event<T>} = 44,
+        Currencies: orml_currencies::{Pallet, Call} = 44,
 
-        // Sudo
-        Sudo: pallet_sudo::{Pallet, Call, Config<T>, Storage, Event<T>} = 50,
-        Scheduler: pallet_scheduler::{Pallet, Call, Storage, Event<T>} = 51,
-        Preimage: pallet_preimage::{Pallet, Call, Storage, Event<T>} = 52,
+        // Governance stuff
+        Council: pallet_collective::<Instance1>::{Pallet, Call, Storage, Origin<T>, Event<T>, Config<T>} = 50,
+        // Elections: pallet_elections_phragmen::{Pallet, Call, Storage, Event<T>, Config<T>} = 51,
+        TechnicalCommittee: pallet_collective::<Instance2> = 51,
+        TechnicalCommitteeMembership: pallet_membership::<Instance2> = 52,
+        Democracy: pallet_democracy = 53,
 
         // Include the custom pallet in the runtime.
-        QuadraticFunding: pallet_qf::{Pallet, Call, Storage, Event<T>} = 70,
-        DaoCoreModule: dao_core::{Pallet, Call, Storage, Event<T>} = 71,
-        DoraRewards: pallet_dora_rewards::{Pallet, Call, Storage, Event<T>, Config<T>} = 72,
+        QuadraticFunding: pallet_qf::{Pallet, Call, Storage, Event<T>} = 60,
+        DaoCoreModule: dao_core::{Pallet, Call, Storage, Event<T>} = 61,
+        DoraRewards: pallet_dora_rewards::{Pallet, Call, Storage, Event<T>, Config<T>} = 62,
+
+        // Sudo
+        Sudo: pallet_sudo::{Pallet, Call, Config<T>, Storage, Event<T>} = 255,
     }
 );
 

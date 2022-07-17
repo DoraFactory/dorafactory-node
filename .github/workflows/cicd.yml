@@ -1,12 +1,8 @@
-name: Docker Image
+name: Build image and push
 
 on:
   push:
     branches: [main, polkadot-*]
-    tags:
-      - "v*"
-      - "staging*"
-      - "qa*"
 
 jobs:
   build-image:
