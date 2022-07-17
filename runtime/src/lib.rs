@@ -31,7 +31,7 @@ use frame_support::{
     construct_runtime, parameter_types,
     traits::{
         ConstBool, ConstU32, Contains, Currency, EnsureOneOf, EqualPrivilegeOnly, Everything,
-        Imbalance, LockIdentifier, OnUnbalanced, U128CurrencyToVote,
+        Imbalance, OnUnbalanced,
     },
     weights::{
         constants::WEIGHT_PER_SECOND, ConstantMultiplier, DispatchClass, Weight,
@@ -137,7 +137,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("DORA KSM Parachain"),
     impl_name: create_runtime_str!("DORA KSM Parachain"),
     authoring_version: 1,
-    spec_version: 21,
+    spec_version: 35,
     impl_version: 0,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 1,
