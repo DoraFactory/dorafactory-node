@@ -247,7 +247,6 @@ fn dorafactory_genesis(
             // set the funds
             funded_amount: 0,
         },
-        transaction_payment: Default::default(),
     }
 }
 

@@ -327,7 +327,7 @@ pub mod pallet {
                 T::Currency::unreserve(&voter, reserve_balance);
             }
             // Maybe this is unnecessary as round ended, voter can not do malicious attack
-            RoundParticipants::<T>::remove_prefix(round_id, None);
+            let _ = RoundParticipants::<T>::clear_prefix(round_id, u32::MAX, None);
 
             // update round status
             round.ongoing = false;
