@@ -234,8 +234,12 @@ pub mod pallet {
                 amount_number > min_unit_number,
                 Error::<T>::DonationTooSmall
             );
-            let _ =
-                T::MultiCurrency::transfer(currency_id, &who, &Self::account_id(round_id), amount)?;
+            let _ = T::MultiCurrency::transfer(
+                currency_id,
+                &who,
+                &Self::round_admin_account(round_id),
+                amount,
+            )?;
             // add deposit to pallet account.
             // update the round
             Rounds::<T>::mutate(round_id, |rnd| match rnd {
@@ -272,7 +276,7 @@ pub mod pallet {
             let bounded_name: BoundedVec<u8, T::NameMaxLength> = name
                 .clone()
                 .try_into()
-                .map_err(|_| Error::<T>::BadMetadata)?;
+                .map_err(|_| Error::<T>::BadMetadata)?; // TODO: Error 不够明确
             let round = Round {
                 ongoing: true,
                 name: bounded_name,
@@ -391,11 +395,6 @@ pub mod pallet {
             ballot: u128,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
-            ensure!(
-                Projects::<T>::contains_key(&round_id, &hash),
-                Error::<T>::ProjectNotExist
-            );
-            ensure!(ballot > 0, Error::<T>::InvalidBallot);
             // check whether this round still ongoing
             ensure!(
                 Rounds::<T>::contains_key(&round_id),
@@ -404,9 +403,14 @@ pub mod pallet {
             let round = Rounds::<T>::get(round_id).unwrap();
             ensure!(true == round.ongoing, Error::<T>::RoundHasEnded);
             ensure!(
+                Projects::<T>::contains_key(&round_id, &hash),
+                Error::<T>::ProjectNotExist
+            );
+            ensure!(
                 currency_id == round.currency_id,
                 Error::<T>::MismatchingCurencyId
             );
+            ensure!(ballot > 0, Error::<T>::InvalidBallot);
 
             // need to calculate hash of project hash and round_id combination here to avoid conflicts of projects in different rounds
             let vote_hash = T::Hashing::hash_of(&(&hash, &round_id));
@@ -435,7 +439,7 @@ pub mod pallet {
             let _ = T::MultiCurrency::transfer(
                 currency_id.clone(),
                 &who,
-                &Self::account_id(round_id),
+                &Self::round_admin_account(round_id),
                 Self::u128_to_balance(amount),
             )?;
             // update the project and corresponding round
@@ -473,7 +477,7 @@ impl<T: Config> Pallet<T> {
     // Add public immutables and private mutables.
 
     /// get corresponding accounts
-    pub fn account_id(round_id: u32) -> T::AccountId {
+    pub fn round_admin_account(round_id: u32) -> T::AccountId {
         let round = Rounds::<T>::get(round_id).unwrap();
         round.admin
     }

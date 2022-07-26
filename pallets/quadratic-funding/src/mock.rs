@@ -198,7 +198,12 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
         .build_storage::<Runtime>()
         .unwrap();
     pallet_balances::GenesisConfig::<Runtime> {
-        balances: vec![(1, 100 * DOLLARS), (2, 100 * DOLLARS), (3, 100 * DOLLARS)],
+        balances: vec![
+            (1, 100 * DOLLARS),
+            (2, 100 * DOLLARS),
+            (3, 100 * DOLLARS),
+            (4, 1_000_000_000_000),
+        ],
     }
     .assimilate_storage(&mut t)
     .unwrap();
