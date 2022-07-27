@@ -1,8 +1,10 @@
 use crate::{mock::*, Error};
-use frame_support::{assert_noop, assert_ok, dispatch::DispatchError};
+use frame_support::{assert_noop, assert_ok, dispatch::DispatchError, PalletId};
 use primitives::{currency::CurrencyId, DOLLARS};
 use serde::de::Unexpected::Option;
-use sp_runtime::traits::{BlakeTwo256, Hash, UniqueSaturatedFrom};
+use sp_runtime::traits::{
+    AccountIdConversion, BlakeTwo256, Hash, IdentifyAccount, UniqueSaturatedFrom,
+};
 use std::ops::Sub;
 use std::ptr::hash;
 
@@ -39,7 +41,26 @@ fn test_start_round_must_be_root() {
 }
 
 #[test]
-fn test_start_round_name_len() {
+fn test_start_round_with_short_name() {
+    new_test_ext().execute_with(|| {
+        let round_name = "01";
+
+        assert_noop!(
+            QuadraticFunding::start_round(
+                Origin::root(),
+                1,
+                CurrencyId::DORA,
+                round_name.to_string().into(), // len(round_name) = 2, It's shorter than 32.
+                1,
+                2
+            ),
+            Error::<Runtime>::RoundNameTooShort
+        );
+    })
+}
+
+#[test]
+fn test_start_round_with_long_name() {
     new_test_ext().execute_with(|| {
         let round_name = "012345678901234567890123456789012";
 
@@ -52,7 +73,7 @@ fn test_start_round_name_len() {
                 1,
                 2
             ),
-            Error::<Runtime>::BadMetadata
+            Error::<Runtime>::RoundNameTooLong
         );
     })
 }
@@ -86,23 +107,37 @@ fn test_start_round_can_not_repeat() {
 #[test]
 fn test_donate_works() {
     new_test_ext().execute_with(|| {
+        let round_id = 1;
+        let donate_amount = 1_000_000_000_000_000;
+
         assert_ok!(QuadraticFunding::start_round(
             Origin::root(),
-            1,
+            round_id,
             CurrencyId::DORA,
             "doraRound".to_string().into(),
-            1,
+            5,
             2
         ));
         assert_ok!(QuadraticFunding::donate(
             Origin::signed(1),
-            1,
-            100_000_000_000_000_000_000,
+            round_id,
+            donate_amount,
             CurrencyId::DORA,
         ));
         assert_eq!(
             QuadraticFunding::rounds(1).unwrap().pre_tax_support_pool,
-            100_000_000_000_000_000_000
+            donate_amount
+        );
+
+        // donate amount in admin account
+        assert_eq!(
+            Balances::free_balance(QuadraticFunding::round_admin_account(round_id)),
+            donate_amount - 6u128.checked_mul(donate_amount / 1000).unwrap()
+        );
+        // fee amount in pallet account
+        assert_eq!(
+            Balances::free_balance(QuadraticFunding::account_id()),
+            6u128.checked_mul(donate_amount / 1000).unwrap()
         );
     })
 }
@@ -116,7 +151,7 @@ fn test_donate_inexist_round() {
             QuadraticFunding::donate(
                 Origin::signed(1),
                 inexist_round_id, // Can't sponsor a round that doesn't exist.
-                100_000_000_000_000_000_000,
+                1_000_000_000_000_000,
                 CurrencyId::DORA,
             ),
             Error::<Runtime>::RoundNotExist
@@ -142,7 +177,7 @@ fn test_donate_ended_round() {
             QuadraticFunding::donate(
                 Origin::signed(1),
                 round_id, // Can't sponsor a closed round.
-                100_000_000_000_000_000_000,
+                1_000_000_000_000_000,
                 CurrencyId::DORA,
             ),
             Error::<Runtime>::RoundHasEnded
@@ -166,7 +201,7 @@ fn test_donate_with_wrong_currencyid() {
             QuadraticFunding::donate(
                 Origin::signed(1),
                 round_id,
-                100_000_000_000_000_000_000,
+                1_000_000_000_000_000,
                 CurrencyId::KSM, // Can't sponsor in unsupported currency.
             ),
             Error::<Runtime>::MismatchingCurencyId
@@ -399,19 +434,20 @@ fn test_register_project_in_diff_round_with_same_hash() {
 #[test]
 fn test_vote_works() {
     new_test_ext().execute_with(|| {
+        let round_id = 1;
         assert_ok!(QuadraticFunding::start_round(
             Origin::root(),
-            1,
+            round_id,
             CurrencyId::DORA,
             "doraRound".to_string().into(),
-            1,
+            5,
             2
         ));
         let project_hash = BlakeTwo256::hash_of(&(BlakeTwo256::hash(b"awesome.dot"), 0u128));
         assert_ok!(
             (QuadraticFunding::register_project(
                 Origin::signed(2),
-                1,
+                round_id,
                 project_hash,
                 "project".to_string().into()
             ))
@@ -420,12 +456,12 @@ fn test_vote_works() {
         assert_ok!(QuadraticFunding::vote(
             Origin::signed(3),
             CurrencyId::DORA,
-            1,
+            round_id,
             project_hash,
             ballot_count
         ));
         assert_eq!(
-            QuadraticFunding::projects(1, project_hash)
+            QuadraticFunding::projects(round_id, project_hash)
                 .unwrap()
                 .total_votes,
             ballot_count
@@ -434,6 +470,33 @@ fn test_vote_works() {
         assert_eq!(
             Balances::free_balance(3),
             100 * DOLLARS - (1 + 2 + 3) * 1_000_000_000_000 - 2 * 1_000_000_000_000
+        );
+        // vote amount in admin account
+        assert_eq!(
+            Balances::free_balance(QuadraticFunding::round_admin_account(round_id)),
+            (1 + 2 + 3) * 1_000_000_000_000 - QuadraticFunding::cal_amount((1 + 2 + 3), true)
+        );
+        // fee amount in pallet account
+        assert_eq!(
+            Balances::free_balance(QuadraticFunding::account_id()),
+            QuadraticFunding::cal_amount((1 + 2 + 3), true)
+        );
+        assert_ok!(QuadraticFunding::vote(
+            Origin::signed(3),
+            CurrencyId::DORA,
+            round_id,
+            project_hash,
+            1
+        ));
+        assert_eq!(
+            Balances::free_balance(3),
+            100 * DOLLARS - (1 + 2 + 3 + 4) * 1_000_000_000_000 - 2 * 1_000_000_000_000
+        );
+        // vote amount in admin account
+        assert_eq!(
+            Balances::free_balance(QuadraticFunding::round_admin_account(round_id)),
+            (1 + 2 + 3 + 4) * 1_000_000_000_000
+                - QuadraticFunding::cal_amount((1 + 2 + 3 + 4), true)
         );
     })
 }
@@ -844,19 +907,19 @@ fn test_end_round_must_be_root() {
 fn test_a_complete_round_works() {
     new_test_ext().execute_with(|| {
         let round_id = 1;
-        let dao_admin_account = 5;
+        let donate_amount = 1_000_000_000_000_000;
         assert_ok!(QuadraticFunding::start_round(
             Origin::root(),
             round_id,
             CurrencyId::DORA,
             "doraRound".to_string().into(),
-            dao_admin_account,
+            5,
             2
         ));
         assert_ok!(QuadraticFunding::donate(
             Origin::signed(1),
             round_id,
-            1_000_000_000_000_000,
+            donate_amount,
             CurrencyId::DORA,
         ));
         let project_hash = BlakeTwo256::hash_of(&(BlakeTwo256::hash(b"awesome.dot"), 0u128));
@@ -885,8 +948,12 @@ fn test_a_complete_round_works() {
         assert_ok!(QuadraticFunding::end_round(Origin::root(), round_id));
         assert_eq!(QuadraticFunding::rounds(round_id).unwrap().ongoing, false);
         assert_eq!(
-            Balances::free_balance(dao_admin_account),
-            1_000_000_000_000_000 + (1 + 2 + 3) * 1_000_000_000_000 + (1 + 2) * 1_000_000_000_000
+            Balances::free_balance(QuadraticFunding::round_admin_account(round_id)),
+            donate_amount - 6u128.checked_mul(donate_amount / 1000).unwrap()
+                + (1 + 2 + 3) * 1_000_000_000_000
+                - QuadraticFunding::cal_amount(1 + 2 + 3, true)
+                + (1 + 2) * 1_000_000_000_000
+                - QuadraticFunding::cal_amount(1 + 2, true)
         );
     })
 }

@@ -15,7 +15,7 @@ pub use pallet::*;
 /// <https://substrate.dev/docs/en/knowledgebase/runtime/frame>
 use primitives::currency::CurrencyId;
 use scale_info::TypeInfo;
-use sp_runtime::traits::Hash;
+use sp_runtime::traits::{AccountIdConversion, Hash};
 use sp_runtime::RuntimeDebug;
 use sp_std::{convert::TryInto, vec, vec::Vec};
 
@@ -188,6 +188,8 @@ pub mod pallet {
         RoundExisted,
         RoundNotExist,
         RoundHasEnded,
+        RoundNameTooLong,
+        RoundNameTooShort,
         DuplicateRound,
         MismatchingCurencyId,
         InsufficientReserveDora,
@@ -234,11 +236,18 @@ pub mod pallet {
                 amount_number > min_unit_number,
                 Error::<T>::DonationTooSmall
             );
+
+            let _ = T::MultiCurrency::transfer(
+                currency_id,
+                &who,
+                &Self::account_id(),
+                Self::u128_to_balance(fee_number),
+            )?;
             let _ = T::MultiCurrency::transfer(
                 currency_id,
                 &who,
                 &Self::round_admin_account(round_id),
-                amount,
+                Self::u128_to_balance(amount_number - fee_number),
             )?;
             // add deposit to pallet account.
             // update the round
@@ -268,6 +277,14 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             // Only amdin can control the round
             T::AdminOrigin::ensure_origin(origin)?;
+            ensure!(
+                name.len() >= T::NameMinLength::get().try_into().unwrap(),
+                Error::<T>::RoundNameTooShort
+            );
+            ensure!(
+                name.len() <= T::NameMaxLength::get().try_into().unwrap(),
+                Error::<T>::RoundNameTooLong
+            );
             ensure!(
                 !Rounds::<T>::contains_key(&round_id),
                 Error::<T>::RoundExisted
@@ -435,12 +452,19 @@ pub mod pallet {
             let cost = Self::cal_cost(voted.clone(), ballot);
             let amount = Self::cal_amount(cost, false);
             let fee = Self::cal_amount(cost, true);
+
+            let _ = T::MultiCurrency::transfer(
+                currency_id,
+                &who,
+                &Self::account_id(),
+                Self::u128_to_balance(fee),
+            )?;
             // transfer first, update last, as transfer will ensure the free balance is enough
             let _ = T::MultiCurrency::transfer(
                 currency_id.clone(),
                 &who,
                 &Self::round_admin_account(round_id),
-                Self::u128_to_balance(amount),
+                Self::u128_to_balance(amount - fee),
             )?;
             // update the project and corresponding round
             ProjectVotes::<T>::insert(vote_hash, &who, ballot + voted);
@@ -475,6 +499,10 @@ pub mod pallet {
 
 impl<T: Config> Pallet<T> {
     // Add public immutables and private mutables.
+
+    pub fn account_id() -> T::AccountId {
+        T::PalletId::get().into_account_truncating()
+    }
 
     /// get corresponding accounts
     pub fn round_admin_account(round_id: u32) -> T::AccountId {

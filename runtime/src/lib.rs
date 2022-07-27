@@ -523,7 +523,7 @@ parameter_types! {
     // The base of unit per vote, should be 1 Unit of token for each vote
     pub const NumberOfUnit: u128 = 1000;
     // The ratio of fee for each trans, final value should be FeeRatio/NumberOfUnit
-    pub const FeeRatio: u128 = 60;
+    pub const FeeRatio: u128 = 6;
     pub const QuadraticFundingPalletId: PalletId = PalletId(*b"py/quafd");
     pub const NameMinLength: u32 = 3;
     pub const NameMaxLength: u32 = 32;
