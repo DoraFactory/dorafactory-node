@@ -1,6 +1,6 @@
 use crate::{mock::*, Error};
 use frame_support::{assert_noop, assert_ok, dispatch::DispatchError};
-use primitives::currency::CurrencyId;
+use primitives::{currency::CurrencyId, DOLLARS};
 use serde::de::Unexpected::Option;
 use sp_runtime::traits::{BlakeTwo256, Hash, UniqueSaturatedFrom};
 use std::ops::Sub;
@@ -354,6 +354,49 @@ fn test_register_project_with_same_name() {
 }
 
 #[test]
+fn test_register_project_in_diff_round_with_same_hash() {
+    // 同样的hash可以参加不同的round
+    new_test_ext().execute_with(|| {
+        assert_ok!(QuadraticFunding::start_round(
+            Origin::root(),
+            1,
+            CurrencyId::DORA,
+            "doraRound_1".to_string().into(),
+            1,
+            2
+        ));
+        assert_ok!(QuadraticFunding::start_round(
+            Origin::root(),
+            2,
+            CurrencyId::DORA,
+            "doraRound_2".to_string().into(),
+            1,
+            2
+        ));
+
+        let project_hash = BlakeTwo256::hash_of(&(BlakeTwo256::hash(b"awesome.dot"), 0u128));
+
+        assert_ok!(
+            (QuadraticFunding::register_project(
+                Origin::signed(2),
+                1,
+                project_hash,
+                "project".to_string().into()
+            ))
+        );
+        assert_ok!(QuadraticFunding::register_project(
+            Origin::signed(3),
+            2,
+            project_hash,
+            "project".to_string().into()
+        ));
+
+        assert!(QuadraticFunding::projects(1, project_hash).is_some());
+        assert!(QuadraticFunding::projects(2, project_hash).is_some());
+    })
+}
+
+#[test]
 fn test_vote_works() {
     new_test_ext().execute_with(|| {
         assert_ok!(QuadraticFunding::start_round(
@@ -386,6 +429,146 @@ fn test_vote_works() {
                 .unwrap()
                 .total_votes,
             ballot_count
+        );
+        // now_free_balance(3) = balance_of(3) - vote_token - reserve_token
+        assert_eq!(
+            Balances::free_balance(3),
+            100 * DOLLARS - (1 + 2 + 3) * 1_000_000_000_000 - 2 * 1_000_000_000_000
+        );
+    })
+}
+
+#[test]
+fn test_vote_can_not_reserve_again_in_same_round() {
+    new_test_ext().execute_with(|| {
+        assert_ok!(QuadraticFunding::start_round(
+            Origin::root(),
+            1,
+            CurrencyId::DORA,
+            "doraRound".to_string().into(),
+            1,
+            2
+        ));
+        let project_hash_0 = BlakeTwo256::hash_of(&(BlakeTwo256::hash(b"awesome.dot"), 0u128));
+        assert_ok!(
+            (QuadraticFunding::register_project(
+                Origin::signed(2),
+                1,
+                project_hash_0,
+                "project".to_string().into()
+            ))
+        );
+        let project_hash_1 = BlakeTwo256::hash_of(&(BlakeTwo256::hash(b"awesome.dot"), 1u128));
+        assert_ok!(
+            (QuadraticFunding::register_project(
+                Origin::signed(4),
+                1,
+                project_hash_1,
+                "project".to_string().into()
+            ))
+        );
+        let ballot_count = 3;
+        assert_ok!(QuadraticFunding::vote(
+            Origin::signed(3),
+            CurrencyId::DORA,
+            1,
+            project_hash_0,
+            ballot_count
+        ));
+
+        // first_free_balance(3) = balance_of(3) - vote_token - reserve_token
+        assert_eq!(
+            Balances::free_balance(3),
+            100 * DOLLARS - (1 + 2 + 3) * 1_000_000_000_000 - 2 * 1_000_000_000_000
+        );
+        // in same round only uses reserve once.
+        assert_ok!(QuadraticFunding::vote(
+            Origin::signed(3),
+            CurrencyId::DORA,
+            1,
+            project_hash_1,
+            ballot_count
+        ));
+        // second_free_balance(3) = balance_of(3) - vote_token_0 - reserve_token - vote_token_1
+        assert_eq!(
+            Balances::free_balance(3),
+            100 * DOLLARS
+                - (1 + 2 + 3) * 1_000_000_000_000
+                - 2 * 1_000_000_000_000
+                - (1 + 2 + 3) * 1_000_000_000_000
+        );
+    })
+}
+
+#[test]
+fn test_vote_need_reserve_again_in_diff_round() {
+    new_test_ext().execute_with(|| {
+        let first_round_id = 1;
+        assert_ok!(QuadraticFunding::start_round(
+            Origin::root(),
+            first_round_id,
+            CurrencyId::DORA,
+            "doraRound1".to_string().into(),
+            1,
+            2
+        ));
+        let project_hash = BlakeTwo256::hash_of(&(BlakeTwo256::hash(b"awesome.dot"), 0u128));
+        assert_ok!(
+            (QuadraticFunding::register_project(
+                Origin::signed(2),
+                first_round_id,
+                project_hash,
+                "project".to_string().into()
+            ))
+        );
+        let ballot_count = 3;
+        assert_ok!(QuadraticFunding::vote(
+            Origin::signed(3),
+            CurrencyId::DORA,
+            first_round_id,
+            project_hash,
+            ballot_count
+        ));
+        // first_free_balance(3) = balance_of(3) - vote_token - reserve_token
+        assert_eq!(
+            Balances::free_balance(3),
+            100 * DOLLARS - (1 + 2 + 3) * 1_000_000_000_000 - 2 * 1_000_000_000_000
+        );
+
+        let second_round_id = 2;
+        assert_ok!(QuadraticFunding::start_round(
+            Origin::root(),
+            second_round_id,
+            CurrencyId::DORA,
+            "doraRound2".to_string().into(),
+            1,
+            2
+        ));
+        assert_ok!(
+            (QuadraticFunding::register_project(
+                Origin::signed(2),
+                second_round_id,
+                project_hash,
+                "project".to_string().into()
+            ))
+        );
+        //  The first vote of each round must be reserved.
+        assert_ok!(QuadraticFunding::vote(
+            Origin::signed(3),
+            CurrencyId::DORA,
+            second_round_id,
+            project_hash,
+            ballot_count
+        ));
+
+        // second_free_balance(3) = balance_of(3) - vote_token_0 - reserve_token - vote_token_1
+        assert_eq!(
+            Balances::free_balance(3),
+            100 * DOLLARS
+                - (1 + 2 + 3) * 1_000_000_000_000
+                - 2 * 1_000_000_000_000
+                - (1 + 2 + 3) * 1_000_000_000_000
+                - 2 * 1_000_000_000_000
         );
     })
 }
@@ -660,38 +843,50 @@ fn test_end_round_must_be_root() {
 #[test]
 fn test_a_complete_round_works() {
     new_test_ext().execute_with(|| {
+        let round_id = 1;
+        let dao_admin_account = 5;
         assert_ok!(QuadraticFunding::start_round(
             Origin::root(),
-            1,
+            round_id,
             CurrencyId::DORA,
             "doraRound".to_string().into(),
-            1,
+            dao_admin_account,
             2
         ));
         assert_ok!(QuadraticFunding::donate(
             Origin::signed(1),
-            1,
-            100_000_000_000_000_000_000,
+            round_id,
+            1_000_000_000_000_000,
             CurrencyId::DORA,
         ));
         let project_hash = BlakeTwo256::hash_of(&(BlakeTwo256::hash(b"awesome.dot"), 0u128));
         assert_ok!(
             (QuadraticFunding::register_project(
-                Origin::signed(2),
-                1,
+                Origin::signed(1),
+                round_id,
                 project_hash,
                 "project".to_string().into()
             ))
         );
-        let ballot_count = 3;
+        assert_ok!(QuadraticFunding::vote(
+            Origin::signed(2),
+            CurrencyId::DORA,
+            round_id,
+            project_hash,
+            2
+        ));
         assert_ok!(QuadraticFunding::vote(
             Origin::signed(3),
             CurrencyId::DORA,
-            1,
+            round_id,
             project_hash,
-            ballot_count
+            3
         ));
-        assert_ok!(QuadraticFunding::end_round(Origin::root(), 1));
-        assert_eq!(QuadraticFunding::rounds(1).unwrap().ongoing, false);
+        assert_ok!(QuadraticFunding::end_round(Origin::root(), round_id));
+        assert_eq!(QuadraticFunding::rounds(round_id).unwrap().ongoing, false);
+        assert_eq!(
+            Balances::free_balance(dao_admin_account),
+            1_000_000_000_000_000 + (1 + 2 + 3) * 1_000_000_000_000 + (1 + 2) * 1_000_000_000_000
+        );
     })
 }
