@@ -293,7 +293,7 @@ pub mod pallet {
             let bounded_name: BoundedVec<u8, T::NameMaxLength> = name
                 .clone()
                 .try_into()
-                .map_err(|_| Error::<T>::BadMetadata)?; // TODO: Error 不够明确
+                .map_err(|_| Error::<T>::BadMetadata)?;
             let round = Round {
                 ongoing: true,
                 name: bounded_name,
