@@ -1,9 +1,16 @@
 [workspace]
 members = [
-    "node",
+    "node/kusama",
+    "node/polkadot",
     "pallets/*",
-    "runtime",
+    "runtime/kusama",
+    "runtime/polkadot",
     "primitives",
+]
+
+exclude = [
+    "runtime/kusama",
+#    "runtime/polkadot",
 ]
 [profile.release]
 panic = "unwind"

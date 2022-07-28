@@ -1,6 +1,6 @@
 [package]
-name = "dorafactory-node"
-version = "0.2.0"
+name = "dorafactory-polkadot"
+version = "0.1.0"
 authors = ["DoraFactory Developers <https://github.com/DoraFactory>"]
 repository = "https://github.com/DoraFactory/dorafactory-node/"
 edition = "2021"
@@ -23,7 +23,7 @@ derive_more = "0.99.2"
 log = "0.4.17"
 codec = { package = "parity-scale-codec", version = "3.0.0" }
 
-dorafactory-node-runtime = { path = "../runtime" , version = "0.2.0"}
+dorafactory-polkadot-runtime = { path = "../../runtime/polkadot" , version = "0.2.0"}
 
 # Substrate Dependencies
 ## FRAME dependencies
@@ -93,9 +93,9 @@ polkadot-service = { git = "https://github.com/paritytech/polkadot", branch = "r
 cumulus-relay-chain-interface = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.25" }
 
 [[bin]]
-name = "dorafactory-node"
+name = "dorafactory-polkadot"
 path = "src/main.rs"
 
 [features]
 default = []
-runtime-benchmarks = ["dorafactory-node-runtime/runtime-benchmarks"]
+runtime-benchmarks = ["dorafactory-polkadot-runtime/runtime-benchmarks"]

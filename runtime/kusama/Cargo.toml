@@ -89,10 +89,10 @@ orml-traits = { git = "https://github.com/open-web3-stack/open-runtime-module-li
 dao-core = { git = "https://github.com/DoraFactory/dorafactory-dao-core", branch = "polkadot-v0.9.25", default-features = false }
 
 # Local Dependencies
-pallet-qf = { path = "../pallets/quadratic-funding", default-features = false , version = "0.2.0" }
-pallet-dora-rewards = { path = "../pallets/dora-rewards", default-features = false , version = "0.2.0" }
+pallet-qf = { path = "../../pallets/quadratic-funding", default-features = false , version = "0.2.0" }
+pallet-dora-rewards = { path = "../../pallets/dora-rewards", default-features = false , version = "0.2.0" }
 
-primitives = { package = "primitives", path = "../primitives", default-features = false }
+primitives = { package = "primitives", path = "../../primitives", default-features = false }
 
 [build-dependencies]
 substrate-wasm-builder = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.25" }
