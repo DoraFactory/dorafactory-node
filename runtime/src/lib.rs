@@ -12,6 +12,7 @@ pub mod xcm_config;
 
 pub mod constants;
 
+use cumulus_pallet_parachain_system::RelayNumberStrictlyIncreases;
 use smallvec::smallvec;
 use sp_api::impl_runtime_apis;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
@@ -30,7 +31,7 @@ use sp_version::RuntimeVersion;
 use frame_support::{
     construct_runtime, parameter_types,
     traits::{
-        ConstBool, Currency, EqualPrivilegeOnly, Everything, Imbalance, Nothing, OnUnbalanced,
+        ConstBool, Contains, Currency, EqualPrivilegeOnly, Everything, Imbalance, OnUnbalanced,
     },
     weights::{
         constants::WEIGHT_PER_SECOND, ConstantMultiplier, DispatchClass, Weight,
@@ -136,7 +137,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("DORA KSM Parachain"),
     impl_name: create_runtime_str!("DORA KSM Parachain"),
     authoring_version: 1,
-    spec_version: 20,
+    spec_version: 21,
     impl_version: 0,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 1,
@@ -294,8 +295,7 @@ impl pallet_balances::Config for Runtime {
     type WeightInfo = pallet_balances::weights::SubstrateWeight<Runtime>;
     type MaxLocks = MaxLocks;
     type MaxReserves = MaxReserves;
-    type ReserveIdentifier = ();
-    // type ReserveIdentifier = [u8; 8];
+    type ReserveIdentifier = ReserveIdentifier;
 }
 
 parameter_types! {
@@ -368,6 +368,7 @@ impl cumulus_pallet_parachain_system::Config for Runtime {
     type ReservedDmpWeight = ReservedDmpWeight;
     type XcmpMessageHandler = XcmpQueue;
     type ReservedXcmpWeight = ReservedXcmpWeight;
+    type CheckAssociatedRelayNumber = RelayNumberStrictlyIncreases;
 }
 
 impl parachain_info::Config for Runtime {}
@@ -448,13 +449,13 @@ impl pallet_collator_selection::Config for Runtime {
 // pub struct ToStakingPot;
 // impl OnUnbalanced<NegativeImbalance> for ToStakingPot {
 //     fn on_nonzero_unbalanced(amount: NegativeImbalance) {
-//         let staking_pot = PotId::get().into_account();
+//         let staking_pot = PotId::get().into_account_truncating();
 //         Balances::resolve_creating(&staking_pot, amount);
 //     }
 // }
 
 parameter_types! {
-    pub TreasuryAccount: AccountId = TreasuryPalletId::get().into_account();
+    pub TreasuryAccount: AccountId = TreasuryPalletId::get().into_account_truncating();
 }
 
 pub struct ToTreasury;
@@ -522,17 +523,19 @@ parameter_types! {
     // The base of unit per vote, should be 1 Unit of token for each vote
     pub const NumberOfUnit: u128 = 1000;
     // The ratio of fee for each trans, final value should be FeeRatio/NumberOfUnit
-    pub const FeeRatio: u128 = 60;
+    pub const FeeRatio: u128 = 6;
     pub const QuadraticFundingPalletId: PalletId = PalletId(*b"py/quafd");
     pub const NameMinLength: u32 = 3;
     pub const NameMaxLength: u32 = 32;
     pub const AppId: u8 = 1;
-    // pub const StringLimit: u32 = 32;
+    // minimal number of units to reserve to get qualified to vote
+    pub const ReserveUnit: u128 = 1000000000000;
 }
 
 /// Configure the pallet-qf in pallets/quadratic-funding.
 impl pallet_qf::Config for Runtime {
     type Event = Event;
+    type Currency = Balances;
     type MultiCurrency = Currencies;
     type PalletId = QuadraticFundingPalletId;
     // Origin who can control the round
@@ -547,6 +550,7 @@ impl pallet_qf::Config for Runtime {
     type NameMinLength = NameMinLength;
     // The maximum length of project name
     type NameMaxLength = NameMaxLength;
+    type ReserveUnit = ReserveUnit;
     type WeightInfo = pallet_qf::weights::DoraWeight<Runtime>;
 }
 
@@ -591,8 +595,18 @@ parameter_type_with_key! {
     };
 }
 
-parameter_types! {
-    pub ORMLMaxLocks: u32 = 2;
+pub fn get_all_module_accounts() -> Vec<AccountId> {
+    vec![
+        PotId::get().into_account_truncating(),
+        TreasuryPalletId::get().into_account_truncating(),
+    ]
+}
+
+pub struct DustRemovalWhitelist;
+impl Contains<AccountId> for DustRemovalWhitelist {
+    fn contains(a: &AccountId) -> bool {
+        get_all_module_accounts().contains(a)
+    }
 }
 
 impl orml_tokens::Config for Runtime {
@@ -604,10 +618,12 @@ impl orml_tokens::Config for Runtime {
     type ExistentialDeposits = ExistentialDeposits;
     type OnDust = ();
     // type OnDust = orml_tokens::TransferDust<Runtime, NativeTreasuryAccount>;
-    type MaxLocks = ORMLMaxLocks;
-    type MaxReserves = ();
-    type ReserveIdentifier = ();
-    type DustRemovalWhitelist = Nothing;
+    type MaxLocks = MaxLocks;
+    type MaxReserves = MaxReserves;
+    type ReserveIdentifier = ReserveIdentifier;
+    type DustRemovalWhitelist = DustRemovalWhitelist;
+    type OnNewTokenAccount = ();
+    type OnKilledTokenAccount = ();
 }
 
 impl orml_xcm::Config for Runtime {

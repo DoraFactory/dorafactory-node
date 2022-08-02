@@ -69,6 +69,7 @@ impl cumulus_pallet_parachain_system::Config for Test {
     type ReservedXcmpWeight = ();
     type DmpMessageHandler = ();
     type ReservedDmpWeight = ();
+    type CheckAssociatedRelayNumber = cumulus_pallet_parachain_system::RelayNumberStrictlyIncreases;
 }
 
 parameter_types! {

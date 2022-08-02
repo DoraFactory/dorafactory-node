@@ -151,10 +151,10 @@ pub fn development_config() -> ChainSpec {
                         get_account_id_from_seed::<sr25519::Public>("Alice"),
                         get_collator_keys_from_seed("Alice"),
                     ),
-                    (
-                        get_account_id_from_seed::<sr25519::Public>("Bob"),
-                        get_collator_keys_from_seed("Bob"),
-                    ),
+                    // (
+                    //     get_account_id_from_seed::<sr25519::Public>("Bob"),
+                    //     get_collator_keys_from_seed("Bob"),
+                    // ),
                 ],
                 vec![
                     get_account_id_from_seed::<sr25519::Public>("Bob"),
@@ -173,7 +173,7 @@ pub fn development_config() -> ChainSpec {
                     account("alice", 0, 0),
                     account("bob", 0, 0),
                     account("charlie", 0, 0),
-                    PalletId(*b"DoraRewa").into_account(),
+                    PalletId(*b"DoraRewa").into_account_truncating(),
                 ],
                 dev_para_id.into(),
             )

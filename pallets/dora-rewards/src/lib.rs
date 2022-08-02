@@ -383,7 +383,7 @@ pub mod pallet {
     impl<T: Config> Pallet<T> {
         /// get the pallet's account
         pub fn account_id() -> T::AccountId {
-            PALLET_ID.into_account()
+            PALLET_ID.into_account_truncating()
         }
 
         /// distributed by Pallet account
