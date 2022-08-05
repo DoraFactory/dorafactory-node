@@ -183,7 +183,7 @@ pub fn development_config() -> ChainSpec {
         // Telemetry
         None,
         // Protocol ID
-        Some("DORA KSM Parachain"),
+        Some("DORA DOT Parachain"),
         // Fork ID
         None,
         // Properties
@@ -254,11 +254,12 @@ fn get_properties() -> Properties {
     let mut properties = sc_chain_spec::Properties::new();
     properties.insert("tokenSymbol".into(), "DORA".into());
     properties.insert("tokenDecimals".into(), 12.into());
+    // TODO: change ss58Format
     properties.insert("ss58Format".into(), 128.into());
     properties
 }
 
 fn get_root() -> AccountId {
-    // KSM Sudo Account
+    // TODO: KSM Sudo Account
     AccountId32::from_string("5Ci36kbH533VyL5iYyFQ8QkR3eEc5Dwu1V8LxX8QcniJqxyb").unwrap()
 }

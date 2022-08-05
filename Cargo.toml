@@ -10,7 +10,8 @@ members = [
 
 exclude = [
     "runtime/kusama",
-#    "runtime/polkadot",
+    "runtime/polkadot",
 ]
+
 [profile.release]
 panic = "unwind"

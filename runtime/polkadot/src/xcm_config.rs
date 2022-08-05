@@ -122,19 +122,19 @@ impl TakeRevenue for ToTreasury {
 /// We need to ensure we have at least one rule per token we want to handle or else
 /// the xcm executor won't know how to charge fees for a transfer of said token.
 pub type Trader = (
-    FixedRateOfFungible<KsmPerSecond, ToTreasury>,
+    FixedRateOfFungible<DotPerSecond, ToTreasury>,
     FixedRateOfFungible<NativePerSecond, ToTreasury>,
     FixedRateOfFungible<NativeNewPerSecond, ToTreasury>,
 );
 
 parameter_types! {
-    pub KsmPerSecond: (AssetId, u128) = (MultiLocation::parent().into(), dot_per_second());
+    pub DotPerSecond: (AssetId, u128) = (MultiLocation::parent().into(), dot_per_second());
     pub NativePerSecond: (AssetId, u128) = (
         MultiLocation::new(
             1,
             X2(Parachain(2115), GeneralKey(b"DORA".to_vec()))
         ).into(),
-        // DORA:KSM = 50:1
+        // DORA:DOT = 50:1
         dot_per_second() * 50
     );
     pub NativeNewPerSecond: (AssetId, u128) = (
@@ -142,7 +142,7 @@ parameter_types! {
             0,
             X1(GeneralKey(b"DORA".to_vec()))
         ).into(),
-        // DORA:KSM = 50:1
+        // DORA:DOT = 50:1
         dot_per_second() * 50
     );
 }
@@ -211,7 +211,7 @@ pub struct CurrencyIdConvert;
 impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
     fn convert(id: CurrencyId) -> Option<MultiLocation> {
         match id {
-            CurrencyId::KSM => Some(Parent.into()),
+            CurrencyId::DOT => Some(Parent.into()),
             CurrencyId::DORA => Some((Parent, Parachain(2115), GeneralKey("DORA".into())).into()),
         }
     }
@@ -221,7 +221,7 @@ impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
     fn convert(l: MultiLocation) -> Option<CurrencyId> {
         let dora: Vec<u8> = "DORA".into();
         if l == MultiLocation::parent() {
-            return Some(CurrencyId::KSM);
+            return Some(CurrencyId::DOT);
         }
 
         match l {

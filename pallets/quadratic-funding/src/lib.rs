@@ -7,13 +7,13 @@ use frame_support::{
     BoundedVec, PalletId,
 };
 use orml_traits::{
-    MultiCurrency, MultiCurrencyExtended, MultiLockableCurrency, MultiReservableCurrency,
+    currency::TransferAll, MultiCurrency, MultiCurrencyExtended, MultiLockableCurrency,
+    MultiReservableCurrency, NamedMultiReservableCurrency,
 };
 pub use pallet::*;
 /// Edit this file to define custom logic or remove it if it is not needed.
 /// Learn more about FRAME and the core library of Substrate FRAME pallets:
 /// <https://substrate.dev/docs/en/knowledgebase/runtime/frame>
-use primitives::currency::CurrencyId;
 use scale_info::TypeInfo;
 use sp_runtime::traits::{AccountIdConversion, Hash};
 use sp_runtime::RuntimeDebug;
@@ -42,9 +42,9 @@ pub struct Project<AccountId, BoundedString> {
 }
 
 #[derive(Encode, Decode, Clone, Eq, PartialEq, TypeInfo, MaxEncodedLen, RuntimeDebug)]
-pub struct Round<AccountId, BoundedString> {
+pub struct Round<AccountId, BoundedString, CurrencyIdOf> {
     pub name: BoundedString,
-    pub currency_id: CurrencyId,
+    pub currency_id: CurrencyIdOf,
     pub ongoing: bool,
     pub support_pool: u128,
     pub pre_tax_support_pool: u128,
@@ -58,6 +58,9 @@ type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
 type DoraBalance<T> =
     <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 type BalanceOf<T> = <<T as Config>::MultiCurrency as MultiCurrency<AccountIdOf<T>>>::Balance;
+pub(crate) type CurrencyIdOf<T> = <<T as Config>::MultiCurrency as MultiCurrency<
+    <T as frame_system::Config>::AccountId,
+>>::CurrencyId;
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -70,17 +73,19 @@ pub mod pallet {
     pub trait Config: frame_system::Config {
         /// Because this pallet emits events, it depends on the runtime's definition of an event.
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+
         type Currency: Currency<Self::AccountId> + ReservableCurrency<Self::AccountId>;
 
         /// Currency to transfer assets
-        // type MultiCurrency: MultiCurrency<Self::AccountId, CurrencyId = CurrencyId, Balance = Balance>;
-        type MultiCurrency: MultiCurrency<AccountIdOf<Self>, CurrencyId = CurrencyId>
-            + MultiCurrencyExtended<Self::AccountId, CurrencyId = CurrencyId>
-            + MultiLockableCurrency<Self::AccountId, CurrencyId = CurrencyId>
-            + MultiReservableCurrency<Self::AccountId, CurrencyId = CurrencyId>;
+        type MultiCurrency: TransferAll<Self::AccountId>
+            + MultiCurrencyExtended<Self::AccountId>
+            + MultiLockableCurrency<Self::AccountId>
+            + MultiReservableCurrency<Self::AccountId>
+            + NamedMultiReservableCurrency<Self::AccountId>;
 
         #[pallet::constant]
         type PalletId: Get<PalletId>;
+
         /// Origin from which admin must come.
         type AdminOrigin: EnsureOrigin<Self::Origin>;
 
@@ -101,12 +106,9 @@ pub mod pallet {
         type NameMinLength: Get<u32>;
 
         /// The maximum length of name [project_name, round_name]
-        // #[pallet::constant]
         type NameMaxLength: Get<u32>;
 
         type ReserveUnit: Get<u128>;
-        // /// The maximum length of project name
-        // type NameMaxLength: Get<usize>;
 
         /// Infomation on runtime weights.
         type WeightInfo: WeightInfo;
@@ -126,7 +128,11 @@ pub mod pallet {
         _,
         Blake2_128Concat,
         u32,
-        Round<<T as frame_system::Config>::AccountId, BoundedVec<u8, T::NameMaxLength>>,
+        Round<
+            <T as frame_system::Config>::AccountId,
+            BoundedVec<u8, T::NameMaxLength>,
+            CurrencyIdOf<T>,
+        >,
     >;
 
     #[pallet::storage]
@@ -210,7 +216,7 @@ pub mod pallet {
             origin: OriginFor<T>,
             round_id: u32,
             #[pallet::compact] amount: BalanceOf<T>,
-            currency_id: CurrencyId,
+            currency_id: CurrencyIdOf<T>,
         ) -> DispatchResultWithPostInfo {
             // Check that the extrinsic was signed and get the signer.
             // This function will return an error if the extrinsic is not signed.
@@ -270,7 +276,7 @@ pub mod pallet {
         pub fn start_round(
             origin: OriginFor<T>,
             round_id: u32,
-            currency_id: CurrencyId,
+            currency_id: CurrencyIdOf<T>,
             name: Vec<u8>,
             admin: T::AccountId,
             round_reserve: u128,
@@ -297,7 +303,7 @@ pub mod pallet {
             let round = Round {
                 ongoing: true,
                 name: bounded_name,
-                currency_id: currency_id.clone(),
+                currency_id: currency_id,
                 support_pool: 0,
                 pre_tax_support_pool: 0,
                 total_support_area: 0,
@@ -406,7 +412,7 @@ pub mod pallet {
         #[pallet::weight(T::WeightInfo::vote())]
         pub fn vote(
             origin: OriginFor<T>,
-            currency_id: CurrencyId,
+            currency_id: CurrencyIdOf<T>,
             round_id: u32,
             hash: T::Hash,
             ballot: u128,
@@ -461,7 +467,7 @@ pub mod pallet {
             )?;
             // transfer first, update last, as transfer will ensure the free balance is enough
             let _ = T::MultiCurrency::transfer(
-                currency_id.clone(),
+                currency_id,
                 &who,
                 &Self::round_admin_account(round_id),
                 Self::u128_to_balance(amount - fee),
