@@ -26,7 +26,7 @@ fn load_spec(id: &str) -> std::result::Result<Box<dyn ChainSpec>, String> {
     Ok(match id {
         "dev" => Box::new(chain_spec::development_config()),
         "staging" => Box::new(chain_spec::staging_config()),
-        "" | "main" => Box::new(chain_spec::mainnet_config()?),
+        // "" | "main" => Box::new(chain_spec::mainnet_config()?),
         path => Box::new(chain_spec::ChainSpec::from_json_file(
             std::path::PathBuf::from(path),
         )?),
@@ -35,7 +35,7 @@ fn load_spec(id: &str) -> std::result::Result<Box<dyn ChainSpec>, String> {
 
 impl SubstrateCli for Cli {
     fn impl_name() -> String {
-        "DoraFactory Node".into()
+        "DoraFactory Polkadot Parachain Collator".into()
     }
 
     fn impl_version() -> String {
@@ -43,10 +43,10 @@ impl SubstrateCli for Cli {
     }
 
     fn description() -> String {
-        "DoraFactory Node\n\nThe command-line arguments provided first will be \
+        "DoraFactory Polkadot Parachain Collator\n\nThe command-line arguments provided first will be \
 		passed to the parachain node, while the arguments provided after -- will be passed \
 		to the relay chain node.\n\n\
-		dorafactory-node <parachain-args> -- <relay-chain-args>"
+		dorafactory-polkadot <parachain-args> -- <relay-chain-args>"
             .into()
     }
 
@@ -73,7 +73,7 @@ impl SubstrateCli for Cli {
 
 impl SubstrateCli for RelayChainCli {
     fn impl_name() -> String {
-        "DoraFactory Node".into()
+        "DoraFactory Polkadot Parachain Collator".into()
     }
 
     fn impl_version() -> String {
@@ -81,10 +81,10 @@ impl SubstrateCli for RelayChainCli {
     }
 
     fn description() -> String {
-        "DoraFactory Node\n\nThe command-line arguments provided first will be \
+        "DoraFactory Polkadot Parachain Collator\n\nThe command-line arguments provided first will be \
 		passed to the parachain node, while the arguments provided after -- will be passed \
 		to the relay chain node.\n\n\
-		dorafactory-node <parachain-args> -- <relay-chain-args>"
+		dorafactory-polkadot <parachain-args> -- <relay-chain-args>"
             .into()
     }
 

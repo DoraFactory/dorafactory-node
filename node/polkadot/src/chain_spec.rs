@@ -32,9 +32,9 @@ pub fn get_public_from_seed<TPublic: Public>(seed: &str) -> <TPublic::Pair as Pa
         .public()
 }
 
-pub fn mainnet_config() -> Result<ChainSpec, String> {
-    ChainSpec::from_json_bytes(&include_bytes!("../res/dora-ksm-mainnet.json")[..])
-}
+// pub fn mainnet_config() -> Result<ChainSpec, String> {
+//     ChainSpec::from_json_bytes(&include_bytes!("../res/dora-ksm-mainnet.json")[..])
+// }
 
 /// The extensions for the [`ChainSpec`].
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ChainSpecGroup, ChainSpecExtension)]
