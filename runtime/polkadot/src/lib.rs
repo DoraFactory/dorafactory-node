@@ -199,7 +199,7 @@ parameter_types! {
         })
         .avg_block_initialization(AVERAGE_ON_INITIALIZE_RATIO)
         .build_or_panic();
-    pub const SS58Prefix: u16 = 128;
+    pub const SS58Prefix: u16 = 129;
     pub CheckingAccount: AccountId = PolkadotXcm::check_account();
     pub const TreasuryPalletId: PalletId = PalletId(*b"dora/try");
 }

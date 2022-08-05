@@ -255,7 +255,7 @@ fn get_properties() -> Properties {
     properties.insert("tokenSymbol".into(), "DORA".into());
     properties.insert("tokenDecimals".into(), 12.into());
     // TODO: change ss58Format
-    properties.insert("ss58Format".into(), 128.into());
+    properties.insert("ss58Format".into(), 129.into());
     properties
 }
 
