@@ -1,6 +1,6 @@
 use cumulus_primitives_core::ParaId;
 use dorafactory_node_runtime::{
-    AccountId, Signature, SudoConfig, TokensConfig, EXISTENTIAL_DEPOSIT,
+    AccountId, Signature, SudoConfig, TokensConfig, TechnicalCommitteeMembershipConfig, EXISTENTIAL_DEPOSIT,
 };
 use frame_benchmarking::{account, whitelisted_caller};
 use frame_support::PalletId;
@@ -111,6 +111,7 @@ pub fn staging_config() -> ChainSpec {
                     ),
                 ],
                 vec![get_root()],
+                vec![],
                 mainnet_para_id.into(),
             )
         },
@@ -175,6 +176,7 @@ pub fn development_config() -> ChainSpec {
                     account("charlie", 0, 0),
                     PalletId(*b"DoraRewa").into_account_truncating(),
                 ],
+                vec![],
                 dev_para_id.into(),
             )
         },
@@ -200,8 +202,10 @@ fn dorafactory_genesis(
     root_key: AccountId,
     invulnerables: Vec<(AccountId, AuraId)>,
     endowed_accounts: Vec<AccountId>,
+    tech_accounts: Vec<AccountId>,
     id: ParaId,
 ) -> dorafactory_node_runtime::GenesisConfig {
+    // pub const STASH: Balance = 100 * UNIT;
     dorafactory_node_runtime::GenesisConfig {
         system: dorafactory_node_runtime::SystemConfig {
             code: dorafactory_node_runtime::WASM_BINARY
@@ -223,6 +227,7 @@ fn dorafactory_genesis(
         },
         session: dorafactory_node_runtime::SessionConfig {
             keys: invulnerables
+                .clone()
                 .into_iter()
                 .map(|(acc, aura)| {
                     (
@@ -247,6 +252,21 @@ fn dorafactory_genesis(
             // set the funds
             funded_amount: 0,
         },
+        council: Default::default(),
+        // elections: ElectionsConfig {
+        //     members: council_accounts
+        //         .iter()
+        //         .take((num_council_accounts + 1) / 2)
+        //         .cloned()
+        //         .map(|member| (member, STASH))
+        //         .collect(),
+        // },
+        technical_committee: Default::default(),
+        technical_committee_membership: TechnicalCommitteeMembershipConfig {
+            members: tech_accounts.try_into().unwrap(),
+            phantom: Default::default(),
+        },
+        democracy: Default::default(),
     }
 }
 

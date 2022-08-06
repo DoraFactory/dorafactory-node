@@ -92,6 +92,8 @@ polkadot-primitives = { git = "https://github.com/paritytech/polkadot", branch =
 polkadot-service = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.25" }
 cumulus-relay-chain-interface = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.25" }
 
+primitives = { package = "primitives", path = "../../primitives", default-features = false }
+
 [[bin]]
 name = "dorafactory-node"
 path = "src/main.rs"
