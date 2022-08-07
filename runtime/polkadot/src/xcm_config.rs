@@ -78,7 +78,7 @@ match_types! {
 
 match_types! {
     pub type SpecParachain: impl Contains<MultiLocation> = {
-        MultiLocation {parents: 1, interior: X1(Parachain(2115))}
+        MultiLocation {parents: 1, interior: X1(Parachain(2116))}
     };
 }
 
@@ -132,7 +132,7 @@ parameter_types! {
     pub NativePerSecond: (AssetId, u128) = (
         MultiLocation::new(
             1,
-            X2(Parachain(2115), GeneralKey(b"DORA".to_vec()))
+            X2(Parachain(2116), GeneralKey(b"DORA".to_vec()))
         ).into(),
         // DORA:DOT = 50:1
         dot_per_second() * 50
@@ -212,7 +212,7 @@ impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
     fn convert(id: CurrencyId) -> Option<MultiLocation> {
         match id {
             CurrencyId::DOT => Some(Parent.into()),
-            CurrencyId::DORA => Some((Parent, Parachain(2115), GeneralKey("DORA".into())).into()),
+            CurrencyId::DORA => Some((Parent, Parachain(2116), GeneralKey("DORA".into())).into()),
         }
     }
 }
@@ -226,7 +226,7 @@ impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
 
         match l {
             MultiLocation { parents, interior } if parents == 1 => match interior {
-                X2(Parachain(2115), GeneralKey(k)) if k == dora => Some(CurrencyId::DORA),
+                X2(Parachain(2116), GeneralKey(k)) if k == dora => Some(CurrencyId::DORA),
                 _ => None,
             },
             MultiLocation { parents, interior } if parents == 0 => match interior {

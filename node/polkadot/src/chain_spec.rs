@@ -78,12 +78,12 @@ pub fn template_session_keys(keys: AuraId) -> dorafactory_polkadot_runtime::Sess
 }
 
 pub fn staging_config() -> ChainSpec {
-    let mainnet_para_id: u32 = 2115;
+    let mainnet_para_id: u32 = 2116;
     ChainSpec::from_genesis(
         // Name
         "Dorafactory Network",
         // ID
-        "dorafactory",
+        "dorafactory-polkadot",
         ChainType::Live,
         move || {
             dorafactory_genesis(
@@ -133,13 +133,13 @@ pub fn staging_config() -> ChainSpec {
 }
 
 pub fn development_config() -> ChainSpec {
-    let dev_para_id: u32 = 2115;
+    let dev_para_id: u32 = 2116;
 
     ChainSpec::from_genesis(
         // Name
-        "Dorafactory Network",
+        "Dorafactory Polkadot Network",
         // ID
-        "dorafactory",
+        "dorafactory-polkadot",
         ChainType::Local,
         move || {
             dorafactory_genesis(
@@ -255,7 +255,7 @@ fn get_properties() -> Properties {
     properties.insert("tokenSymbol".into(), "DORA".into());
     properties.insert("tokenDecimals".into(), 12.into());
     // TODO: change ss58Format
-    properties.insert("ss58Format".into(), 129.into());
+    properties.insert("ss58Format".into(), 128.into());
     properties
 }
 

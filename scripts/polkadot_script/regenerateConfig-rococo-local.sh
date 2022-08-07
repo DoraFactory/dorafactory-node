@@ -87,7 +87,7 @@ echo "build dorafactory polkadot chainspec"
 
 newParas="{\"paras\":[
         [
-            2115,
+            2116,
             {
                 \"genesis_head\": \"`cat ./config/dorafactory-dev.genesis`\",
                 \"validation_code\":\"`cat ./config/dorafactory-dev.wasm`\",
