@@ -166,7 +166,6 @@ parameter_types! {
     pub const AppId: u8 = 1;
     // minimal number of units to reserve to get qualified to vote
     pub const ReserveUnit: u128 = 1000000000000;
-    // pub const StringLimit: u32 = 32;
 }
 
 // qf pallet config
