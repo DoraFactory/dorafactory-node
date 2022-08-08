@@ -56,7 +56,7 @@ pub struct Round<AccountId, BoundedString> {
 
 type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
 type DoraBalance<T> =
-<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
+    <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 type BalanceOf<T> = <<T as Config>::MultiCurrency as MultiCurrency<AccountIdOf<T>>>::Balance;
 
 #[frame_support::pallet]
@@ -75,9 +75,9 @@ pub mod pallet {
         /// Currency to transfer assets
         // type MultiCurrency: MultiCurrency<Self::AccountId, CurrencyId = CurrencyId, Balance = Balance>;
         type MultiCurrency: MultiCurrency<AccountIdOf<Self>, CurrencyId = CurrencyId>
-        + MultiCurrencyExtended<Self::AccountId, CurrencyId = CurrencyId>
-        + MultiLockableCurrency<Self::AccountId, CurrencyId = CurrencyId>
-        + MultiReservableCurrency<Self::AccountId, CurrencyId = CurrencyId>;
+            + MultiCurrencyExtended<Self::AccountId, CurrencyId = CurrencyId>
+            + MultiLockableCurrency<Self::AccountId, CurrencyId = CurrencyId>
+            + MultiReservableCurrency<Self::AccountId, CurrencyId = CurrencyId>;
 
         #[pallet::constant]
         type PalletId: Get<PalletId>;
@@ -142,12 +142,12 @@ pub mod pallet {
 
     #[pallet::storage]
     pub(super) type ProjectVotes<T: Config> =
-    StorageDoubleMap<_, Blake2_128Concat, T::Hash, Blake2_128Concat, T::AccountId, u128>;
+        StorageDoubleMap<_, Blake2_128Concat, T::Hash, Blake2_128Concat, T::AccountId, u128>;
 
     #[pallet::storage]
     #[pallet::getter(fn round_participants)]
     pub(super) type RoundParticipants<T: Config> =
-    StorageDoubleMap<_, Blake2_128Concat, u32, Blake2_128Concat, T::AccountId, bool>;
+        StorageDoubleMap<_, Blake2_128Concat, u32, Blake2_128Concat, T::AccountId, bool>;
 
     // Pallets use events to inform users when important changes are made.
     // https://substrate.dev/docs/en/knowledgebase/runtime/events
