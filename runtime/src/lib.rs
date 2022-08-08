@@ -12,6 +12,7 @@ pub mod xcm_config;
 
 pub mod constants;
 
+use cumulus_pallet_parachain_system::RelayNumberStrictlyIncreases;
 use smallvec::smallvec;
 use sp_api::impl_runtime_apis;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
@@ -30,7 +31,7 @@ use sp_version::RuntimeVersion;
 use frame_support::{
     construct_runtime, parameter_types,
     traits::{
-        ConstBool, ConstU32, Contains, Currency, EnsureOneOf, EqualPrivilegeOnly, Everything,
+        ConstBool, ConstU32, Contains, Currency, EitherOfDiverse, EqualPrivilegeOnly, Everything,
         Imbalance, OnUnbalanced,
     },
     weights::{
@@ -137,7 +138,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("DORA KSM Parachain"),
     impl_name: create_runtime_str!("DORA KSM Parachain"),
     authoring_version: 1,
-    spec_version: 35,
+    spec_version: 30,
     impl_version: 0,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 1,
@@ -368,6 +369,7 @@ impl cumulus_pallet_parachain_system::Config for Runtime {
     type ReservedDmpWeight = ReservedDmpWeight;
     type XcmpMessageHandler = XcmpQueue;
     type ReservedXcmpWeight = ReservedXcmpWeight;
+    type CheckAssociatedRelayNumber = RelayNumberStrictlyIncreases;
 }
 
 impl parachain_info::Config for Runtime {}
@@ -515,33 +517,33 @@ pub type GeneralCouncilMembershipInstance = pallet_membership::Instance1;
 pub type TechnicalCommitteeMembershipInstance = pallet_membership::Instance2;
 
 // General Council
-pub type EnsureRootOrAllGeneralCouncil = EnsureOneOf<
+pub type EnsureRootOrAllGeneralCouncil = EitherOfDiverse<
     EnsureRoot<AccountId>,
     pallet_collective::EnsureProportionAtLeast<AccountId, GeneralCouncilInstance, 1, 1>,
 >;
 
-pub type EnsureRootOrThreeFivethsGeneralCouncil = EnsureOneOf<
+pub type EnsureRootOrThreeFivethsGeneralCouncil = EitherOfDiverse<
     EnsureRoot<AccountId>,
     pallet_collective::EnsureProportionAtLeast<AccountId, GeneralCouncilInstance, 3, 5>,
 >;
 
-pub type EnsureRootOrFourFivethsGeneralCouncil = EnsureOneOf<
+pub type EnsureRootOrFourFivethsGeneralCouncil = EitherOfDiverse<
     EnsureRoot<AccountId>,
     pallet_collective::EnsureProportionAtLeast<AccountId, GeneralCouncilInstance, 4, 5>,
 >;
 
-pub type EnsureRootOrHalfGeneralCouncil = EnsureOneOf<
+pub type EnsureRootOrHalfGeneralCouncil = EitherOfDiverse<
     EnsureRoot<AccountId>,
     pallet_collective::EnsureProportionAtLeast<AccountId, GeneralCouncilInstance, 1, 2>,
 >;
 
 // Technical Committee Council
-pub type EnsureRootOrAllTechnicalCommittee = EnsureOneOf<
+pub type EnsureRootOrAllTechnicalCommittee = EitherOfDiverse<
     EnsureRoot<AccountId>,
     pallet_collective::EnsureProportionAtLeast<AccountId, TechnicalCommitteeInstance, 1, 1>,
 >;
 
-pub type EnsureRootOrTwoThirdsTechnicalCommittee = EnsureOneOf<
+pub type EnsureRootOrTwoThirdsTechnicalCommittee = EitherOfDiverse<
     EnsureRoot<AccountId>,
     pallet_collective::EnsureProportionAtLeast<AccountId, TechnicalCommitteeInstance, 2, 3>,
 >;
@@ -694,14 +696,13 @@ parameter_types! {
     // The base of unit per vote, should be 1 Unit of token for each vote
     pub const NumberOfUnit: u128 = 1000;
     // The ratio of fee for each trans, final value should be FeeRatio/NumberOfUnit
-    pub const FeeRatio: u128 = 60;
+    pub const FeeRatio: u128 = 6;
     pub const QuadraticFundingPalletId: PalletId = PalletId(*b"py/quafd");
     pub const NameMinLength: u32 = 3;
     pub const NameMaxLength: u32 = 32;
     pub const AppId: u8 = 1;
     // minimal number of units to reserve to get qualified to vote
     pub const ReserveUnit: u128 = 1000000000000;
-    // pub const StringLimit: u32 = 32;
 }
 
 /// Configure the pallet-qf in pallets/quadratic-funding.

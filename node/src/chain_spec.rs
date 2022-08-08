@@ -6,7 +6,6 @@ use dorafactory_node_runtime::{
 use frame_benchmarking::account;
 use frame_support::PalletId;
 use hex_literal::hex;
-use primitives::{Balance, UNIT};
 use sc_chain_spec::{ChainSpecExtension, ChainSpecGroup};
 use sc_service::{ChainType, Properties};
 use serde::{Deserialize, Serialize};
@@ -203,13 +202,9 @@ fn dorafactory_genesis(
     root_key: AccountId,
     invulnerables: Vec<(AccountId, AuraId)>,
     endowed_accounts: Vec<AccountId>,
-    // council_accounts: Vec<AccountId>,
     tech_accounts: Vec<AccountId>,
     id: ParaId,
 ) -> dorafactory_node_runtime::GenesisConfig {
-    // let num_council_accounts = council_accounts.len();
-    pub const STASH: Balance = 100 * UNIT;
-
     dorafactory_node_runtime::GenesisConfig {
         system: dorafactory_node_runtime::SystemConfig {
             code: dorafactory_node_runtime::WASM_BINARY
@@ -263,7 +258,7 @@ fn dorafactory_genesis(
         // },
         technical_committee: Default::default(),
         technical_committee_membership: TechnicalCommitteeMembershipConfig {
-            members: tech_accounts,
+            members: tech_accounts.try_into().unwrap(),
             phantom: Default::default(),
         },
         democracy: Default::default(),
