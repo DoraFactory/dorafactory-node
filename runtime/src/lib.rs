@@ -633,7 +633,7 @@ parameter_types! {
     pub const LaunchPeriod: BlockNumber = 3 * DAYS;
     pub const VotingPeriod: BlockNumber = 7 * DAYS;
     pub const FastTrackVotingPeriod: BlockNumber = 2 * DAYS;
-    pub MinimumDeposit: Balance = 100 * DOLLARS;
+    pub MinimumDeposit: Balance = 10 * CENTS;
     pub const EnactmentPeriod: BlockNumber = 12 * HOURS;
     pub const VoteLockingPeriod: BlockNumber = 3 * DAYS;
     pub const CooloffPeriod: BlockNumber = 7 * DAYS;
