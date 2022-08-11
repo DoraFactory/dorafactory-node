@@ -495,9 +495,8 @@ impl pallet_scheduler::Config for Runtime {
 }
 
 parameter_types! {
-    pub const PreimageMaxSize: u32 = 4096 * 1024;
-    pub const PreimageBaseDeposit: Balance = 1 * DOLLARS;
-    pub const PreimageByteDeposit: Balance = 1 * CENTS;
+	pub PreimageBaseDeposit: Balance = deposit(10, 64);
+	pub PreimageByteDeposit: Balance = deposit(0, 1);
 }
 
 impl pallet_preimage::Config for Runtime {
@@ -505,7 +504,8 @@ impl pallet_preimage::Config for Runtime {
     type WeightInfo = pallet_preimage::weights::SubstrateWeight<Runtime>;
     type Currency = Balances;
     type ManagerOrigin = EnsureRoot<AccountId>;
-    type MaxSize = PreimageMaxSize;
+    // Max size 4MB allowed: 4096 * 1024
+    type MaxSize = ConstU32<4_194_304>;
     type BaseDeposit = PreimageBaseDeposit;
     type ByteDeposit = PreimageByteDeposit;
 }
@@ -633,7 +633,7 @@ parameter_types! {
     pub const LaunchPeriod: BlockNumber = 3 * DAYS;
     pub const VotingPeriod: BlockNumber = 7 * DAYS;
     pub const FastTrackVotingPeriod: BlockNumber = 2 * DAYS;
-    pub MinimumDeposit: Balance = 10 * CENTS;
+    pub MinimumDeposit: Balance = 100 * MILLICENTS;
     pub const EnactmentPeriod: BlockNumber = 12 * HOURS;
     pub const VoteLockingPeriod: BlockNumber = 3 * DAYS;
     pub const CooloffPeriod: BlockNumber = 7 * DAYS;
@@ -661,7 +661,7 @@ impl pallet_democracy::Config for Runtime {
     type InstantOrigin = EnsureRootOrAllTechnicalCommittee;
     type InstantAllowed = ConstBool<true>;
     type FastTrackVotingPeriod = FastTrackVotingPeriod;
-    // To cancel a proposal which has been passed, 2/3 of the council must agree to it.
+    // To cancel a proposal which has been passed, 4/5 of the council must agree to it.
     type CancellationOrigin = EnsureRootOrFourFivethsGeneralCouncil;
     type BlacklistOrigin = EnsureRoot<AccountId>;
     // To cancel a proposal before it has been passed, the technical committee must be unanimous or
