@@ -495,8 +495,8 @@ impl pallet_scheduler::Config for Runtime {
 }
 
 parameter_types! {
-	pub PreimageBaseDeposit: Balance = deposit(10, 64);
-	pub PreimageByteDeposit: Balance = deposit(0, 1);
+    pub PreimageBaseDeposit: Balance = deposit(10, 64);
+    pub PreimageByteDeposit: Balance = deposit(0, 1);
 }
 
 impl pallet_preimage::Config for Runtime {

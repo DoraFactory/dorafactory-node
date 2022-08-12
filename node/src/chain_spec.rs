@@ -112,7 +112,6 @@ pub fn staging_config() -> ChainSpec {
                     ),
                 ],
                 vec![get_root()],
-                // vec![],
                 vec![],
                 mainnet_para_id.into(),
             )
@@ -171,11 +170,6 @@ pub fn development_config() -> ChainSpec {
                     account("charlie", 0, 0),
                     PalletId(*b"DoraRewa").into_account_truncating(),
                 ],
-                // vec![
-                //     get_account_id_from_seed::<sr25519::Public>("Bob"),
-                //     get_account_id_from_seed::<sr25519::Public>("Charlie"),
-                //     get_account_id_from_seed::<sr25519::Public>("Dave"),
-                // ],
                 vec![],
                 dev_para_id.into(),
             )
