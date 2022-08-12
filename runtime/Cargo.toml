@@ -1,6 +1,6 @@
 [package]
 name = "dorafactory-node-runtime"
-version = "0.2.0"
+version = "0.3.0"
 authors = ["DoraFactory Developers <https://github.com/DoraFactory>"]
 repository = "https://github.com/DoraFactory/dorafactory-node"
 edition = "2021"

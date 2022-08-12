@@ -1901,7 +1901,7 @@ dependencies = [
 
 [[package]]
 name = "dorafactory-node"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "clap",
  "cumulus-client-cli",
@@ -1972,7 +1972,7 @@ dependencies = [
 
 [[package]]
 name = "dorafactory-node-runtime"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "cumulus-pallet-aura-ext",
  "cumulus-pallet-dmp-queue",
