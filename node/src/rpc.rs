@@ -1,8 +1,3 @@
-//! A collection of node-specific RPC methods.
-//! Substrate provides the `sc-rpc` crate, which defines the core RPC layer
-//! used by Substrate nodes. This file extends those RPC definitions with
-//! capabilities that are specific to this project's runtime configuration.
-
 #![warn(missing_docs)]
 
 use std::sync::Arc;
@@ -41,8 +36,8 @@ where
         + Send
         + Sync
         + 'static,
-    C::Api: pallet_transaction_payment_rpc::TransactionPaymentRuntimeApi<Block, Balance>,
     C::Api: substrate_frame_rpc_system::AccountNonceApi<Block, AccountId, Nonce>,
+    C::Api: pallet_transaction_payment_rpc::TransactionPaymentRuntimeApi<Block, Balance>,
     C::Api: BlockBuilder<Block>,
     P: TransactionPool + Sync + Send + 'static,
 {
@@ -56,7 +51,8 @@ where
         deny_unsafe,
     } = deps;
 
-    module.merge(System::new(client.clone(), pool.clone(), deny_unsafe).into_rpc())?;
-    module.merge(TransactionPayment::new(client.clone()).into_rpc())?;
+    module.merge(System::new(client.clone(), pool, deny_unsafe).into_rpc())?;
+    module.merge(TransactionPayment::new(client).into_rpc())?;
+
     Ok(module)
 }
