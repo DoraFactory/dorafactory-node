@@ -1,6 +1,6 @@
 [package]
 name = "dorafactory-node-runtime"
-version = "0.2.0"
+version = "0.3.0"
 authors = ["DoraFactory Developers <https://github.com/DoraFactory>"]
 repository = "https://github.com/DoraFactory/dorafactory-node"
 edition = "2021"
@@ -38,8 +38,11 @@ pallet-authorship = { git = "https://github.com/paritytech/substrate", default-f
 pallet-session = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.25" }
 pallet-scheduler = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.25" }
 pallet-preimage = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.25", default-features = false }
-pallet-collective = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.25", default-features = false }
 pallet-utility = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.25", default-features = false }
+pallet-collective = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.25", default-features = false }
+pallet-membership = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.25", default-features = false }
+pallet-democracy = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.25", default-features = false }
+pallet-elections-phragmen = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.25", default-features = false }
 
 ## Substrate Primitive Dependencies
 sp-api = { git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.25" }
@@ -136,6 +139,7 @@ std = [
     "pallet-collator-selection/std",
     "pallet-session/std",
     "pallet-timestamp/std",
+    "pallet-utility/std",
     "pallet-transaction-payment-rpc-runtime-api/std",
     "pallet-transaction-payment/std",
     "pallet-scheduler/std",
@@ -173,5 +177,10 @@ std = [
 	"orml-xcm-support/std",
 	"orml-xcm/std",
 	"orml-traits/std",
+    "pallet-collective/std",
+    "pallet-membership/std",
+    "pallet-democracy/std",
+    "pallet-elections-phragmen/std",
+
     "primitives/std",
 ]

@@ -51,7 +51,7 @@ pub const MICROUNIT: Balance = 1_000_000;
 
 pub const MILLICENTS: Balance = 1_000 * MICROUNIT;
 pub const CENTS: Balance = 1_000 * MILLICENTS; // assume this is worth about a cent.
-pub const DOLLARS: Balance = 100 * CENTS;
+pub const DOLLARS: Balance = 100 * CENTS; // TODO: change DOLLARS price
 
 /// The existential deposit. Set to 1/10 of the Connected Relay Chain.
 pub const EXISTENTIAL_DEPOSIT: Balance = MILLIUNIT;

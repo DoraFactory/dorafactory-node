@@ -1,6 +1,6 @@
 [package]
 name = "dorafactory-node"
-version = "0.2.0"
+version = "0.3.0"
 authors = ["DoraFactory Developers <https://github.com/DoraFactory>"]
 repository = "https://github.com/DoraFactory/dorafactory-node/"
 edition = "2021"
@@ -23,7 +23,7 @@ derive_more = "0.99.2"
 log = "0.4.17"
 codec = { package = "parity-scale-codec", version = "3.0.0" }
 
-dorafactory-node-runtime = { path = "../runtime" , version = "0.2.0"}
+dorafactory-node-runtime = { path = "../runtime" , version = "0.3.0"}
 
 # Substrate Dependencies
 ## FRAME dependencies
@@ -91,6 +91,8 @@ polkadot-parachain = { git = "https://github.com/paritytech/polkadot", branch = 
 polkadot-primitives = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.25" }
 polkadot-service = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.25" }
 cumulus-relay-chain-interface = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.25" }
+
+primitives = { package = "primitives", path = "../primitives", default-features = false }
 
 [[bin]]
 name = "dorafactory-node"
