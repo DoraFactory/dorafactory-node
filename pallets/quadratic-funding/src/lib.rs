@@ -173,8 +173,6 @@ pub mod pallet {
         RoundEnded(u32),
         /// parameters. [round_id, who, amount]
         DonateSucceed(u32, T::AccountId, BalanceOf<T>),
-        // parameters. [dest, amount]
-        // WithdrawSucceed(AccountIdOf<T>, BalanceOf<T>),
     }
 
     // Errors inform users that something went wrong.

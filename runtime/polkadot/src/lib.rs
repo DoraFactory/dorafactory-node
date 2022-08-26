@@ -31,7 +31,8 @@ use sp_version::RuntimeVersion;
 use frame_support::{
     construct_runtime, parameter_types,
     traits::{
-        ConstBool, Contains, Currency, EqualPrivilegeOnly, Everything, Imbalance, OnUnbalanced,
+        ConstBool, ConstU32, Contains, Currency, EqualPrivilegeOnly, Everything, Imbalance,
+        OnUnbalanced,
     },
     weights::{
         constants::WEIGHT_PER_SECOND, ConstantMultiplier, DispatchClass, Weight,
@@ -137,7 +138,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("DORA DOT Parachain"),
     impl_name: create_runtime_str!("DORA DOT Parachain"),
     authoring_version: 1,
-    spec_version: 2,
+    spec_version: 1,
     impl_version: 0,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 1,
@@ -494,9 +495,8 @@ impl pallet_scheduler::Config for Runtime {
 }
 
 parameter_types! {
-    pub const PreimageMaxSize: u32 = 4096 * 1024;
-    pub const PreimageBaseDeposit: Balance = 1 * DOLLARS;
-    pub const PreimageByteDeposit: Balance = 1 * CENTS;
+    pub PreimageBaseDeposit: Balance = deposit(10, 64);
+    pub PreimageByteDeposit: Balance = deposit(0, 1);
 }
 
 impl pallet_preimage::Config for Runtime {
@@ -504,7 +504,8 @@ impl pallet_preimage::Config for Runtime {
     type WeightInfo = pallet_preimage::weights::SubstrateWeight<Runtime>;
     type Currency = Balances;
     type ManagerOrigin = EnsureRoot<AccountId>;
-    type MaxSize = PreimageMaxSize;
+    // Max size 4MB allowed: 4096 * 1024
+    type MaxSize = ConstU32<4_194_304>;
     type BaseDeposit = PreimageBaseDeposit;
     type ByteDeposit = PreimageByteDeposit;
 }
@@ -662,6 +663,8 @@ construct_runtime!(
         Utility: pallet_utility::{Pallet, Call, Storage, Event} = 2,
         Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent} = 3,
         ParachainInfo: parachain_info::{Pallet, Storage, Config} = 4,
+        Scheduler: pallet_scheduler::{Pallet, Call, Storage, Event<T>} = 5,
+        Preimage: pallet_preimage::{Pallet, Call, Storage, Event<T>} = 6,
 
         // Monetary stuff.
         Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>} = 10,
@@ -687,15 +690,13 @@ construct_runtime!(
         UnknownTokens: orml_unknown_tokens::{Pallet, Storage, Event} = 43,
         Currencies: orml_currencies::{Pallet, Call} = 44,
 
-        // Sudo
-        Sudo: pallet_sudo::{Pallet, Call, Config<T>, Storage, Event<T>} = 50,
-        Scheduler: pallet_scheduler::{Pallet, Call, Storage, Event<T>} = 51,
-        Preimage: pallet_preimage::{Pallet, Call, Storage, Event<T>} = 52,
-
         // Include the custom pallet in the runtime.
-        QuadraticFunding: pallet_qf::{Pallet, Call, Storage, Event<T>} = 70,
-        DaoCoreModule: dao_core::{Pallet, Call, Storage, Event<T>} = 71,
-        DoraRewards: pallet_dora_rewards::{Pallet, Call, Storage, Event<T>, Config<T>} = 72,
+        QuadraticFunding: pallet_qf::{Pallet, Call, Storage, Event<T>} = 50,
+        DaoCoreModule: dao_core::{Pallet, Call, Storage, Event<T>} = 51,
+        DoraRewards: pallet_dora_rewards::{Pallet, Call, Storage, Event<T>, Config<T>} = 52,
+
+        // Sudo
+        Sudo: pallet_sudo::{Pallet, Call, Config<T>, Storage, Event<T>} = 255,
     }
 );
 

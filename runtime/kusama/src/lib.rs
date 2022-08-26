@@ -31,7 +31,8 @@ use sp_version::RuntimeVersion;
 use frame_support::{
     construct_runtime, parameter_types,
     traits::{
-        ConstBool, Contains, Currency, EqualPrivilegeOnly, Everything, Imbalance, OnUnbalanced,EitherOfDiverse,ConstU32
+        ConstBool, ConstU32, Contains, Currency, EitherOfDiverse, EqualPrivilegeOnly, Everything,
+        Imbalance, OnUnbalanced,
     },
     weights::{
         constants::WEIGHT_PER_SECOND, ConstantMultiplier, DispatchClass, Weight,
@@ -509,7 +510,6 @@ impl pallet_preimage::Config for Runtime {
     type ByteDeposit = PreimageByteDeposit;
 }
 
-// Governance Config
 pub type GeneralCouncilInstance = pallet_collective::Instance1;
 pub type TechnicalCommitteeInstance = pallet_collective::Instance2;
 
@@ -566,41 +566,6 @@ impl pallet_collective::Config<CouncilCollective> for Runtime {
     type WeightInfo = pallet_collective::weights::SubstrateWeight<Runtime>;
 }
 
-// parameter_types! {
-//     pub const CandidacyBond: Balance = 100 * UNIT;
-//     // 1 storage item created, key size is 32 bytes, value size is 16+16.
-//     pub const VotingBondBase: Balance = 1 * UNIT;
-//     // additional data per vote is 32 bytes (account id).
-//     pub const VotingBondFactor: Balance = 1 * UNIT;
-//     pub const TermDuration: BlockNumber = 5 * MINUTES;
-//     pub const DesiredMembers: u32 = 5;
-//     pub const DesiredRunnersUp: u32 = 3;
-//     pub const ElectionsPhragmenPalletId: LockIdentifier = *b"phrelect";
-// }
-//
-// // Make sure that there are no more than `MaxMembers` members elected via elections-phragmen.
-// // const_assert!(DesiredMembers::get() <= CouncilMaxMembers::get());
-//
-// impl pallet_elections_phragmen::Config for Runtime {
-//     type Event = Event;
-//     type PalletId = ElectionsPhragmenPalletId;
-//     type Currency = Balances;
-//     type ChangeMembers = Council;
-//     // NOTE: this implies that council's genesis members cannot be set directly and must come from
-//     // this module.
-//     type InitializeMembers = Council;
-//     type CurrencyToVote = U128CurrencyToVote;
-//     type CandidacyBond = CandidacyBond;
-//     type VotingBondBase = VotingBondBase;
-//     type VotingBondFactor = VotingBondFactor;
-//     type LoserCandidate = ();
-//     type KickedMember = ();
-//     type DesiredMembers = DesiredMembers;
-//     type DesiredRunnersUp = DesiredRunnersUp;
-//     type TermDuration = TermDuration;
-//     type WeightInfo = pallet_elections_phragmen::weights::SubstrateWeight<Runtime>;
-// }
-
 parameter_types! {
     pub const TechnicalCommitteeMotionDuration: BlockNumber = 1 * DAYS;
 }
@@ -633,7 +598,7 @@ parameter_types! {
     pub const LaunchPeriod: BlockNumber = 3 * DAYS;
     pub const VotingPeriod: BlockNumber = 7 * DAYS;
     pub const FastTrackVotingPeriod: BlockNumber = 2 * DAYS;
-    pub MinimumDeposit: Balance = 100 * DOLLARS;
+    pub MinimumDeposit: Balance = 100 * MILLICENTS;
     pub const EnactmentPeriod: BlockNumber = 12 * HOURS;
     pub const VoteLockingPeriod: BlockNumber = 3 * DAYS;
     pub const CooloffPeriod: BlockNumber = 7 * DAYS;
@@ -661,7 +626,7 @@ impl pallet_democracy::Config for Runtime {
     type InstantOrigin = EnsureRootOrAllTechnicalCommittee;
     type InstantAllowed = ConstBool<true>;
     type FastTrackVotingPeriod = FastTrackVotingPeriod;
-    // To cancel a proposal which has been passed, 2/3 of the council must agree to it.
+    // To cancel a proposal which has been passed, 4/5 of the council must agree to it.
     type CancellationOrigin = EnsureRootOrFourFivethsGeneralCouncil;
     type BlacklistOrigin = EnsureRoot<AccountId>;
     // To cancel a proposal before it has been passed, the technical committee must be unanimous or
@@ -673,7 +638,7 @@ impl pallet_democracy::Config for Runtime {
     type CooloffPeriod = CooloffPeriod;
     type PreimageByteDeposit = PreimageByteDeposit;
     type OperationalPreimageOrigin =
-    pallet_collective::EnsureMember<AccountId, GeneralCouncilInstance>;
+        pallet_collective::EnsureMember<AccountId, GeneralCouncilInstance>;
     type Slash = ToTreasury;
     type Scheduler = Scheduler;
     type PalletsOrigin = OriginCaller;
@@ -836,6 +801,8 @@ construct_runtime!(
         Utility: pallet_utility::{Pallet, Call, Storage, Event} = 2,
         Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent} = 3,
         ParachainInfo: parachain_info::{Pallet, Storage, Config} = 4,
+        Scheduler: pallet_scheduler::{Pallet, Call, Storage, Event<T>} = 5,
+        Preimage: pallet_preimage::{Pallet, Call, Storage, Event<T>} = 6,
 
         // Monetary stuff.
         Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>} = 10,
@@ -861,21 +828,19 @@ construct_runtime!(
         UnknownTokens: orml_unknown_tokens::{Pallet, Storage, Event} = 43,
         Currencies: orml_currencies::{Pallet, Call} = 44,
 
+        // Governance stuff
+        Council: pallet_collective::<Instance1>::{Pallet, Call, Storage, Origin<T>, Event<T>, Config<T>} = 50,
+        TechnicalCommittee: pallet_collective::<Instance2> = 51,
+        TechnicalCommitteeMembership: pallet_membership::<Instance2> = 52,
+        Democracy: pallet_democracy = 53,
+
+        // // Include the custom pallet in the runtime.
+        QuadraticFunding: pallet_qf::{Pallet, Call, Storage, Event<T>} = 60,
+        DaoCoreModule: dao_core::{Pallet, Call, Storage, Event<T>} = 61,
+        DoraRewards: pallet_dora_rewards::{Pallet, Call, Storage, Event<T>, Config<T>} = 62,
+
         // Sudo
-        Sudo: pallet_sudo::{Pallet, Call, Config<T>, Storage, Event<T>} = 50,
-        Scheduler: pallet_scheduler::{Pallet, Call, Storage, Event<T>} = 51,
-        Preimage: pallet_preimage::{Pallet, Call, Storage, Event<T>} = 52,
-
-         // Governance stuff
-        Council: pallet_collective::<Instance1> = 60,
-        TechnicalCommittee: pallet_collective::<Instance2> = 61,
-        TechnicalCommitteeMembership: pallet_membership::<Instance2> = 62,
-        Democracy: pallet_democracy = 63,
-
-        // Include the custom pallet in the runtime.
-        QuadraticFunding: pallet_qf::{Pallet, Call, Storage, Event<T>} = 70,
-        DaoCoreModule: dao_core::{Pallet, Call, Storage, Event<T>} = 71,
-        DoraRewards: pallet_dora_rewards::{Pallet, Call, Storage, Event<T>, Config<T>} = 72,
+        Sudo: pallet_sudo::{Pallet, Call, Config<T>, Storage, Event<T>} = 255,
     }
 );
 

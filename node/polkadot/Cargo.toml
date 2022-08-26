@@ -23,7 +23,7 @@ derive_more = "0.99.2"
 log = "0.4.17"
 codec = { package = "parity-scale-codec", version = "3.0.0" }
 
-dorafactory-polkadot-runtime = { path = "../../runtime/polkadot" , version = "0.2.0"}
+dorafactory-polkadot-runtime = { path = "../../runtime/polkadot" , version = "0.1.0"}
 
 # Substrate Dependencies
 ## FRAME dependencies
