@@ -78,7 +78,7 @@ pub fn template_session_keys(keys: AuraId) -> dorafactory_polkadot_runtime::Sess
 }
 
 pub fn staging_config() -> ChainSpec {
-    let mainnet_para_id: u32 = 2116;
+    let mainnet_para_id: u32 = 2087;
     ChainSpec::from_genesis(
         // Name
         "Dorafactory Network",
@@ -133,7 +133,7 @@ pub fn staging_config() -> ChainSpec {
 }
 
 pub fn development_config() -> ChainSpec {
-    let dev_para_id: u32 = 2116;
+    let dev_para_id: u32 = 2087;
 
     ChainSpec::from_genesis(
         // Name
