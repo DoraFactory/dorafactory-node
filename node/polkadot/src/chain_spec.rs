@@ -81,7 +81,7 @@ pub fn staging_config() -> ChainSpec {
     let mainnet_para_id: u32 = 2087;
     ChainSpec::from_genesis(
         // Name
-        "Dorafactory Network",
+        "Dorafactory Polkadot Network",
         // ID
         "dorafactory-polkadot",
         ChainType::Live,
