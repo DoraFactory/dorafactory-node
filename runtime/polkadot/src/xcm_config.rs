@@ -132,16 +132,14 @@ parameter_types! {
     pub NativePerSecond: (AssetId, u128) = (
         MultiLocation::new(
             1,
-            X2(Parachain(2087), GeneralKey(b"DORA".to_vec()))
-        ).into(),
+            X2(Parachain(2087), GeneralKey(b"DORA".to_vec().try_into().expect("less than length limit; qed")))).into(),
         // DORA:DOT = 50:1
         dot_per_second() * 50
     );
     pub NativeNewPerSecond: (AssetId, u128) = (
         MultiLocation::new(
             0,
-            X1(GeneralKey(b"DORA".to_vec()))
-        ).into(),
+            X1(GeneralKey(b"DORA".to_vec().try_into().expect("less than length limit; qed")))).into(),
         // DORA:DOT = 50:1
         dot_per_second() * 50
     );
@@ -212,7 +210,19 @@ impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
     fn convert(id: CurrencyId) -> Option<MultiLocation> {
         match id {
             CurrencyId::DOT => Some(Parent.into()),
-            CurrencyId::DORA => Some((Parent, Parachain(2087), GeneralKey("DORA".into())).into()),
+            CurrencyId::DORA => Some(
+                (
+                    Parent,
+                    Parachain(2087),
+                    GeneralKey(
+                        b"DORA"
+                            .to_vec()
+                            .try_into()
+                            .expect("less than length limit; qed"),
+                    ),
+                )
+                    .into(),
+            ),
         }
     }
 }
