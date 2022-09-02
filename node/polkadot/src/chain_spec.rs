@@ -254,12 +254,10 @@ fn get_properties() -> Properties {
     let mut properties = sc_chain_spec::Properties::new();
     properties.insert("tokenSymbol".into(), "DORA".into());
     properties.insert("tokenDecimals".into(), 12.into());
-    // TODO: change ss58Format
     properties.insert("ss58Format".into(), 129.into());
     properties
 }
 
 fn get_root() -> AccountId {
-    // TODO: KSM Sudo Account
-    AccountId32::from_string("5Ci36kbH533VyL5iYyFQ8QkR3eEc5Dwu1V8LxX8QcniJqxyb").unwrap()
+    AccountId32::from_string("5F4ii5sp4iNPiJiH26wcf76X2EhXe96cR8cdpADKf7t8Gxsw").unwrap()
 }
