@@ -212,7 +212,7 @@ fn dorafactory_genesis(
             balances: endowed_accounts
                 .iter()
                 .cloned()
-                .map(|k| (k, 50_000_000_000_000_000))
+                .map(|k| (k, 100_000_000_000_000_000))
                 .collect(),
         },
         parachain_info: dorafactory_polkadot_runtime::ParachainInfoConfig { parachain_id: id },
