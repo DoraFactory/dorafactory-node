@@ -65,11 +65,11 @@ use orml_currencies::BasicCurrencyAdapter;
 use orml_traits::parameter_type_with_key;
 
 pub use primitives::{
-    AccountId, Address, Amount, Balance, BlockNumber, Hash, Index, ReserveIdentifier, Signature,
-    CENTS, DOLLARS, EXISTENTIAL_DEPOSIT, MICROUNIT, MILLICENTS, MILLIUNIT, UNIT,
+    AccountId, Address, Amount, Balance, BlockNumber, CurrencyId, Hash, Index, ReserveIdentifier,
+    Signature, CENTS, DOLLARS, EXISTENTIAL_DEPOSIT, MICROUNIT, MILLICENTS, MILLIUNIT, UNIT,
 };
 
-pub use constants::{currency::CurrencyId, time::*};
+pub use constants::time::*;
 
 /// Block header type as expected by this runtime.
 pub type Header = generic::Header<BlockNumber, BlakeTwo256>;
@@ -138,7 +138,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("DORA KSM Parachain"),
     impl_name: create_runtime_str!("DORA KSM Parachain"),
     authoring_version: 1,
-    spec_version: 31,
+    spec_version: 30,
     impl_version: 0,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 1,
@@ -496,9 +496,8 @@ impl pallet_scheduler::Config for Runtime {
 }
 
 parameter_types! {
-    pub const PreimageMaxSize: u32 = 4096 * 1024;
-    pub const PreimageBaseDeposit: Balance = 1 * DOLLARS;
-    pub const PreimageByteDeposit: Balance = 1 * CENTS;
+    pub PreimageBaseDeposit: Balance = deposit(10, 64);
+    pub PreimageByteDeposit: Balance = deposit(0, 1);
 }
 
 impl pallet_preimage::Config for Runtime {
@@ -506,7 +505,8 @@ impl pallet_preimage::Config for Runtime {
     type WeightInfo = pallet_preimage::weights::SubstrateWeight<Runtime>;
     type Currency = Balances;
     type ManagerOrigin = EnsureRoot<AccountId>;
-    type MaxSize = PreimageMaxSize;
+    // Max size 4MB allowed: 4096 * 1024
+    type MaxSize = ConstU32<4_194_304>;
     type BaseDeposit = PreimageBaseDeposit;
     type ByteDeposit = PreimageByteDeposit;
 }
@@ -669,7 +669,6 @@ parameter_types! {
     pub const AppId: u8 = 1;
     // minimal number of units to reserve to get qualified to vote
     pub const ReserveUnit: u128 = 1000000000000;
-    // pub const StringLimit: u32 = 32;
 }
 
 /// Configure the pallet-qf in pallets/quadratic-funding.
@@ -831,11 +830,12 @@ construct_runtime!(
 
         // Governance stuff
         Council: pallet_collective::<Instance1>::{Pallet, Call, Storage, Origin<T>, Event<T>, Config<T>} = 50,
+        // Elections: pallet_elections_phragmen::{Pallet, Call, Storage, Event<T>, Config<T>} = 51,
         TechnicalCommittee: pallet_collective::<Instance2> = 51,
         TechnicalCommitteeMembership: pallet_membership::<Instance2> = 52,
         Democracy: pallet_democracy = 53,
 
-        // // Include the custom pallet in the runtime.
+        // Include the custom pallet in the runtime.
         QuadraticFunding: pallet_qf::{Pallet, Call, Storage, Event<T>} = 60,
         DaoCoreModule: dao_core::{Pallet, Call, Storage, Event<T>} = 61,
         DoraRewards: pallet_dora_rewards::{Pallet, Call, Storage, Event<T>, Config<T>} = 62,
