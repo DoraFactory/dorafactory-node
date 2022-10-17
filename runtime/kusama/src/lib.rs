@@ -32,7 +32,7 @@ use frame_support::{
     construct_runtime, parameter_types,
     traits::{
         ConstBool, ConstU32, Contains, Currency, EitherOfDiverse, EqualPrivilegeOnly, Everything,
-        Imbalance, OnUnbalanced,
+        Imbalance, OnUnbalanced, ConstU16,
     },
     weights::{
         constants::WEIGHT_PER_SECOND, ConstantMultiplier, DispatchClass, Weight,
@@ -69,7 +69,7 @@ pub use primitives::{
     Signature, CENTS, DOLLARS, EXISTENTIAL_DEPOSIT, MICROUNIT, MILLICENTS, MILLIUNIT, UNIT,
 };
 
-pub use constants::{currency::CurrencyId, time::*};
+pub use constants::{currency::*, time::*};
 
 /// Block header type as expected by this runtime.
 pub type Header = generic::Header<BlockNumber, BlakeTwo256>;
@@ -138,7 +138,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("DORA KSM Parachain"),
     impl_name: create_runtime_str!("DORA KSM Parachain"),
     authoring_version: 1,
-    spec_version: 31,
+    spec_version: 35,
     impl_version: 0,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 1,
@@ -496,8 +496,8 @@ impl pallet_scheduler::Config for Runtime {
 }
 
 parameter_types! {
-    pub PreimageBaseDeposit: Balance = deposit(10, 64);
-    pub PreimageByteDeposit: Balance = deposit(0, 1);
+    pub const PreimageBaseDeposit: Balance = deposit(10, 64);
+    pub const PreimageByteDeposit: Balance = deposit(0, 1);
 }
 
 impl pallet_preimage::Config for Runtime {
@@ -786,6 +786,21 @@ impl orml_unknown_tokens::Config for Runtime {
     type Event = Event;
 }
 
+parameter_types! {
+	pub const DepositBase: Balance = deposit(0, 32);
+	pub const DepositFactor: Balance = deposit(0, 1);
+}
+
+impl pallet_multisig::Config for Runtime {
+    type Event = Event;
+    type Call = Call;
+    type Currency = Balances;
+    type DepositBase = DepositBase;
+    type DepositFactor = DepositFactor;
+    type MaxSignatories = ConstU16<100>;
+    type WeightInfo = pallet_multisig::weights::SubstrateWeight<Runtime>;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
     pub enum Runtime where
@@ -803,6 +818,8 @@ construct_runtime!(
         ParachainInfo: parachain_info::{Pallet, Storage, Config} = 4,
         Scheduler: pallet_scheduler::{Pallet, Call, Storage, Event<T>} = 5,
         Preimage: pallet_preimage::{Pallet, Call, Storage, Event<T>} = 6,
+        Multisig: pallet_multisig::{Pallet, Call, Storage, Event<T>} = 7,
+
 
         // Monetary stuff.
         Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>} = 10,

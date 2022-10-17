@@ -2036,6 +2036,7 @@ dependencies = [
  "pallet-dora-rewards",
  "pallet-grandpa",
  "pallet-membership",
+ "pallet-multisig",
  "pallet-preimage",
  "pallet-qf",
  "pallet-randomness-collective-flip",
