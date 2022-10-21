@@ -47,16 +47,17 @@ impl<T: frame_system::Config> WeightInfo for DoraWeight<T> {
     // Storage: DoraRewards InitBlock (r:1 w:0)
     // Storage: DoraRewards ContributorsInfo (r:0 w:2)
     fn initialize_contributors_list() -> Weight {
-        (39_174_000 as Weight)
-            .saturating_add(T::DbWeight::get().reads(1 as Weight))
-            .saturating_add(T::DbWeight::get().writes(2 as Weight))
+        // (39_174_000 as Weight)
+        Weight::from_ref_time(39_174_000 as u64)
+            .saturating_add(T::DbWeight::get().reads(1 as u64))
+            .saturating_add(T::DbWeight::get().writes(2 as u64))
     }
     // Storage: DoraRewards InitBlock (r:1 w:0)
     // Storage: DoraRewards EndBlock (r:0 w:1)
     fn complete_initialization() -> Weight {
-        (18_768_000 as Weight)
-            .saturating_add(T::DbWeight::get().reads(1 as Weight))
-            .saturating_add(T::DbWeight::get().writes(1 as Weight))
+        Weight::from_ref_time(18_768_000 as u64)
+            .saturating_add(T::DbWeight::get().reads(1 as u64))
+            .saturating_add(T::DbWeight::get().writes(1 as u64))
     }
     // Storage: DoraRewards ContributorsInfo (r:1 w:1)
     // Storage: DoraRewards EndBlock (r:1 w:0)
@@ -64,27 +65,31 @@ impl<T: frame_system::Config> WeightInfo for DoraWeight<T> {
     // Storage: ParachainSystem ValidationData (r:1 w:0)
     // Storage: System Account (r:2 w:2)
     fn claim_rewards() -> Weight {
-        (72_147_000 as Weight)
-            .saturating_add(T::DbWeight::get().reads(6 as Weight))
-            .saturating_add(T::DbWeight::get().writes(3 as Weight))
+        // (72_147_000 as Weight)
+        Weight::from_ref_time(72_147_000 as u64)
+            .saturating_add(T::DbWeight::get().reads(6 as u64))
+            .saturating_add(T::DbWeight::get().writes(3 as u64))
     }
 }
 
 // For backwards compatibility and tests
 impl WeightInfo for () {
     fn initialize_contributors_list() -> Weight {
-        (39_174_000 as Weight)
-            .saturating_add(RocksDbWeight::get().reads(1 as Weight))
-            .saturating_add(RocksDbWeight::get().writes(2 as Weight))
+        // (39_174_000 as Weight)
+        Weight::from_ref_time(39_174_000 as u64)
+            .saturating_add(RocksDbWeight::get().reads(1 as u64))
+            .saturating_add(RocksDbWeight::get().writes(2 as u64))
     }
     fn complete_initialization() -> Weight {
-        (18_768_000 as Weight)
-            .saturating_add(RocksDbWeight::get().reads(1 as Weight))
-            .saturating_add(RocksDbWeight::get().writes(1 as Weight))
+        // (18_768_000 as Weight)
+        Weight::from_ref_time(18_768_000 as u64)
+            .saturating_add(RocksDbWeight::get().reads(1 as u64))
+            .saturating_add(RocksDbWeight::get().writes(1 as u64))
     }
     fn claim_rewards() -> Weight {
-        (72_147_000 as Weight)
-            .saturating_add(RocksDbWeight::get().reads(6 as Weight))
-            .saturating_add(RocksDbWeight::get().writes(3 as Weight))
+        // (72_147_000 as Weight)
+        Weight::from_ref_time(72_147_000 as u64)
+            .saturating_add(RocksDbWeight::get().reads(6 as u64))
+            .saturating_add(RocksDbWeight::get().writes(3 as u64))
     }
 }

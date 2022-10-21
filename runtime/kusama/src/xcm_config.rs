@@ -1,12 +1,11 @@
 use super::{
     ksm_per_second, AccountId, Balance, Call, Convert, Currencies, CurrencyId, Event, Origin,
     ParachainInfo, ParachainSystem, PolkadotXcm, Runtime, ToTreasury, TreasuryAccount,
-    UnknownTokens, Vec, XcmpQueue, MAXIMUM_BLOCK_WEIGHT,
+    UnknownTokens, Vec, XcmpQueue,
 };
 use frame_support::{
     match_types, parameter_types,
     traits::{Everything, Nothing},
-    weights::Weight,
 };
 use orml_traits::{location::AbsoluteReserveProvider, parameter_type_with_key, MultiCurrency};
 use orml_xcm_support::{
@@ -65,7 +64,7 @@ pub type XcmOriginToTransactDispatchOrigin = (
 
 parameter_types! {
     // One XCM operation is 1_000_000_000 weight - almost certainly a conservative estimate.
-    pub UnitWeightCost: Weight = 1_000_000_000;
+    pub UnitWeightCost: u64 = 1_000_000_000;
     pub const MaxInstructions: u32 = 100;
 }
 
@@ -164,9 +163,9 @@ impl xcm_executor::Config for XcmConfig {
     type SubscriptionService = PolkadotXcm;
 }
 
-parameter_types! {
-    pub const MaxDownwardMessageWeight: Weight = MAXIMUM_BLOCK_WEIGHT / 10;
-}
+// parameter_types! {
+//     pub const MaxDownwardMessageWeight: u64 = MAXIMUM_BLOCK_WEIGHT.saturating_div(10);
+// }
 
 /// No local origins on this chain are allowed to dispatch XCM sends/executions.
 pub type LocalOriginToLocation = SignedToAccountId32<Origin, AccountId, RelayNetwork>;
@@ -274,7 +273,7 @@ impl Convert<AccountId, MultiLocation> for AccountIdToMultiLocation {
 
 parameter_types! {
     pub SelfLocation: MultiLocation = MultiLocation::new(1, X1(Parachain(ParachainInfo::parachain_id().into())));
-    pub const BaseXcmWeight: Weight = 100_000_000;
+    pub const BaseXcmWeight: u64 = 100_000_000;
     pub const MaxAssetsForTransfer: usize = 2;
 }
 

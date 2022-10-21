@@ -49,23 +49,26 @@ pub struct DoraWeight<T>(PhantomData<T>);
 impl<T: frame_system::Config> WeightInfo for DoraWeight<T> {
     // Storage: QuadraticFunding Rounds (r:1 w:1)
     fn start_round() -> Weight {
-        (24_096_000 as Weight)
-            .saturating_add(T::DbWeight::get().reads(1 as Weight))
-            .saturating_add(T::DbWeight::get().writes(1 as Weight))
+        // (24_096_000 as Weight)
+        Weight::from_ref_time(24_096_000 as u64)
+            .saturating_add(T::DbWeight::get().reads(1 as u64))
+            .saturating_add(T::DbWeight::get().writes(1 as u64))
     }
     // Storage: QuadraticFunding Rounds (r:1 w:1)
     // Storage: System Account (r:2 w:2)
     fn donate() -> Weight {
-        (72_841_000 as Weight)
-            .saturating_add(T::DbWeight::get().reads(3 as Weight))
-            .saturating_add(T::DbWeight::get().writes(3 as Weight))
+        // (72_841_000 as Weight)
+        Weight::from_ref_time(72_841_000 as u64)
+            .saturating_add(T::DbWeight::get().reads(3 as u64))
+            .saturating_add(T::DbWeight::get().writes(3 as u64))
     }
     // Storage: QuadraticFunding Rounds (r:1 w:0)
     // Storage: QuadraticFunding Projects (r:1 w:1)
     fn register_project() -> Weight {
-        (34_641_000 as Weight)
-            .saturating_add(T::DbWeight::get().reads(2 as Weight))
-            .saturating_add(T::DbWeight::get().writes(1 as Weight))
+        // (34_641_000 as Weight)
+        Weight::from_ref_time(34_641_000 as u64)
+            .saturating_add(T::DbWeight::get().reads(2 as u64))
+            .saturating_add(T::DbWeight::get().writes(1 as u64))
     }
     // Storage: QuadraticFunding Rounds (r:1 w:1)
     // Storage: QuadraticFunding Projects (r:1 w:1)
@@ -73,46 +76,53 @@ impl<T: frame_system::Config> WeightInfo for DoraWeight<T> {
     // Storage: QuadraticFunding RoundParticipants (r:1 w:1)
     // Storage: System Account (r:3 w:3)
     fn vote() -> Weight {
-        (119_924_000 as Weight)
-            .saturating_add(T::DbWeight::get().reads(7 as Weight))
-            .saturating_add(T::DbWeight::get().writes(7 as Weight))
+        // (119_924_000 as Weight)
+        Weight::from_ref_time(119_924_000 as u64)
+            .saturating_add(T::DbWeight::get().reads(7 as u64))
+            .saturating_add(T::DbWeight::get().writes(7 as u64))
     }
     // Storage: QuadraticFunding Rounds (r:1 w:1)
     // Storage: QuadraticFunding Projects (r:2 w:0)
     // Storage: QuadraticFunding RoundParticipants (r:2 w:1)
     // Storage: System Account (r:1 w:1)
     fn end_round() -> Weight {
-        (83_375_000 as Weight)
-            .saturating_add(T::DbWeight::get().reads(6 as Weight))
-            .saturating_add(T::DbWeight::get().writes(3 as Weight))
+        // (83_375_000 as Weight)
+        Weight::from_ref_time(83_375_000 as u64)
+            .saturating_add(T::DbWeight::get().reads(6 as u64))
+            .saturating_add(T::DbWeight::get().writes(3 as u64))
     }
 }
 
 // For backwards compatibility and tests
 impl WeightInfo for () {
     fn start_round() -> Weight {
-        (24_096_000 as Weight)
-            .saturating_add(RocksDbWeight::get().reads(1 as Weight))
-            .saturating_add(RocksDbWeight::get().writes(1 as Weight))
+        // (24_096_000 as Weight)
+        Weight::from_ref_time(24_096_000 as u64)
+            .saturating_add(RocksDbWeight::get().reads(1 as u64))
+            .saturating_add(RocksDbWeight::get().writes(1 as u64))
     }
     fn donate() -> Weight {
-        (72_841_000 as Weight)
-            .saturating_add(RocksDbWeight::get().reads(3 as Weight))
-            .saturating_add(RocksDbWeight::get().writes(3 as Weight))
+        // (72_841_000 as Weight)
+        Weight::from_ref_time(72_841_000 as u64)
+            .saturating_add(RocksDbWeight::get().reads(3 as u64))
+            .saturating_add(RocksDbWeight::get().writes(3 as u64))
     }
     fn register_project() -> Weight {
-        (34_641_000 as Weight)
-            .saturating_add(RocksDbWeight::get().reads(2 as Weight))
-            .saturating_add(RocksDbWeight::get().writes(1 as Weight))
+        // (34_641_000 as Weight)
+        Weight::from_ref_time(34_641_000 as u64)
+            .saturating_add(RocksDbWeight::get().reads(2 as u64))
+            .saturating_add(RocksDbWeight::get().writes(1 as u64))
     }
     fn vote() -> Weight {
-        (119_924_000 as Weight)
-            .saturating_add(RocksDbWeight::get().reads(7 as Weight))
-            .saturating_add(RocksDbWeight::get().writes(7 as Weight))
+        // (119_924_000 as Weight)
+        Weight::from_ref_time(119_924_000 as u64)
+            .saturating_add(RocksDbWeight::get().reads(7 as u64))
+            .saturating_add(RocksDbWeight::get().writes(7 as u64))
     }
     fn end_round() -> Weight {
-        (83_375_000 as Weight)
-            .saturating_add(RocksDbWeight::get().reads(6 as Weight))
-            .saturating_add(RocksDbWeight::get().writes(3 as Weight))
+        // (83_375_000 as Weight)
+        Weight::from_ref_time(83_375_000 as u64)
+            .saturating_add(RocksDbWeight::get().reads(6 as u64))
+            .saturating_add(RocksDbWeight::get().writes(3 as u64))
     }
 }

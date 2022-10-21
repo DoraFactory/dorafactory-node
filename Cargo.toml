@@ -1,16 +1,16 @@
 [workspace]
 members = [
     "node/kusama",
-    "node/polkadot",
+#    "node/polkadot",
     "pallets/*",
     "runtime/kusama",
-    "runtime/polkadot",
+#    "runtime/polkadot",
     "primitives",
 ]
 
 exclude = [
     "runtime/kusama",
-    "runtime/polkadot",
+#    "runtime/polkadot",
 ]
 
 [profile.release]
