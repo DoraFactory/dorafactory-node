@@ -199,6 +199,7 @@ fn dorafactory_genesis(
     tech_accounts: Vec<AccountId>,
     id: ParaId,
 ) -> dorafactory_node_runtime::GenesisConfig {
+    // pub const STASH: Balance = 100 * UNIT;
     dorafactory_node_runtime::GenesisConfig {
         system: dorafactory_node_runtime::SystemConfig {
             code: dorafactory_node_runtime::WASM_BINARY
@@ -242,14 +243,6 @@ fn dorafactory_genesis(
             key: Some(root_key),
         },
         council: Default::default(),
-        // elections: ElectionsConfig {
-        //     members: council_accounts
-        //         .iter()
-        //         .take((num_council_accounts + 1) / 2)
-        //         .cloned()
-        //         .map(|member| (member, STASH))
-        //         .collect(),
-        // },
         technical_committee: Default::default(),
         technical_committee_membership: TechnicalCommitteeMembershipConfig {
             members: tech_accounts.try_into().unwrap(),

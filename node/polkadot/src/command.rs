@@ -1,7 +1,7 @@
 use codec::Encode;
 use cumulus_client_cli::generate_genesis_block;
 use cumulus_primitives_core::ParaId;
-use dorafactory_node_runtime::{Block, RuntimeApi};
+use dorafactory_polkadot_runtime::{Block, RuntimeApi};
 use frame_benchmarking_cli::{BenchmarkCmd, SUBSTRATE_REFERENCE_HARDWARE};
 use log::info;
 use sc_cli::{
@@ -26,7 +26,7 @@ fn load_spec(id: &str) -> std::result::Result<Box<dyn ChainSpec>, String> {
     Ok(match id {
         "dev" => Box::new(chain_spec::development_config()),
         "staging" => Box::new(chain_spec::staging_config()),
-        "" | "main" => Box::new(chain_spec::mainnet_config()?),
+        // "" | "main" => Box::new(chain_spec::mainnet_config()?),
         path => Box::new(chain_spec::ChainSpec::from_json_file(
             std::path::PathBuf::from(path),
         )?),
@@ -35,7 +35,7 @@ fn load_spec(id: &str) -> std::result::Result<Box<dyn ChainSpec>, String> {
 
 impl SubstrateCli for Cli {
     fn impl_name() -> String {
-        "DoraFactory Node".into()
+        "DoraFactory Polkadot Parachain Collator".into()
     }
 
     fn impl_version() -> String {
@@ -43,11 +43,13 @@ impl SubstrateCli for Cli {
     }
 
     fn description() -> String {
-        "DoraFactory Node\n\nThe command-line arguments provided first will be \
+        format!(
+            "DoraFactory Polkadot Parachain Collator\n\nThe command-line arguments provided first will be \
 		passed to the parachain node, while the arguments provided after -- will be passed \
 		to the relay chain node.\n\n\
-		dorafactory-node <parachain-args> -- <relay-chain-args>"
-            .into()
+		        {} <parachain-args> -- <relay-chain-args>",
+            Self::executable_name()
+        )
     }
 
     fn author() -> String {
@@ -67,13 +69,13 @@ impl SubstrateCli for Cli {
     }
 
     fn native_runtime_version(_: &Box<dyn ChainSpec>) -> &'static RuntimeVersion {
-        &dorafactory_node_runtime::VERSION
+        &dorafactory_polkadot_runtime::VERSION
     }
 }
 
 impl SubstrateCli for RelayChainCli {
     fn impl_name() -> String {
-        "DoraFactory Node".into()
+        "DoraFactory Polkadot Parachain Collator".into()
     }
 
     fn impl_version() -> String {
@@ -81,11 +83,13 @@ impl SubstrateCli for RelayChainCli {
     }
 
     fn description() -> String {
-        "DoraFactory Node\n\nThe command-line arguments provided first will be \
+        format!(
+            "DoraFactory Polkadot Parachain Collator\n\nThe command-line arguments provided first will be \
 		passed to the parachain node, while the arguments provided after -- will be passed \
 		to the relay chain node.\n\n\
-		dorafactory-node <parachain-args> -- <relay-chain-args>"
-            .into()
+		        {} <parachain-args> -- <relay-chain-args>",
+            Self::executable_name()
+        )
     }
 
     fn author() -> String {
@@ -228,9 +232,14 @@ pub fn run() -> Result<()> {
                     cmd.run(config, partials.client.clone(), db, storage)
                 }),
                 BenchmarkCmd::Overhead(_) => Err("Unsupported benchmarking command".into()),
+                BenchmarkCmd::Extrinsic(_) => Err("Benchmark extrinsic not supported.".into()),
                 BenchmarkCmd::Machine(cmd) => {
                     runner.sync_run(|config| cmd.run(&config, SUBSTRATE_REFERENCE_HARDWARE.clone()))
                 }
+                // NOTE: this allows the Client to leniently implement
+                // new benchmark commands without requiring a companion MR.
+                #[allow(unreachable_patterns)]
+                _ => Err("Benchmarking sub-command unsupported".into()),
             }
         }
         Some(Subcommand::TryRuntime(cmd)) => {
@@ -413,8 +422,8 @@ impl CliConfiguration<Self> for RelayChainCli {
         self.base.base.role(is_dev)
     }
 
-    fn transaction_pool(&self) -> Result<sc_service::config::TransactionPoolOptions> {
-        self.base.base.transaction_pool()
+    fn transaction_pool(&self, is_dev: bool) -> Result<sc_service::config::TransactionPoolOptions> {
+        self.base.base.transaction_pool(is_dev)
     }
 
     fn state_cache_child_ratio(&self) -> Result<Option<usize>> {
