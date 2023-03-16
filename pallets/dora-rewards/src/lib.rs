@@ -68,12 +68,14 @@ pub mod pallet {
         traits::{Currency, ExistenceRequirement},
         PalletId,
     };
+    use hex;
     use frame_system::pallet_prelude::*;
     use sp_runtime::{
         traits::{AccountIdConversion, AtLeast32BitUnsigned, BlockNumberProvider, Saturating},
         Perbill, SaturatedConversion,
     };
     use sp_std::{prelude::*, vec::Vec};
+    use sp_core::H160;
 
     pub type BalanceOf<T> =
         <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
@@ -147,6 +149,17 @@ pub mod pallet {
     type ContributorsInfo<T: Config> =
         StorageMap<_, Blake2_128Concat, T::AccountId, RewardInfo<T>, OptionQuery>;
 
+    #[pallet::storage]
+    #[pallet::getter(fn total_registers)]
+    /// store total number of contributors
+    type TotalRegisters<T: Config> = StorageValue<_, u32, ValueQuery>;
+
+    /// Record contributor's info (total reward, claimed reward, track block number)
+    #[pallet::storage]
+    #[pallet::getter(fn registered_eth_addr)]
+    type RegisterEthAddr<T: Config> =
+        StorageMap<_, Blake2_128Concat, T::AccountId, H160>;
+
     // Errors.
     #[pallet::error]
     pub enum Error<T> {
@@ -162,6 +175,12 @@ pub mod pallet {
         NoLeftRewards,
         /// too many contributors when put the contributor list into the storage
         TooManyContributors,
+        /// is already register addr.
+        AddrIsRegistered,
+        AddrWasNotRegistered,
+        BadMetadata,
+        /// Invalid Ethereum address format.
+        InvalidEthAddress,
     }
 
     #[pallet::event]
@@ -375,6 +394,77 @@ pub mod pallet {
             <EndVestingBlock<T>>::put(lease_ending_block.clone());
             <Initialized<T>>::put(true);
             Self::deposit_event(<Event<T>>::EndleasingBlock(lease_ending_block.clone()));
+
+            Ok(().into())
+        }
+
+        #[pallet::weight(100)]
+        pub fn register_eth_address(origin: OriginFor<T>, eth_address_str: Vec<u8>) -> DispatchResultWithPostInfo {
+            let who = ensure_signed(origin)?;
+            // ensure three things:
+            // check current acccount is in contributor list
+            // if exist, have the access to claim his reward
+            // println!("======");
+            // println!("{:?}", &who.clone());
+            // for i in ContributorsInfo::<T>::iter_keys() {
+            //     println!("{:?}", i);
+            // }
+            ensure!(ContributorsInfo::<T>::contains_key(&who.clone()), Error::<T>::NotInContributorList);
+            ensure!(!RegisterEthAddr::<T>::contains_key(&who.clone()), Error::<T>::AddrIsRegistered);
+
+            // Convert the input string to an H160 address.
+            let mut eth_address_bytes: [u8; 20] = [0; 20];
+            ensure!(
+                eth_address_str.len() == 42 && eth_address_str.starts_with(b"0x"),
+                Error::<T>::InvalidEthAddress
+            );
+            ensure!(
+                hex::decode_to_slice(&eth_address_str[2..], &mut eth_address_bytes).is_ok(),
+                Error::<T>::InvalidEthAddress
+            );
+            let eth_address = H160::from_slice(&eth_address_bytes);
+
+            // Store the address in the runtime storage.
+            // EthAddress::put(&eth_address);
+            <RegisterEthAddr<T>>::insert(who.clone(), &eth_address);
+            // println!("--------------");
+            // println!("{:?}", &eth_address.clone());
+            // for i in RegisterEthAddr::<T>::iter_values() {
+            //     println!("{:?}", i);
+            // }
+            Ok(().into())
+        }
+
+        #[pallet::weight(100)]
+        pub fn re_register_eth_address(origin: OriginFor<T>, new_eth_address_str: Vec<u8>) -> DispatchResultWithPostInfo {
+            let who = ensure_signed(origin)?;
+            // ensure three things:
+            // check current acccount is in contributor list
+            // if exist, have the access to claim his reward
+
+            ensure!(ContributorsInfo::<T>::contains_key(&who.clone()), Error::<T>::NotInContributorList);
+            ensure!(RegisterEthAddr::<T>::contains_key(&who.clone()), Error::<T>::AddrWasNotRegistered);
+
+            // Convert the input string to an H160 address.
+            let mut new_eth_address_bytes: [u8; 20] = [0; 20];
+            ensure!(
+                new_eth_address_str.len() == 42 && new_eth_address_str.starts_with(b"0x"),
+                Error::<T>::InvalidEthAddress
+            );
+            ensure!(
+                hex::decode_to_slice(&new_eth_address_str[2..], &mut new_eth_address_bytes).is_ok(),
+                Error::<T>::InvalidEthAddress
+            );
+            let new_eth_address = H160::from_slice(&new_eth_address_bytes);
+
+            RegisterEthAddr::<T>::mutate(who.clone(), |eth_address| {
+                *eth_address = Some(new_eth_address);
+            });
+            // println!("--------------");
+            // println!("{:?}", &new_eth_address.clone());
+            // for i in RegisterEthAddr::<T>::iter_values() {
+            //     println!("{:?}", i);
+            // }
 
             Ok(().into())
         }

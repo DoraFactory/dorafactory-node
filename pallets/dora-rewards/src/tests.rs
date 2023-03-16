@@ -20,6 +20,7 @@ use crate::*;
 use frame_support::dispatch::DispatchError;
 use frame_support::{assert_noop, assert_ok};
 use mock::*;
+use sp_core::H160;
 
 // Constant that reflects the desired vesting period for the tests
 // which is the lease period.
@@ -401,6 +402,102 @@ fn floating_point_arithmetic_works() {
         assert_noop!(
             DoraRewards::claim_rewards(Origin::signed(5)),
             Error::<Test>::NoLeftRewards
+        );
+    });
+}
+#[test]
+fn dora_rewards_register_eth_addr_works_tests() {
+    empty().execute_with(|| {
+        // The init relay block gets inserted
+        roll_to(2);
+        let init_block = DoraRewards::init_vesting_block();
+
+        assert_ok!(DoraRewards::initialize_contributors_list(
+        Origin::root(),
+        vec![
+            (4, 22u32.into()),
+            (5, 1185u32.into()),
+            (3, 25u32.into()), // will receive 75
+        ]
+    ));
+
+        assert_ok!(DoraRewards::complete_initialization(
+        Origin::root(),
+        init_block + VESTING
+    ));
+        assert_eq!(DoraRewards::total_contributors(), 3);
+
+        assert_eq!(DoraRewards::rewards_info(&3).unwrap().total_reward, 75u128);
+        // claim the first reward : 20%
+        assert_ok!(DoraRewards::claim_rewards(Origin::signed(3)));
+        assert_eq!(
+            DoraRewards::rewards_info(&3).unwrap().claimed_reward,
+            15u128
+        );
+        let eth_addr: Vec<u8> = "0x00000d1546770a69D202f4C591633c607B6Bd312".into();
+        assert_ok!(DoraRewards::register_eth_address(Origin::signed(3), eth_addr));
+
+        // assert_eq!(
+        //     DoraRewards::registered_eth_addr(&3).unwrap(),
+        //     eth_addr
+        // );
+    });
+}
+
+#[test]
+fn dora_rewards_re_register_eth_addr_works_tests() {
+    empty().execute_with(|| {
+        // The init relay block gets inserted
+        roll_to(2);
+        let init_block = DoraRewards::init_vesting_block();
+
+        assert_ok!(DoraRewards::initialize_contributors_list(
+        Origin::root(),
+        vec![
+            (4, 22u32.into()),
+            (5, 1185u32.into()),
+            (3, 25u32.into()), // will receive 75
+        ]
+    ));
+
+        assert_ok!(DoraRewards::complete_initialization(
+        Origin::root(),
+        init_block + VESTING
+    ));
+        assert_eq!(DoraRewards::total_contributors(), 3);
+
+        assert_eq!(DoraRewards::rewards_info(&3).unwrap().total_reward, 75u128);
+        // claim the first reward : 20%
+        assert_ok!(DoraRewards::claim_rewards(Origin::signed(3)));
+        assert_eq!(
+            DoraRewards::rewards_info(&3).unwrap().claimed_reward,
+            15u128
+        );
+        let eth_addr: Vec<u8> = "0x7B5C87c8f1F5D775BbBe15975dC9CbAC03cF249e".into();
+        assert_ok!(DoraRewards::register_eth_address(Origin::signed(3), eth_addr.clone()));
+
+        let mut new_eth_address_bytes: [u8; 20] = [0; 20];
+        hex::decode_to_slice(&eth_addr.clone()[2..], &mut new_eth_address_bytes);
+        let new_eth_address = H160::from_slice(&new_eth_address_bytes);
+        assert_eq!(
+            DoraRewards::registered_eth_addr(&3).unwrap(),
+            new_eth_address
+        );
+
+        let new_eth_addr: Vec<u8> = "0x811e84d5DFF0b3d54ae00730aC3f9f0910F853a6".into();
+        assert_ok!(DoraRewards::re_register_eth_address(Origin::signed(3), new_eth_addr.clone()));
+
+        let mut new_eth_address_bytes: [u8; 20] = [0; 20];
+        hex::decode_to_slice(&new_eth_addr.clone()[2..], &mut new_eth_address_bytes);
+        let new_eth_address = H160::from_slice(&new_eth_address_bytes);
+        assert_eq!(
+            DoraRewards::registered_eth_addr(&3).unwrap(),
+            new_eth_address
+        );
+
+        assert_noop!(
+            DoraRewards::re_register_eth_address(Origin::signed(10), new_eth_addr.clone()),
+            Error::<Test>::NotInContributorList
         );
     });
 }
