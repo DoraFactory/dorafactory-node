@@ -21,6 +21,7 @@ use frame_support::dispatch::DispatchError;
 use frame_support::{assert_noop, assert_ok};
 use mock::*;
 use sp_core::H160;
+use hex_literal::hex;
 
 // Constant that reflects the desired vesting period for the tests
 // which is the lease period.
@@ -434,8 +435,11 @@ fn dora_rewards_register_eth_addr_works_tests() {
             DoraRewards::rewards_info(&3).unwrap().claimed_reward,
             15u128
         );
-        let eth_addr: Vec<u8> = "0x00000d1546770a69D202f4C591633c607B6Bd312".into();
-        assert_ok!(DoraRewards::register_eth_address(Origin::signed(3), eth_addr));
+
+        let eth_addr: H160 = H160(hex!("7B5C87c8f1F5D775BbBe15975dC9CbAC03cF249e"));
+
+        assert_ok!(DoraRewards::register_eth_address(Origin::signed(3), eth_addr.clone()));
+
 
         // assert_eq!(
         //     DoraRewards::registered_eth_addr(&3).unwrap(),
@@ -473,30 +477,25 @@ fn dora_rewards_re_register_eth_addr_works_tests() {
             DoraRewards::rewards_info(&3).unwrap().claimed_reward,
             15u128
         );
-        let eth_addr: Vec<u8> = "0x7B5C87c8f1F5D775BbBe15975dC9CbAC03cF249e".into();
+        let eth_addr: H160 = H160(hex!("7B5C87c8f1F5D775BbBe15975dC9CbAC03cF249e"));
+
         assert_ok!(DoraRewards::register_eth_address(Origin::signed(3), eth_addr.clone()));
 
-        let mut new_eth_address_bytes: [u8; 20] = [0; 20];
-        hex::decode_to_slice(&eth_addr.clone()[2..], &mut new_eth_address_bytes);
-        let new_eth_address = H160::from_slice(&new_eth_address_bytes);
         assert_eq!(
             DoraRewards::registered_eth_addr(&3).unwrap(),
-            new_eth_address
+            eth_addr
         );
 
-        let new_eth_addr: Vec<u8> = "0x811e84d5DFF0b3d54ae00730aC3f9f0910F853a6".into();
-        assert_ok!(DoraRewards::re_register_eth_address(Origin::signed(3), new_eth_addr.clone()));
+        let new_eth_address: H160 = H160(hex!("811e84d5DFF0b3d54ae00730aC3f9f0910F853a6"));
+        assert_ok!(DoraRewards::re_register_eth_address(Origin::signed(3), new_eth_address.clone()));
 
-        let mut new_eth_address_bytes: [u8; 20] = [0; 20];
-        hex::decode_to_slice(&new_eth_addr.clone()[2..], &mut new_eth_address_bytes);
-        let new_eth_address = H160::from_slice(&new_eth_address_bytes);
         assert_eq!(
             DoraRewards::registered_eth_addr(&3).unwrap(),
             new_eth_address
         );
 
         assert_noop!(
-            DoraRewards::re_register_eth_address(Origin::signed(10), new_eth_addr.clone()),
+            DoraRewards::re_register_eth_address(Origin::signed(10), new_eth_address.clone()),
             Error::<Test>::NotInContributorList
         );
     });
