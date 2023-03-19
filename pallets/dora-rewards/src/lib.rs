@@ -62,7 +62,6 @@ pub use weights::WeightInfo;
 #[frame_support::pallet]
 pub mod pallet {
     use super::*;
-    use hex_literal::hex;
     use frame_support::{
         dispatch::DispatchResult,
         pallet_prelude::*,
@@ -175,12 +174,6 @@ pub mod pallet {
         NoLeftRewards,
         /// too many contributors when put the contributor list into the storage
         TooManyContributors,
-        /// is already register addr.
-        AddrIsRegistered,
-        AddrWasNotRegistered,
-        BadMetadata,
-        /// Invalid Ethereum address format.
-        InvalidEthAddress,
     }
 
     #[pallet::event]
@@ -403,23 +396,15 @@ pub mod pallet {
             let who = ensure_signed(origin)?;
 
             ensure!(ContributorsInfo::<T>::contains_key(&who.clone()), Error::<T>::NotInContributorList);
-            ensure!(!RegisterEthAddr::<T>::contains_key(&who.clone()), Error::<T>::AddrIsRegistered);
+            // ensure!(!RegisterEthAddr::<T>::contains_key(&who.clone()), Error::<T>::AddrIsRegistered);
 
-            <RegisterEthAddr<T>>::insert(who.clone(), &eth_address);
-
-            Ok(().into())
-        }
-
-        #[pallet::weight(100)]
-        pub fn re_register_eth_address(origin: OriginFor<T>, new_eth_address: H160) -> DispatchResultWithPostInfo {
-            let who = ensure_signed(origin)?;
-
-            ensure!(ContributorsInfo::<T>::contains_key(&who.clone()), Error::<T>::NotInContributorList);
-            ensure!(RegisterEthAddr::<T>::contains_key(&who.clone()), Error::<T>::AddrWasNotRegistered);
-
-            RegisterEthAddr::<T>::mutate(who.clone(), |eth_address| {
-                *eth_address = Some(new_eth_address);
-            });
+            if RegisterEthAddr::<T>::contains_key(&who.clone()) {
+                RegisterEthAddr::<T>::mutate(who.clone(), |address| {
+                    *address = Some(eth_address);
+                });
+            } else {
+                <RegisterEthAddr<T>>::insert(who.clone(), &eth_address);
+            }
 
             Ok(().into())
         }

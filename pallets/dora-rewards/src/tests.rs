@@ -487,15 +487,23 @@ fn dora_rewards_re_register_eth_addr_works_tests() {
         );
 
         let new_eth_address: H160 = H160(hex!("811e84d5DFF0b3d54ae00730aC3f9f0910F853a6"));
-        assert_ok!(DoraRewards::re_register_eth_address(Origin::signed(3), new_eth_address.clone()));
+        assert_ok!(DoraRewards::register_eth_address(Origin::signed(3), new_eth_address.clone()));
 
         assert_eq!(
             DoraRewards::registered_eth_addr(&3).unwrap(),
             new_eth_address
         );
 
+        let new_eth_address_2: H160 = H160(hex!("f24FF3a9CF04c71Dbc94D0b566f7A27B94566cac"));
+        assert_ok!(DoraRewards::register_eth_address(Origin::signed(3), new_eth_address_2.clone()));
+
+        assert_eq!(
+            DoraRewards::registered_eth_addr(&3).unwrap(),
+            new_eth_address_2
+        );
+
         assert_noop!(
-            DoraRewards::re_register_eth_address(Origin::signed(10), new_eth_address.clone()),
+            DoraRewards::register_eth_address(Origin::signed(10), new_eth_address.clone()),
             Error::<Test>::NotInContributorList
         );
     });
