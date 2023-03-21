@@ -396,7 +396,6 @@ pub mod pallet {
             let who = ensure_signed(origin)?;
 
             ensure!(ContributorsInfo::<T>::contains_key(&who.clone()), Error::<T>::NotInContributorList);
-            // ensure!(!RegisterEthAddr::<T>::contains_key(&who.clone()), Error::<T>::AddrIsRegistered);
 
             if RegisterEthAddr::<T>::contains_key(&who.clone()) {
                 RegisterEthAddr::<T>::mutate(who.clone(), |address| {
