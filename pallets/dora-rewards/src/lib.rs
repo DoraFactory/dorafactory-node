@@ -150,10 +150,8 @@ pub mod pallet {
 
     #[pallet::storage]
     #[pallet::getter(fn total_registers)]
-    /// store total number of contributors
     type TotalRegisters<T: Config> = StorageValue<_, u32, ValueQuery>;
 
-    /// Record contributor's info (total reward, claimed reward, track block number)
     #[pallet::storage]
     #[pallet::getter(fn registered_eth_addr)]
     type RegisterEthAddr<T: Config> =
