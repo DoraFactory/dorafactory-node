@@ -149,10 +149,6 @@ pub mod pallet {
         StorageMap<_, Blake2_128Concat, T::AccountId, RewardInfo<T>, OptionQuery>;
 
     #[pallet::storage]
-    #[pallet::getter(fn total_registers)]
-    type TotalRegisters<T: Config> = StorageValue<_, u32, ValueQuery>;
-
-    #[pallet::storage]
     #[pallet::getter(fn registered_eth_addr)]
     type RegisterEthAddr<T: Config> =
         StorageMap<_, Blake2_128Concat, T::AccountId, H160>;
