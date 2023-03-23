@@ -74,6 +74,7 @@ pub mod pallet {
         Perbill, SaturatedConversion,
     };
     use sp_std::{prelude::*, vec::Vec};
+    use sp_core::H160;
 
     pub type BalanceOf<T> =
         <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
@@ -146,6 +147,11 @@ pub mod pallet {
     #[pallet::getter(fn rewards_info)]
     type ContributorsInfo<T: Config> =
         StorageMap<_, Blake2_128Concat, T::AccountId, RewardInfo<T>, OptionQuery>;
+
+    #[pallet::storage]
+    #[pallet::getter(fn registered_eth_addr)]
+    type RegisterEthAddr<T: Config> =
+        StorageMap<_, Blake2_128Concat, T::AccountId, H160>;
 
     // Errors.
     #[pallet::error]
@@ -375,6 +381,23 @@ pub mod pallet {
             <EndVestingBlock<T>>::put(lease_ending_block.clone());
             <Initialized<T>>::put(true);
             Self::deposit_event(<Event<T>>::EndleasingBlock(lease_ending_block.clone()));
+
+            Ok(().into())
+        }
+
+        #[pallet::weight(100)]
+        pub fn register_eth_address(origin: OriginFor<T>, eth_address: H160) -> DispatchResultWithPostInfo {
+            let who = ensure_signed(origin)?;
+
+            ensure!(ContributorsInfo::<T>::contains_key(&who.clone()), Error::<T>::NotInContributorList);
+
+            if RegisterEthAddr::<T>::contains_key(&who.clone()) {
+                RegisterEthAddr::<T>::mutate(who.clone(), |address| {
+                    *address = Some(eth_address);
+                });
+            } else {
+                <RegisterEthAddr<T>>::insert(who.clone(), &eth_address);
+            }
 
             Ok(().into())
         }

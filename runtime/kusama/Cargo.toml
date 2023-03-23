@@ -93,7 +93,7 @@ dao-core = { git = "https://github.com/DoraFactory/dorafactory-dao-core", branch
 
 # Local Dependencies
 pallet-qf = { path = "../../pallets/quadratic-funding", default-features = false , version = "0.2.0" }
-pallet-dora-rewards = { path = "../../pallets/dora-rewards", default-features = false , version = "0.2.0" }
+pallet-dora-rewards = { path = "../../pallets/dora-rewards", default-features = false , version = "0.2.1" }
 
 primitives = { package = "primitives", path = "../../primitives", default-features = false }
 

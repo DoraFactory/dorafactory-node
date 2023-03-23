@@ -5505,7 +5505,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-dora-rewards"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "cumulus-pallet-parachain-system",
  "cumulus-primitives-core",
@@ -5514,6 +5514,7 @@ dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
+ "hex-literal",
  "log",
  "pallet-balances",
  "parity-scale-codec",
