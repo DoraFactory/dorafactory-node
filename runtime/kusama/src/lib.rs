@@ -822,7 +822,7 @@ construct_runtime!(
 
 
         // Monetary stuff.
-        Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>} = 10,
+        Balances: pallet_balances::{Pallet, Storage, Config<T>, Event<T>} = 10,
         TransactionPayment: pallet_transaction_payment::{Pallet, Storage, Event<T>} = 11,
 
         // Collator support. The order of these 4 are important and shall not change.
